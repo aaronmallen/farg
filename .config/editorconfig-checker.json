@@ -1,0 +1,9 @@
+{
+  "Exclude": [
+    ".cargo",
+    ".mise",
+    ".mise-data",
+    "coverage",
+    "target"
+  ]
+}

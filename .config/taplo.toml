@@ -1,0 +1,12 @@
+exclude = [
+  ".cargo/**",
+  ".git/**",
+  ".jj/**",
+  ".mise/**",
+  ".mise-data/**",
+  "Cargo.toml",
+  "coverage/**",
+  "target/**",
+  "tomlfmt.toml",
+]
+include = ["**/*.toml"]

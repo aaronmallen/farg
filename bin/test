@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+#MISE description="Run all tests"
+#MISE alias=["t"]
+
+set -e
+
+cargo llvm-cov nextest --summary-only
+cargo llvm-cov report --html --output-dir coverage
+cargo llvm-cov report --cobertura --output-path coverage/cobertura.xml

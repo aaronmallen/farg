@@ -1,0 +1,8 @@
+[package]
+authors = ["Aaron Allen <hello@aaronmallen.me>"]
+description = "A Rust library for colorimetry, color space conversions, and color manipulation."
+edition = "2024"
+license = "MIT"
+name = "farg"
+repository = "https://git.aaronmallen.dev/farg/farg"
+version = "0.1.0"

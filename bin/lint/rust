@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+#MISE description="Lint _default rust files"
+#MISE tools.rust="nightly"
+#MISE alias=["l:rust", "l:rs", "lint:rs"]
+
+set -e
+
+cp .config/tomlfmt.toml tomlfmt.toml
+cargo sort -w --check
+rm tomlfmt.toml
+cargo +nightly fmt --all --check -- --config-path .config/rustfmt.toml
+cargo clippy
