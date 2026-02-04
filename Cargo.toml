@@ -19,6 +19,7 @@ all-cats = [
   "cat-sharp",
   "cat-von-kries",
 ]
+all-chromaticity = ["chromaticity-upvp", "chromaticity-uv"]
 cat-bradford = []
 cat-cat02 = []
 cat-cat16 = []
@@ -29,8 +30,10 @@ cat-hpe = ["cat-hunt-pointer-estevez"]
 cat-hunt-pointer-estevez = []
 cat-sharp = []
 cat-von-kries = []
+chromaticity-upvp = []
+chromaticity-uv = []
 default = ["cat-bradford"]
-full = ["all-cats"]
+full = ["all-cats", "all-chromaticity"]
 
 [dev-dependencies]
 pretty_assertions = "1.4"

@@ -1,4 +1,5 @@
 mod chromatic_adaptation_transform;
+pub mod chromaticity;
 mod component;
 mod context;
 mod matrix;

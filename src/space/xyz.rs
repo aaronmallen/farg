@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use super::{ColorSpace, Lms};
-use crate::{ColorimetricContext, component::Component};
+use crate::{ColorimetricContext, chromaticity::Xy, component::Component};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Xyz {
@@ -54,6 +54,17 @@ impl Xyz {
     let mut xyz = *self;
     xyz.attenuate(factor);
     xyz
+  }
+
+  pub fn chromaticity(&self) -> Xy {
+    let [x, y, z] = self.components();
+    let sum = x + y + z;
+
+    if sum == 0.0 {
+      Xy::new(0.0, 0.0)
+    } else {
+      Xy::new(x / sum, y / sum)
+    }
   }
 
   pub fn components(&self) -> [f64; 3] {
@@ -429,6 +440,39 @@ mod test {
       assert_eq!(result.y(), 0.4);
       assert_eq!(result.z(), 0.1);
       assert_eq!(xyz.x(), 0.4);
+    }
+  }
+
+  mod chromaticity {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+    use crate::chromaticity::Xy;
+
+    #[test]
+    fn it_computes_chromaticity_coordinates() {
+      let xyz = Xyz::new(0.95047, 1.0, 1.08883);
+      let xy = xyz.chromaticity();
+      let sum = 0.95047 + 1.0 + 1.08883;
+
+      assert_eq!(xy.x(), 0.95047 / sum);
+      assert_eq!(xy.y(), 1.0 / sum);
+    }
+
+    #[test]
+    fn it_handles_zero_sum() {
+      let xyz = Xyz::new(0.0, 0.0, 0.0);
+      let xy = xyz.chromaticity();
+
+      assert_eq!(xy, Xy::new(0.0, 0.0));
+    }
+
+    #[test]
+    fn it_preserves_chromaticity_at_different_luminances() {
+      let xyz1 = Xyz::new(0.95047, 1.0, 1.08883);
+      let xyz2 = Xyz::new(0.95047 * 0.5, 1.0 * 0.5, 1.08883 * 0.5);
+
+      assert_eq!(xyz1.chromaticity(), xyz2.chromaticity());
     }
   }
 
@@ -934,9 +978,8 @@ mod test {
   }
 
   mod with_context {
-    use crate::Cat;
-
     use super::*;
+    use crate::Cat;
 
     #[test]
     fn it_returns_xyz_with_new_context() {

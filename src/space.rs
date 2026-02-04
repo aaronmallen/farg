@@ -4,7 +4,7 @@ mod xyz;
 pub use lms::Lms;
 pub use xyz::Xyz;
 
-use crate::component::Component;
+use crate::{chromaticity::Xy, component::Component};
 
 pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   fn amplified_by(&self, factor: impl Into<Component>) -> Self {
@@ -21,6 +21,10 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
 
   fn attenuated_by(&self, factor: impl Into<Component>) -> Self {
     Self::from(self.to_xyz().attenuated_by(factor))
+  }
+
+  fn chromaticity(&self) -> Xy {
+    self.to_xyz().chromaticity()
   }
 
   fn components(&self) -> [f64; N];
