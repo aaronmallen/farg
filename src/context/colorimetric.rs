@@ -1,20 +1,25 @@
-use crate::{Cat, Observer};
+use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
+
+use crate::{Cat, Illuminant, Observer, space::Xyz};
 
 #[derive(Clone, Copy, Debug)]
 pub struct ColorimetricContext {
   cat: Cat,
+  illuminant: Illuminant,
   observer: Observer,
 }
 
 impl ColorimetricContext {
   pub const DEFAULT: Self = Self {
     cat: Cat::DEFAULT,
+    illuminant: Illuminant::DEFAULT,
     observer: Observer::DEFAULT,
   };
 
   pub const fn new() -> Self {
     Self {
       cat: Cat::DEFAULT,
+      illuminant: Illuminant::DEFAULT,
       observer: Observer::DEFAULT,
     }
   }
@@ -23,8 +28,20 @@ impl ColorimetricContext {
     &self.cat
   }
 
+  pub fn illuminant(&self) -> &Illuminant {
+    &self.illuminant
+  }
+
   pub fn observer(&self) -> &Observer {
     &self.observer
+  }
+
+  pub fn name(&self) -> String {
+    format!("{} {}", self.illuminant.name(), self.observer.name())
+  }
+
+  pub fn reference_white(&self) -> Xyz {
+    self.observer.cmf().calculate_reference_white(&self.illuminant.spd())
   }
 
   pub const fn with_cat(&self, cat: Cat) -> Self {
@@ -38,11 +55,24 @@ impl ColorimetricContext {
     self.with_cat(cat)
   }
 
+  pub const fn with_illuminant(&self, illuminant: Illuminant) -> Self {
+    Self {
+      illuminant,
+      ..*self
+    }
+  }
+
   pub const fn with_observer(&self, observer: Observer) -> Self {
     Self {
       observer,
       ..*self
     }
+  }
+}
+
+impl Display for ColorimetricContext {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    write!(f, "{}", self.name())
   }
 }
 
@@ -62,7 +92,61 @@ mod test {
     #[test]
     fn it_returns_the_default_context() {
       let ctx = ColorimetricContext::default();
+
       assert_eq!(ctx.cat().name(), Cat::DEFAULT.name());
+    }
+  }
+
+  mod display {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_displays_name() {
+      let ctx = ColorimetricContext::default();
+
+      assert_eq!(format!("{}", ctx), ctx.name());
+    }
+  }
+
+  mod illuminant {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_the_illuminant() {
+      let ctx = ColorimetricContext::default();
+
+      assert_eq!(ctx.illuminant().name(), Illuminant::DEFAULT.name());
+    }
+  }
+
+  mod name {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_formats_illuminant_and_observer_names() {
+      let ctx = ColorimetricContext::default();
+
+      assert_eq!(ctx.name(), "D65 CIE 1931 2°");
+    }
+  }
+
+  mod reference_white {
+    use super::*;
+
+    #[test]
+    fn it_calculates_reference_white_from_illuminant_and_observer() {
+      let ctx = ColorimetricContext::default();
+      let white = ctx.reference_white();
+
+      assert!((white.y() - 1.0).abs() < 0.01);
+      assert!(white.x() > 0.9);
+      assert!(white.z() > 1.0);
     }
   }
 
@@ -73,6 +157,7 @@ mod test {
     fn it_returns_context_with_new_cat() {
       let ctx = ColorimetricContext::new();
       let new_ctx = ctx.with_cat(Cat::XYZ_SCALING);
+
       assert_eq!(new_ctx.cat().name(), "XYZ Scaling");
     }
   }
@@ -86,6 +171,35 @@ mod test {
       let new_ctx = ctx.with_chromatic_adaptation_transform(Cat::XYZ_SCALING);
 
       assert_eq!(new_ctx.cat().name(), "XYZ Scaling");
+    }
+  }
+
+  mod with_illuminant {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+    use crate::{illuminant::IlluminantType, spectral::Spd};
+
+    static TEST_SPD: &[(u32, f64)] = &[(380, 100.0), (400, 100.0), (420, 100.0)];
+
+    #[test]
+    fn it_returns_context_with_new_illuminant() {
+      let illuminant = Illuminant::new("Custom", IlluminantType::Custom, Spd::new(TEST_SPD));
+      let ctx = ColorimetricContext::new();
+      let new_ctx = ctx.with_illuminant(illuminant);
+
+      assert_eq!(new_ctx.illuminant().name(), "Custom");
+    }
+
+    #[test]
+    fn it_preserves_other_fields() {
+      let illuminant = Illuminant::new("Custom", IlluminantType::Custom, Spd::new(TEST_SPD));
+      let ctx = ColorimetricContext::new().with_cat(Cat::XYZ_SCALING);
+      let new_ctx = ctx.with_illuminant(illuminant);
+
+      assert_eq!(new_ctx.cat().name(), "XYZ Scaling");
+      assert_eq!(new_ctx.illuminant().name(), "Custom");
+      assert_eq!(new_ctx.observer().name(), Observer::DEFAULT.name());
     }
   }
 

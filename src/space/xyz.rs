@@ -30,6 +30,20 @@ impl Xyz {
     }
   }
 
+  pub fn adapt_to(&self, context: ColorimetricContext) -> Self {
+    let reference_white = self.context.reference_white();
+    let target_white = context.reference_white();
+
+    if reference_white == target_white {
+      return self.with_context(context);
+    }
+
+    context
+      .cat()
+      .adapt(*self, reference_white, target_white)
+      .with_context(context)
+  }
+
   pub fn amplified_by(&self, factor: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.amplify(factor);
@@ -357,6 +371,93 @@ where
 #[cfg(test)]
 mod test {
   use super::*;
+
+  mod adapt_to {
+    use super::*;
+    use crate::{Illuminant, illuminant::IlluminantType, spectral::Spd};
+
+    static TEST_SPD_A: &[(u32, f64)] = &[
+      (380, 9.80),
+      (400, 14.71),
+      (420, 20.99),
+      (440, 28.70),
+      (460, 37.81),
+      (480, 48.24),
+      (500, 59.86),
+      (520, 72.50),
+      (540, 85.95),
+      (560, 100.00),
+      (580, 114.44),
+      (600, 129.04),
+      (620, 143.62),
+      (640, 157.98),
+      (660, 171.96),
+      (680, 185.43),
+      (700, 198.26),
+      (720, 210.36),
+      (740, 221.67),
+      (760, 232.12),
+      (780, 241.68),
+    ];
+
+    static TEST_SPD_B: &[(u32, f64)] = &[
+      (380, 49.98),
+      (400, 82.75),
+      (420, 91.49),
+      (440, 93.43),
+      (460, 104.86),
+      (480, 117.01),
+      (500, 100.00),
+      (520, 104.78),
+      (540, 105.36),
+      (560, 100.00),
+      (580, 95.79),
+      (600, 88.69),
+      (620, 90.01),
+      (640, 85.49),
+      (660, 81.68),
+      (680, 71.61),
+      (700, 64.15),
+      (720, 57.26),
+      (740, 51.85),
+      (760, 43.06),
+      (780, 37.21),
+    ];
+
+    #[test]
+    fn it_returns_same_values_when_white_points_match() {
+      let illuminant = Illuminant::new("Test A", IlluminantType::Custom, Spd::new(TEST_SPD_A));
+      let xyz = Xyz::new(0.5, 0.5, 0.5).with_context(ColorimetricContext::new().with_illuminant(illuminant));
+      let same_context = ColorimetricContext::new().with_illuminant(illuminant);
+      let adapted = xyz.adapt_to(same_context);
+
+      assert!((adapted.x() - xyz.x()).abs() < 1e-10);
+      assert!((adapted.y() - xyz.y()).abs() < 1e-10);
+      assert!((adapted.z() - xyz.z()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_changes_values_when_adapting_to_different_illuminant() {
+      let illuminant_a = Illuminant::new("Test A", IlluminantType::Custom, Spd::new(TEST_SPD_A));
+      let illuminant_b = Illuminant::new("Test B", IlluminantType::Custom, Spd::new(TEST_SPD_B));
+      let xyz = Xyz::new(0.5, 0.5, 0.5).with_context(ColorimetricContext::new().with_illuminant(illuminant_a));
+      let target_context = ColorimetricContext::new().with_illuminant(illuminant_b);
+      let adapted = xyz.adapt_to(target_context);
+
+      assert!(adapted.x() != xyz.x() || adapted.z() != xyz.z());
+    }
+
+    #[test]
+    fn it_updates_context_after_adaptation() {
+      let illuminant_a = Illuminant::new("Test A", IlluminantType::Custom, Spd::new(TEST_SPD_A));
+      let illuminant_b = Illuminant::new("Test B", IlluminantType::Custom, Spd::new(TEST_SPD_B));
+      let xyz = Xyz::new(0.5, 0.5, 0.5).with_context(ColorimetricContext::new().with_illuminant(illuminant_a));
+      let target_context = ColorimetricContext::new().with_illuminant(illuminant_b);
+      let adapted = xyz.adapt_to(target_context);
+
+      assert_eq!(adapted.context().illuminant().name(), "Test B");
+    }
+  }
 
   mod amplified_by {
     use pretty_assertions::assert_eq;

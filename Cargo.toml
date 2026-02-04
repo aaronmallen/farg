@@ -20,6 +20,14 @@ all-cats = [
   "cat-von-kries",
 ]
 all-chromaticity = ["chromaticity-upvp", "chromaticity-uv"]
+all-illuminants = [
+  "illuminant-daylight",
+  "illuminant-fluorescent",
+  "illuminant-fluorescent-3",
+  "illuminant-hp",
+  "illuminant-led",
+  "illuminant-standard",
+]
 all-observers = [
   "observer-cie-1931-judd-2d",
   "observer-cie-1931-judd-vos-2d",
@@ -42,7 +50,114 @@ cat-von-kries = []
 chromaticity-upvp = []
 chromaticity-uv = []
 default = ["cat-bradford"]
-full = ["all-cats", "all-chromaticity", "all-observers"]
+full = ["all-cats", "all-chromaticity", "all-illuminants", "all-observers"]
+illuminant-a = []
+illuminant-b = []
+illuminant-c = []
+illuminant-d50 = []
+illuminant-d55 = []
+illuminant-d75 = []
+illuminant-daylight = [
+  "illuminant-d50",
+  "illuminant-d55",
+  "illuminant-d75",
+  "illuminant-id50",
+  "illuminant-id65",
+]
+illuminant-e = []
+illuminant-fl1 = []
+illuminant-fl10 = []
+illuminant-fl11 = []
+illuminant-fl12 = []
+illuminant-fl2 = []
+illuminant-fl3 = []
+illuminant-fl3-1 = []
+illuminant-fl3-10 = []
+illuminant-fl3-11 = []
+illuminant-fl3-12 = []
+illuminant-fl3-13 = []
+illuminant-fl3-14 = []
+illuminant-fl3-15 = []
+illuminant-fl3-2 = []
+illuminant-fl3-3 = []
+illuminant-fl3-4 = []
+illuminant-fl3-5 = []
+illuminant-fl3-6 = []
+illuminant-fl3-7 = []
+illuminant-fl3-8 = []
+illuminant-fl3-9 = []
+illuminant-fl4 = []
+illuminant-fl5 = []
+illuminant-fl6 = []
+illuminant-fl7 = []
+illuminant-fl8 = []
+illuminant-fl9 = []
+illuminant-fluorescent = [
+  "illuminant-fl1",
+  "illuminant-fl10",
+  "illuminant-fl11",
+  "illuminant-fl12",
+  "illuminant-fl2",
+  "illuminant-fl3",
+  "illuminant-fl4",
+  "illuminant-fl5",
+  "illuminant-fl6",
+  "illuminant-fl7",
+  "illuminant-fl8",
+  "illuminant-fl9",
+]
+illuminant-fluorescent-3 = [
+  "illuminant-fl3-1",
+  "illuminant-fl3-10",
+  "illuminant-fl3-11",
+  "illuminant-fl3-12",
+  "illuminant-fl3-13",
+  "illuminant-fl3-14",
+  "illuminant-fl3-15",
+  "illuminant-fl3-2",
+  "illuminant-fl3-3",
+  "illuminant-fl3-4",
+  "illuminant-fl3-5",
+  "illuminant-fl3-6",
+  "illuminant-fl3-7",
+  "illuminant-fl3-8",
+  "illuminant-fl3-9",
+]
+illuminant-hp = [
+  "illuminant-hp1",
+  "illuminant-hp2",
+  "illuminant-hp3",
+  "illuminant-hp4",
+  "illuminant-hp5",
+]
+illuminant-hp1 = []
+illuminant-hp2 = []
+illuminant-hp3 = []
+illuminant-hp4 = []
+illuminant-hp5 = []
+illuminant-id50 = []
+illuminant-id65 = []
+illuminant-led = [
+  "illuminant-led-b1",
+  "illuminant-led-b2",
+  "illuminant-led-b3",
+  "illuminant-led-b4",
+  "illuminant-led-b5",
+  "illuminant-led-bh1",
+  "illuminant-led-rgb1",
+  "illuminant-led-v1",
+  "illuminant-led-v2",
+]
+illuminant-led-b1 = []
+illuminant-led-b2 = []
+illuminant-led-b3 = []
+illuminant-led-b4 = []
+illuminant-led-b5 = []
+illuminant-led-bh1 = []
+illuminant-led-rgb1 = []
+illuminant-led-v1 = []
+illuminant-led-v2 = []
+illuminant-standard = ["illuminant-a", "illuminant-b", "illuminant-c", "illuminant-e"]
 observer-cie-1931-judd-2d = []
 observer-cie-1931-judd-vos-2d = []
 observer-cie-1964-10d = []
