@@ -20,6 +20,15 @@ all-cats = [
   "cat-von-kries",
 ]
 all-chromaticity = ["chromaticity-upvp", "chromaticity-uv"]
+all-observers = [
+  "observer-cie-1931-judd-2d",
+  "observer-cie-1931-judd-vos-2d",
+  "observer-cie-1964-10d",
+  "observer-cie-2006-10d",
+  "observer-cie-2006-2d",
+  "observer-stockman-sharpe-10d",
+  "observer-stockman-sharpe-2d",
+]
 cat-bradford = []
 cat-cat02 = []
 cat-cat16 = []
@@ -33,7 +42,14 @@ cat-von-kries = []
 chromaticity-upvp = []
 chromaticity-uv = []
 default = ["cat-bradford"]
-full = ["all-cats", "all-chromaticity"]
+full = ["all-cats", "all-chromaticity", "all-observers"]
+observer-cie-1931-judd-2d = []
+observer-cie-1931-judd-vos-2d = []
+observer-cie-1964-10d = []
+observer-cie-2006-10d = []
+observer-cie-2006-2d = []
+observer-stockman-sharpe-10d = []
+observer-stockman-sharpe-2d = []
 
 [dev-dependencies]
 pretty_assertions = "1.4"
