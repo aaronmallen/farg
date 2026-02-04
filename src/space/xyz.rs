@@ -1,10 +1,11 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
-use super::ColorSpace;
-use crate::component::Component;
+use super::{ColorSpace, Lms};
+use crate::{ColorimetricContext, component::Component};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Xyz {
+  context: ColorimetricContext,
   x: Component,
   y: Component,
   z: Component,
@@ -13,6 +14,7 @@ pub struct Xyz {
 impl Xyz {
   pub fn new(x: impl Into<Component>, y: impl Into<Component>, z: impl Into<Component>) -> Self {
     Self {
+      context: ColorimetricContext::default(),
       x: x.into(),
       y: y.into(),
       z: z.into(),
@@ -21,6 +23,7 @@ impl Xyz {
 
   pub const fn new_const(x: f64, y: f64, z: f64) -> Self {
     Self {
+      context: ColorimetricContext::DEFAULT,
       x: Component::new_const(x),
       y: Component::new_const(y),
       z: Component::new_const(z),
@@ -55,6 +58,10 @@ impl Xyz {
 
   pub fn components(&self) -> [f64; 3] {
     [self.x.0, self.y.0, self.z.0]
+  }
+
+  pub fn context(&self) -> &ColorimetricContext {
+    &self.context
   }
 
   pub fn decrement_luminance(&mut self, amount: impl Into<Component>) {
@@ -147,6 +154,17 @@ impl Xyz {
     self.z = z.into();
   }
 
+  pub fn to_lms(&self) -> Lms {
+    Lms::from(self.context.cat().matrix() * self.components()).with_context(self.context)
+  }
+
+  pub fn with_context(&self, context: ColorimetricContext) -> Self {
+    Self {
+      context,
+      ..*self
+    }
+  }
+
   pub fn with_luminance(&self, luminance: impl Into<Component>) -> Self {
     let luminance = luminance.into();
 
@@ -163,6 +181,7 @@ impl Xyz {
       x: self.x * factor,
       y: luminance,
       z: self.z * factor,
+      ..*self
     }
   }
 
@@ -305,6 +324,12 @@ where
 {
   fn from([x, y, z]: [T; 3]) -> Self {
     Self::new(x, y, z)
+  }
+}
+
+impl From<Lms> for Xyz {
+  fn from(lms: Lms) -> Self {
+    lms.to_xyz()
   }
 }
 
@@ -515,7 +540,7 @@ mod test {
     fn it_handles_zero_luminance_without_scaling() {
       let mut xyz = Xyz::new(0.0, 0.0, 0.0);
       xyz.increment_luminance(0.1);
-      
+
       assert_eq!(xyz.y(), 0.1);
       assert_eq!(xyz.x(), 0.0);
       assert_eq!(xyz.z(), 0.0);
@@ -879,6 +904,50 @@ mod test {
       let result = xyz.with_z_scaled_by(2.0);
 
       assert_eq!(result.z(), 0.6);
+    }
+  }
+
+  mod to_lms {
+    use super::*;
+
+    #[test]
+    fn it_converts_to_lms() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5);
+      let lms = xyz.to_lms();
+
+      assert!(lms.l().is_finite());
+      assert!(lms.m().is_finite());
+      assert!(lms.s().is_finite());
+    }
+
+    #[test]
+    fn it_preserves_context() {
+      use crate::Cat;
+
+      let xyz = Xyz::new(0.5, 0.5, 0.5);
+      let ctx = xyz.context().with_cat(Cat::XYZ_SCALING);
+      let xyz_with_ctx = xyz.with_context(ctx);
+      let lms = xyz_with_ctx.to_lms();
+
+      assert_eq!(lms.context().cat().name(), "XYZ Scaling");
+    }
+  }
+
+  mod with_context {
+    use crate::Cat;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_xyz_with_new_context() {
+      let xyz = Xyz::new(0.1, 0.2, 0.3);
+      let new_ctx = xyz.context().with_cat(Cat::XYZ_SCALING);
+      let result = xyz.with_context(new_ctx);
+
+      assert_eq!(result.context().cat().name(), "XYZ Scaling");
+      assert_eq!(result.x(), 0.1);
+      assert_eq!(result.y(), 0.2);
+      assert_eq!(result.z(), 0.3);
     }
   }
 }

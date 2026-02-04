@@ -1,5 +1,7 @@
+mod lms;
 mod xyz;
 
+pub use lms::Lms;
 pub use xyz::Xyz;
 
 use crate::component::Component;
@@ -43,6 +45,10 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
 
   fn set_luminance(&mut self, luminance: impl Into<Component>) {
     self.set_components(self.with_luminance(luminance).components())
+  }
+
+  fn to_lms(&self) -> Lms {
+    self.to_xyz().to_lms()
   }
 
   fn to_xyz(&self) -> Xyz;

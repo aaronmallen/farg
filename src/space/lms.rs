@@ -1,0 +1,739 @@
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
+use super::{ColorSpace, Xyz};
+use crate::{ColorimetricContext, component::Component};
+
+#[derive(Clone, Copy, Debug)]
+pub struct Lms {
+  context: ColorimetricContext,
+  l: Component,
+  m: Component,
+  s: Component,
+}
+
+impl Lms {
+  pub fn new(l: impl Into<Component>, m: impl Into<Component>, s: impl Into<Component>) -> Self {
+    Self {
+      context: ColorimetricContext::default(),
+      l: l.into(),
+      m: m.into(),
+      s: s.into(),
+    }
+  }
+
+  pub const fn new_const(l: f64, m: f64, s: f64) -> Self {
+    Self {
+      context: ColorimetricContext::DEFAULT,
+      l: Component::new_const(l),
+      m: Component::new_const(m),
+      s: Component::new_const(s),
+    }
+  }
+
+  pub fn components(&self) -> [f64; 3] {
+    [self.l.0, self.m.0, self.s.0]
+  }
+
+  pub fn context(&self) -> &ColorimetricContext {
+    &self.context
+  }
+
+  pub fn decrement_l(&mut self, amount: impl Into<Component>) {
+    self.l -= amount.into();
+  }
+
+  pub fn decrement_long(&mut self, amount: impl Into<Component>) {
+    self.decrement_l(amount)
+  }
+
+  pub fn decrement_m(&mut self, amount: impl Into<Component>) {
+    self.m -= amount.into();
+  }
+
+  pub fn decrement_medium(&mut self, amount: impl Into<Component>) {
+    self.decrement_m(amount)
+  }
+
+  pub fn decrement_s(&mut self, amount: impl Into<Component>) {
+    self.s -= amount.into();
+  }
+
+  pub fn decrement_short(&mut self, amount: impl Into<Component>) {
+    self.decrement_s(amount)
+  }
+
+  pub fn increment_l(&mut self, amount: impl Into<Component>) {
+    self.l += amount.into();
+  }
+
+  pub fn increment_long(&mut self, amount: impl Into<Component>) {
+    self.increment_l(amount)
+  }
+
+  pub fn increment_m(&mut self, amount: impl Into<Component>) {
+    self.m += amount.into();
+  }
+
+  pub fn increment_medium(&mut self, amount: impl Into<Component>) {
+    self.increment_m(amount)
+  }
+
+  pub fn increment_s(&mut self, amount: impl Into<Component>) {
+    self.s += amount.into();
+  }
+
+  pub fn increment_short(&mut self, amount: impl Into<Component>) {
+    self.increment_s(amount)
+  }
+
+  pub fn l(&self) -> f64 {
+    self.l.0
+  }
+
+  pub fn long(&self) -> f64 {
+    self.l()
+  }
+
+  pub fn m(&self) -> f64 {
+    self.m.0
+  }
+
+  pub fn medium(&self) -> f64 {
+    self.m()
+  }
+
+  pub fn s(&self) -> f64 {
+    self.s.0
+  }
+
+  pub fn scale_l(&mut self, factor: impl Into<Component>) {
+    self.l *= factor.into();
+  }
+
+  pub fn scale_long(&mut self, factor: impl Into<Component>) {
+    self.scale_l(factor)
+  }
+
+  pub fn scale_m(&mut self, factor: impl Into<Component>) {
+    self.m *= factor.into();
+  }
+
+  pub fn scale_medium(&mut self, factor: impl Into<Component>) {
+    self.scale_m(factor)
+  }
+
+  pub fn scale_s(&mut self, factor: impl Into<Component>) {
+    self.s *= factor.into();
+  }
+
+  pub fn scale_short(&mut self, factor: impl Into<Component>) {
+    self.scale_s(factor)
+  }
+
+  pub fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
+    self.set_l(components[0].clone());
+    self.set_m(components[1].clone());
+    self.set_s(components[2].clone());
+  }
+
+  pub fn set_l(&mut self, l: impl Into<Component>) {
+    self.l = l.into();
+  }
+
+  pub fn set_long(&mut self, l: impl Into<Component>) {
+    self.set_l(l)
+  }
+
+  pub fn set_m(&mut self, m: impl Into<Component>) {
+    self.m = m.into();
+  }
+
+  pub fn set_medium(&mut self, m: impl Into<Component>) {
+    self.set_m(m)
+  }
+
+  pub fn set_s(&mut self, s: impl Into<Component>) {
+    self.s = s.into();
+  }
+
+  pub fn set_short(&mut self, s: impl Into<Component>) {
+    self.set_s(s)
+  }
+
+  pub fn short(&self) -> f64 {
+    self.s()
+  }
+
+  pub fn to_xyz(&self) -> Xyz {
+    Xyz::from(self.context.cat().inverse() * self.components()).with_context(self.context)
+  }
+
+  pub fn with_context(&self, context: ColorimetricContext) -> Self {
+    Self {
+      context,
+      ..*self
+    }
+  }
+
+  pub fn with_l(&self, l: impl Into<Component>) -> Self {
+    Self {
+      l: l.into(),
+      ..*self
+    }
+  }
+
+  pub fn with_long(&self, l: impl Into<Component>) -> Self {
+    self.with_l(l)
+  }
+
+  pub fn with_l_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    let mut lms = *self;
+    lms.decrement_l(amount);
+    lms
+  }
+
+  pub fn with_long_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_l_decremented_by(amount)
+  }
+
+  pub fn with_l_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    let mut lms = *self;
+    lms.increment_l(amount);
+    lms
+  }
+
+  pub fn with_long_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_l_incremented_by(amount)
+  }
+
+  pub fn with_l_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    let mut lms = *self;
+    lms.scale_l(factor);
+    lms
+  }
+
+  pub fn with_long_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    self.with_l_scaled_by(factor)
+  }
+
+  pub fn with_m(&self, m: impl Into<Component>) -> Self {
+    Self {
+      m: m.into(),
+      ..*self
+    }
+  }
+
+  pub fn with_medium(&self, m: impl Into<Component>) -> Self {
+    self.with_m(m)
+  }
+
+  pub fn with_m_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    let mut lms = *self;
+    lms.decrement_m(amount);
+    lms
+  }
+
+  pub fn with_medium_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_m_decremented_by(amount)
+  }
+
+  pub fn with_m_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    let mut lms = *self;
+    lms.increment_m(amount);
+    lms
+  }
+
+  pub fn with_medium_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_m_incremented_by(amount)
+  }
+
+  pub fn with_m_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    let mut lms = *self;
+    lms.scale_m(factor);
+    lms
+  }
+
+  pub fn with_medium_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    self.with_m_scaled_by(factor)
+  }
+
+  pub fn with_s(&self, s: impl Into<Component>) -> Self {
+    Self {
+      s: s.into(),
+      ..*self
+    }
+  }
+
+  pub fn with_short(&self, s: impl Into<Component>) -> Self {
+    self.with_s(s)
+  }
+
+  pub fn with_s_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    let mut lms = *self;
+    lms.decrement_s(amount);
+    lms
+  }
+
+  pub fn with_short_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_s_decremented_by(amount)
+  }
+
+  pub fn with_s_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    let mut lms = *self;
+    lms.increment_s(amount);
+    lms
+  }
+
+  pub fn with_short_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_s_incremented_by(amount)
+  }
+
+  pub fn with_s_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    let mut lms = *self;
+    lms.scale_s(factor);
+    lms
+  }
+
+  pub fn with_short_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    self.with_s_scaled_by(factor)
+  }
+}
+
+impl ColorSpace<3> for Lms {
+  fn components(&self) -> [f64; 3] {
+    self.components()
+  }
+
+  fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
+    self.set_components(components)
+  }
+
+  fn to_lms(&self) -> Self {
+    *self
+  }
+
+  fn to_xyz(&self) -> Xyz {
+    self.to_xyz()
+  }
+}
+
+impl Display for Lms {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    write!(
+      f,
+      "LMS({:.precision$}, {:.precision$}, {:.precision$})",
+      self.l,
+      self.m,
+      self.s,
+      precision = f.precision().unwrap_or(4)
+    )
+  }
+}
+
+impl<T> From<[T; 3]> for Lms
+where
+  T: Into<Component>,
+{
+  fn from([l, m, s]: [T; 3]) -> Self {
+    Self::new(l, m, s)
+  }
+}
+
+impl From<Xyz> for Lms {
+  fn from(xyz: Xyz) -> Self {
+    xyz.to_lms()
+  }
+}
+
+impl<T> PartialEq<T> for Lms
+where
+  T: Into<Lms> + Copy,
+{
+  fn eq(&self, other: &T) -> bool {
+    let other = (*other).into();
+    self.l == other.l && self.m == other.m && self.s == other.s
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  mod decrement_l {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_subtracts_from_l() {
+      let mut lms = Lms::new(0.5, 0.3, 0.2);
+      lms.decrement_l(0.2);
+
+      assert_eq!(lms.l(), 0.3);
+    }
+  }
+
+  mod decrement_m {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_subtracts_from_m() {
+      let mut lms = Lms::new(0.5, 0.3, 0.2);
+      lms.decrement_m(0.1);
+
+      assert_eq!(lms.m(), 0.19999999999999998);
+    }
+  }
+
+  mod decrement_s {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_subtracts_from_s() {
+      let mut lms = Lms::new(0.5, 0.3, 0.2);
+      lms.decrement_s(0.1);
+
+      assert_eq!(lms.s(), 0.1);
+    }
+  }
+
+  mod display {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_formats_with_default_precision() {
+      let lms = Lms::new(0.12345678, 0.23456789, 0.34567890);
+
+      assert_eq!(format!("{}", lms), "LMS(0.1235, 0.2346, 0.3457)");
+    }
+
+    #[test]
+    fn it_formats_with_custom_precision() {
+      let lms = Lms::new(0.12345678, 0.23456789, 0.34567890);
+
+      assert_eq!(format!("{:.2}", lms), "LMS(0.12, 0.23, 0.35)");
+      assert_eq!(format!("{:.6}", lms), "LMS(0.123457, 0.234568, 0.345679)");
+    }
+  }
+
+  mod from_xyz {
+    use super::*;
+
+    #[test]
+    fn it_converts_from_xyz() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5);
+      let lms: Lms = xyz.into();
+
+      assert!(lms.l() != 0.5 || lms.m() != 0.5 || lms.s() != 0.5);
+    }
+  }
+
+  mod increment_l {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_adds_to_l() {
+      let mut lms = Lms::new(0.1, 0.3, 0.2);
+      lms.increment_l(0.2);
+
+      assert_eq!(lms.l(), 0.30000000000000004);
+    }
+  }
+
+  mod increment_m {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_adds_to_m() {
+      let mut lms = Lms::new(0.5, 0.3, 0.2);
+      lms.increment_m(0.1);
+
+      assert_eq!(lms.m(), 0.4);
+    }
+  }
+
+  mod increment_s {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_adds_to_s() {
+      let mut lms = Lms::new(0.5, 0.3, 0.2);
+      lms.increment_s(0.1);
+
+      assert_eq!(lms.s(), 0.30000000000000004);
+    }
+  }
+
+  mod partial_eq {
+    use pretty_assertions::{assert_eq, assert_ne};
+
+    use super::*;
+
+    #[test]
+    fn it_compares_equal_lms_values() {
+      let a = Lms::new(0.1, 0.2, 0.3);
+      let b = Lms::new(0.1, 0.2, 0.3);
+
+      assert_eq!(a, b);
+    }
+
+    #[test]
+    fn it_compares_unequal_lms_values() {
+      let a = Lms::new(0.1, 0.2, 0.3);
+      let b = Lms::new(0.1, 0.2, 0.4);
+
+      assert_ne!(a, b);
+    }
+
+    #[test]
+    fn it_compares_with_array() {
+      let lms = Lms::new(0.1, 0.2, 0.3);
+
+      assert_eq!(lms, [0.1, 0.2, 0.3]);
+    }
+  }
+
+  mod scale_l {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_multiplies_l_by_factor() {
+      let mut lms = Lms::new(0.2, 0.3, 0.4);
+      lms.scale_l(2.0);
+
+      assert_eq!(lms.l(), 0.4);
+    }
+  }
+
+  mod scale_m {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_multiplies_m_by_factor() {
+      let mut lms = Lms::new(0.2, 0.3, 0.4);
+      lms.scale_m(2.0);
+
+      assert_eq!(lms.m(), 0.6);
+    }
+  }
+
+  mod scale_s {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_multiplies_s_by_factor() {
+      let mut lms = Lms::new(0.2, 0.3, 0.4);
+      lms.scale_s(2.0);
+
+      assert_eq!(lms.s(), 0.8);
+    }
+  }
+
+  mod to_xyz {
+    use super::*;
+
+    #[test]
+    fn it_roundtrips_with_xyz() {
+      let original = Xyz::new(0.4, 0.5, 0.3);
+      let lms = original.to_lms();
+      let back = lms.to_xyz();
+
+      assert!((back.x() - original.x()).abs() < 1e-10);
+      assert!((back.y() - original.y()).abs() < 1e-10);
+      assert!((back.z() - original.z()).abs() < 1e-10);
+    }
+  }
+
+  mod with_l {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_new_l() {
+      let lms = Lms::new(0.1, 0.2, 0.3);
+      let result = lms.with_l(0.5);
+
+      assert_eq!(result.l(), 0.5);
+      assert_eq!(result.m(), 0.2);
+      assert_eq!(result.s(), 0.3);
+    }
+  }
+
+  mod with_l_decremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_decremented_l() {
+      let lms = Lms::new(0.5, 0.2, 0.3);
+      let result = lms.with_l_decremented_by(0.2);
+
+      assert_eq!(result.l(), 0.3);
+      assert_eq!(lms.l(), 0.5);
+    }
+  }
+
+  mod with_l_incremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_incremented_l() {
+      let lms = Lms::new(0.1, 0.2, 0.3);
+      let result = lms.with_l_incremented_by(0.2);
+
+      assert_eq!(result.l(), 0.30000000000000004);
+    }
+  }
+
+  mod with_l_scaled_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_scaled_l() {
+      let lms = Lms::new(0.2, 0.2, 0.3);
+      let result = lms.with_l_scaled_by(2.0);
+
+      assert_eq!(result.l(), 0.4);
+    }
+  }
+
+  mod with_m {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_new_m() {
+      let lms = Lms::new(0.1, 0.2, 0.3);
+      let result = lms.with_m(0.5);
+
+      assert_eq!(result.l(), 0.1);
+      assert_eq!(result.m(), 0.5);
+      assert_eq!(result.s(), 0.3);
+    }
+  }
+
+  mod with_m_decremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_decremented_m() {
+      let lms = Lms::new(0.1, 0.5, 0.3);
+      let result = lms.with_m_decremented_by(0.2);
+
+      assert_eq!(result.m(), 0.3);
+    }
+  }
+
+  mod with_m_incremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_incremented_m() {
+      let lms = Lms::new(0.1, 0.2, 0.3);
+      let result = lms.with_m_incremented_by(0.2);
+
+      assert_eq!(result.m(), 0.4);
+    }
+  }
+
+  mod with_m_scaled_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_scaled_m() {
+      let lms = Lms::new(0.1, 0.2, 0.3);
+      let result = lms.with_m_scaled_by(2.0);
+
+      assert_eq!(result.m(), 0.4);
+    }
+  }
+
+  mod with_s {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_new_s() {
+      let lms = Lms::new(0.1, 0.2, 0.3);
+      let result = lms.with_s(0.5);
+
+      assert_eq!(result.l(), 0.1);
+      assert_eq!(result.m(), 0.2);
+      assert_eq!(result.s(), 0.5);
+    }
+  }
+
+  mod with_s_decremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_decremented_s() {
+      let lms = Lms::new(0.1, 0.2, 0.5);
+      let result = lms.with_s_decremented_by(0.2);
+
+      assert_eq!(result.s(), 0.3);
+    }
+  }
+
+  mod with_s_incremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_incremented_s() {
+      let lms = Lms::new(0.1, 0.2, 0.3);
+      let result = lms.with_s_incremented_by(0.2);
+
+      assert_eq!(result.s(), 0.5);
+    }
+  }
+
+  mod with_s_scaled_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_lms_with_scaled_s() {
+      let lms = Lms::new(0.1, 0.2, 0.3);
+      let result = lms.with_s_scaled_by(2.0);
+
+      assert_eq!(result.s(), 0.6);
+    }
+  }
+}
