@@ -6,3 +6,6 @@ license = "MIT"
 name = "farg"
 repository = "https://git.aaronmallen.dev/farg/farg"
 version = "0.1.0"
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
