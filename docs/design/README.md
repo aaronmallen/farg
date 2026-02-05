@@ -7,5 +7,6 @@
 | [0003](./0003-feature-gated-components.md)     | Feature-Gated Components     | Active | 2026-02-04 |
 | [0004](./0004-spectral-data-architecture.md)   | Spectral Data Architecture   | Active | 2026-02-04 |
 | [0005](./0005-observer-system.md)              | Standard Observer System     | Active | 2026-02-04 |
+| [0006](./0006-rgb-color-space-architecture.md) | RGB Color Space Architecture | Active | 2026-02-04 |
 
 See [ADR Process](../process/architecture-decision-record.md) for how to create and use ADRs.

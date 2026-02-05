@@ -1,0 +1,149 @@
+use std::{
+  fmt::{Display, Formatter, Result as FmtResult},
+  marker::PhantomData,
+};
+
+use super::{RgbSpec, space::Rgb};
+use crate::component::Component;
+
+#[derive(Clone, Copy, Debug)]
+pub struct LinearRgb<S>
+where
+  S: RgbSpec,
+{
+  b: Component,
+  g: Component,
+  r: Component,
+  _spec: PhantomData<S>,
+}
+
+impl<S> LinearRgb<S>
+where
+  S: RgbSpec,
+{
+  pub fn from_normalized(r: impl Into<Component>, g: impl Into<Component>, b: impl Into<Component>) -> Self {
+    Self {
+      b: b.into().clamp(0.0, 1.0),
+      g: g.into().clamp(0.0, 1.0),
+      r: r.into().clamp(0.0, 1.0),
+      _spec: PhantomData,
+    }
+  }
+
+  pub fn new(r: u8, g: u8, b: u8) -> Self {
+    Self {
+      b: Component::from(b) / 255.0,
+      g: Component::from(g) / 255.0,
+      r: Component::from(r) / 255.0,
+      _spec: PhantomData,
+    }
+  }
+
+  pub const fn new_const(r: u8, g: u8, b: u8) -> Self {
+    let r = Component::new_const(r as f64 / 255.0);
+    let g = Component::new_const(g as f64 / 255.0);
+    let b = Component::new_const(b as f64 / 255.0);
+
+    Self {
+      b,
+      g,
+      r,
+      _spec: PhantomData,
+    }
+  }
+
+  pub fn b(&self) -> f64 {
+    self.b.0
+  }
+
+  pub fn blue(&self) -> u8 {
+    (self.b.0 * 255.0).round() as u8
+  }
+
+  pub fn components(&self) -> [f64; 3] {
+    [self.r.0, self.g.0, self.b.0]
+  }
+
+  pub fn g(&self) -> f64 {
+    self.g.0
+  }
+
+  pub fn green(&self) -> u8 {
+    (self.g.0 * 255.0).round() as u8
+  }
+
+  pub fn r(&self) -> f64 {
+    self.r.0
+  }
+
+  pub fn red(&self) -> u8 {
+    (self.r.0 * 255.0).round() as u8
+  }
+
+  pub fn to_encoded(&self) -> Rgb<S> {
+    let r = S::TRANSFER_FUNCTION.encode(self.r);
+    let g = S::TRANSFER_FUNCTION.encode(self.g);
+    let b = S::TRANSFER_FUNCTION.encode(self.b);
+    Rgb::from_normalized(r, g, b)
+  }
+}
+
+impl<S> Display for LinearRgb<S>
+where
+  S: RgbSpec,
+{
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    write!(
+      f,
+      "Linear {}({}, {}, {})",
+      S::NAME,
+      self.red(),
+      self.green(),
+      self.blue()
+    )
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  use crate::space::Srgb;
+
+  mod display {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_formats_with_space_name_and_8bit_values() {
+      let linear = LinearRgb::<Srgb>::new(128, 64, 32);
+
+      assert_eq!(format!("{}", linear), "Linear sRGB(128, 64, 32)");
+    }
+  }
+
+  mod to_encoded {
+    use super::*;
+
+    #[test]
+    fn it_applies_transfer_function_encoding() {
+      let linear = LinearRgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      let encoded = linear.to_encoded();
+
+      assert!(encoded.r() > linear.r());
+      assert!(encoded.g() > linear.g());
+      assert!(encoded.b() > linear.b());
+    }
+
+    #[test]
+    fn it_roundtrips_with_rgb_to_linear() {
+      let original = LinearRgb::<Srgb>::from_normalized(0.25, 0.5, 0.75);
+      let encoded = original.to_encoded();
+      let back = encoded.to_linear();
+
+      assert!((back.r() - original.r()).abs() < 1e-10);
+      assert!((back.g() - original.g()).abs() < 1e-10);
+      assert!((back.b() - original.b()).abs() < 1e-10);
+    }
+  }
+}

@@ -1,6 +1,9 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::{
+  fmt::{Display, Formatter, Result as FmtResult},
+  ops::{Add, Div, Mul, Sub},
+};
 
-use super::{ColorSpace, Lms};
+use super::{ColorSpace, LinearRgb, Lms, Rgb, RgbSpec, Srgb};
 use crate::{ColorimetricContext, chromaticity::Xy, component::Component};
 
 #[derive(Clone, Copy, Debug)]
@@ -183,6 +186,15 @@ impl Xyz {
     Lms::from(self.context.cat().matrix() * self.components()).with_context(self.context)
   }
 
+  pub fn to_rgb<S>(&self) -> Rgb<S>
+  where
+    S: RgbSpec,
+  {
+    let adapted = self.adapt_to(S::CONTEXT);
+    let [r, g, b] = *S::inversed_xyz_matrix() * adapted.components();
+    LinearRgb::<S>::from_normalized(r, g, b).to_encoded()
+  }
+
   pub fn with_context(&self, context: ColorimetricContext) -> Self {
     Self {
       context,
@@ -330,6 +342,14 @@ impl ColorSpace<3> for Xyz {
   }
 }
 
+impl Add for Xyz {
+  type Output = Self;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() + rhs.to_rgb::<Srgb>())
+  }
+}
+
 impl Display for Xyz {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     write!(
@@ -340,6 +360,14 @@ impl Display for Xyz {
       self.z,
       precision = f.precision().unwrap_or(4)
     )
+  }
+}
+
+impl Div for Xyz {
+  type Output = Self;
+
+  fn div(self, rhs: Self) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() / rhs.to_rgb::<Srgb>())
   }
 }
 
@@ -358,6 +386,23 @@ impl From<Lms> for Xyz {
   }
 }
 
+impl<S> From<Rgb<S>> for Xyz
+where
+  S: RgbSpec,
+{
+  fn from(rgb: Rgb<S>) -> Self {
+    rgb.to_xyz().with_context(*rgb.context())
+  }
+}
+
+impl Mul for Xyz {
+  type Output = Self;
+
+  fn mul(self, rhs: Self) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() * rhs.to_rgb::<Srgb>())
+  }
+}
+
 impl<T> PartialEq<T> for Xyz
 where
   T: Into<Xyz> + Copy,
@@ -365,6 +410,22 @@ where
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
     self.x == other.x && self.y == other.y && self.z == other.z
+  }
+}
+
+impl Sub for Xyz {
+  type Output = Self;
+
+  fn sub(self, rhs: Self) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() - rhs.to_rgb::<Srgb>())
+  }
+}
+
+impl TryFrom<&str> for Xyz {
+  type Error = crate::Error;
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    Ok(Rgb::<Srgb>::try_from(value)?.to_xyz())
   }
 }
 
@@ -1075,6 +1136,43 @@ mod test {
       let lms = xyz_with_ctx.to_lms();
 
       assert_eq!(lms.context().cat().name(), "XYZ Scaling");
+    }
+  }
+
+  mod to_rgb {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_converts_white_xyz_to_white_rgb() {
+      let white_xyz = Xyz::new(0.95047, 1.0, 1.08883);
+      let rgb: Rgb<Srgb> = white_xyz.to_rgb();
+
+      assert_eq!(rgb.red(), 255);
+      assert_eq!(rgb.green(), 255);
+      assert_eq!(rgb.blue(), 255);
+    }
+
+    #[test]
+    fn it_converts_black_xyz_to_black_rgb() {
+      let black_xyz = Xyz::new(0.0, 0.0, 0.0);
+      let rgb: Rgb<Srgb> = black_xyz.to_rgb();
+
+      assert_eq!(rgb.red(), 0);
+      assert_eq!(rgb.green(), 0);
+      assert_eq!(rgb.blue(), 0);
+    }
+
+    #[test]
+    fn it_roundtrips_with_rgb_to_xyz() {
+      let original = Rgb::<Srgb>::new(200, 100, 50);
+      let xyz = original.to_xyz();
+      let back: Rgb<Srgb> = xyz.to_rgb();
+
+      assert_eq!(back.red(), original.red());
+      assert_eq!(back.green(), original.green());
+      assert_eq!(back.blue(), original.blue());
     }
   }
 

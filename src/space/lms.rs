@@ -1,6 +1,9 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::{
+  fmt::{Display, Formatter, Result as FmtResult},
+  ops::{Add, Div, Mul, Sub},
+};
 
-use super::{ColorSpace, Xyz};
+use super::{ColorSpace, Rgb, RgbSpec, Srgb, Xyz};
 use crate::{ColorimetricContext, component::Component};
 
 #[derive(Clone, Copy, Debug)]
@@ -175,6 +178,13 @@ impl Lms {
     self.s()
   }
 
+  pub fn to_rgb<S>(&self) -> Rgb<S>
+  where
+    S: RgbSpec,
+  {
+    self.to_xyz().to_rgb()
+  }
+
   pub fn to_xyz(&self) -> Xyz {
     Xyz::from(self.context.cat().inverse() * self.components()).with_context(self.context)
   }
@@ -310,6 +320,14 @@ impl Lms {
   }
 }
 
+impl Add for Lms {
+  type Output = Self;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() + rhs.to_rgb::<Srgb>())
+  }
+}
+
 impl ColorSpace<3> for Lms {
   fn components(&self) -> [f64; 3] {
     self.components()
@@ -341,6 +359,14 @@ impl Display for Lms {
   }
 }
 
+impl Div for Lms {
+  type Output = Self;
+
+  fn div(self, rhs: Self) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() / rhs.to_rgb::<Srgb>())
+  }
+}
+
 impl<T> From<[T; 3]> for Lms
 where
   T: Into<Component>,
@@ -350,9 +376,26 @@ where
   }
 }
 
+impl<S> From<Rgb<S>> for Lms
+where
+  S: RgbSpec,
+{
+  fn from(rgb: Rgb<S>) -> Self {
+    rgb.to_xyz().to_lms().with_context(*rgb.context())
+  }
+}
+
 impl From<Xyz> for Lms {
   fn from(xyz: Xyz) -> Self {
     xyz.to_lms()
+  }
+}
+
+impl Mul for Lms {
+  type Output = Self;
+
+  fn mul(self, rhs: Self) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() * rhs.to_rgb::<Srgb>())
   }
 }
 
@@ -363,6 +406,22 @@ where
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
     self.l == other.l && self.m == other.m && self.s == other.s
+  }
+}
+
+impl Sub for Lms {
+  type Output = Self;
+
+  fn sub(self, rhs: Self) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() - rhs.to_rgb::<Srgb>())
+  }
+}
+
+impl TryFrom<&str> for Lms {
+  type Error = crate::Error;
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    Ok(Rgb::<Srgb>::try_from(value)?.to_lms())
   }
 }
 
@@ -642,6 +701,35 @@ mod test {
       lms.scale_s(2.0);
 
       assert_eq!(lms.s(), 0.8);
+    }
+  }
+
+  mod to_rgb {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_converts_to_rgb_via_xyz() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5);
+      let lms = xyz.to_lms();
+      let rgb: Rgb<Srgb> = lms.to_rgb();
+      let expected: Rgb<Srgb> = xyz.to_rgb();
+
+      assert_eq!(rgb.red(), expected.red());
+      assert_eq!(rgb.green(), expected.green());
+      assert_eq!(rgb.blue(), expected.blue());
+    }
+
+    #[test]
+    fn it_roundtrips_with_from_rgb() {
+      let original = Rgb::<Srgb>::new(200, 100, 50);
+      let lms = original.to_lms();
+      let back: Rgb<Srgb> = lms.to_rgb();
+
+      assert_eq!(back.red(), original.red());
+      assert_eq!(back.green(), original.green());
+      assert_eq!(back.blue(), original.blue());
     }
   }
 

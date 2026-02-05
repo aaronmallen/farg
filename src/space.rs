@@ -1,7 +1,9 @@
 mod lms;
+mod rgb;
 mod xyz;
 
 pub use lms::Lms;
+pub use rgb::*;
 pub use xyz::Xyz;
 
 use crate::{chromaticity::Xy, component::Component};
@@ -23,6 +25,10 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     Self::from(self.to_xyz().attenuated_by(factor))
   }
 
+  fn blue(&self) -> u8 {
+    self.to_rgb::<Srgb>().blue()
+  }
+
   fn chromaticity(&self) -> Xy {
     self.to_xyz().chromaticity()
   }
@@ -33,12 +39,20 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.set_components(self.with_luminance_decremented_by(amount).components())
   }
 
+  fn green(&self) -> u8 {
+    self.to_rgb::<Srgb>().green()
+  }
+
   fn increment_luminance(&mut self, amount: impl Into<Component>) {
     self.set_components(self.with_luminance_incremented_by(amount).components())
   }
 
   fn luminance(&self) -> f64 {
     self.to_xyz().luminance()
+  }
+
+  fn red(&self) -> u8 {
+    self.to_rgb::<Srgb>().red()
   }
 
   fn scale_luminance(&mut self, factor: impl Into<Component>) {
@@ -53,6 +67,13 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
 
   fn to_lms(&self) -> Lms {
     self.to_xyz().to_lms()
+  }
+
+  fn to_rgb<S>(&self) -> Rgb<S>
+  where
+    S: RgbSpec,
+  {
+    self.to_xyz().to_rgb::<S>()
   }
 
   fn to_xyz(&self) -> Xyz;
