@@ -252,7 +252,11 @@ mod test {
 
       #[test]
       fn it_sets_age() {
-        let observer = Builder::new("CIE 2006", 2.0).with_cmf(TEST_CMF).with_age(32).build().unwrap();
+        let observer = Builder::new("CIE 2006", 2.0)
+          .with_cmf(TEST_CMF)
+          .with_age(32)
+          .build()
+          .unwrap();
 
         assert_eq!(observer.age(), Some(32));
       }

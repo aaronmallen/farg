@@ -15,8 +15,13 @@ pub enum Error {
 impl Display for Error {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     match self {
-      Self::InvalidHexCharacter { input } => write!(f, "invalid hex character in '{input}'"),
-      Self::InvalidHexLength { input, length } => {
+      Self::InvalidHexCharacter {
+        input,
+      } => write!(f, "invalid hex character in '{input}'"),
+      Self::InvalidHexLength {
+        input,
+        length,
+      } => {
         write!(f, "invalid hex length {length} for '{input}', expected 3 or 6")
       }
       Self::MissingColorMatchingFunction => write!(f, "color matching function is required"),

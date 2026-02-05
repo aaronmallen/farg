@@ -19,7 +19,7 @@ all-cats = [
   "cat-sharp",
   "cat-von-kries",
 ]
-all-chromaticity = ["chromaticity-upvp", "chromaticity-uv"]
+all-chromaticity = ["chromaticity-rg", "chromaticity-upvp", "chromaticity-uv"]
 all-illuminants = [
   "illuminant-daylight",
   "illuminant-fluorescent",
@@ -87,6 +87,7 @@ cat-hpe = ["cat-hunt-pointer-estevez"]
 cat-hunt-pointer-estevez = []
 cat-sharp = []
 cat-von-kries = []
+chromaticity-rg = []
 chromaticity-upvp = []
 chromaticity-uv = []
 default = ["cat-bradford"]

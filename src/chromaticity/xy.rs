@@ -1,9 +1,13 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
+#[cfg(feature = "chromaticity-rg")]
+use super::Rg;
 #[cfg(feature = "chromaticity-upvp")]
 use super::Upvp;
 #[cfg(feature = "chromaticity-uv")]
 use super::Uv;
+#[cfg(feature = "chromaticity-rg")]
+use crate::space::RgbSpec;
 use crate::{component::Component, space::Xyz};
 
 #[derive(Clone, Copy, Debug)]
@@ -29,6 +33,22 @@ impl Xy {
 
   pub fn components(&self) -> [f64; 2] {
     [self.x.0, self.y.0]
+  }
+
+  #[cfg(feature = "chromaticity-rg")]
+  pub fn to_rg<S>(&self) -> Rg<S>
+  where
+    S: RgbSpec,
+  {
+    let xyz = self.to_xyz(1.0);
+    let [r, g, b] = *S::inversed_xyz_matrix() * xyz.components();
+    let sum = r + g + b;
+
+    if sum == 0.0 {
+      Rg::new(0.0, 0.0)
+    } else {
+      Rg::new(r / sum, g / sum)
+    }
   }
 
   #[cfg(feature = "chromaticity-upvp")]
@@ -93,6 +113,16 @@ where
 {
   fn from([x, y]: [T; 2]) -> Self {
     Self::new(x, y)
+  }
+}
+
+#[cfg(feature = "chromaticity-rg")]
+impl<S> From<Rg<S>> for Xy
+where
+  S: RgbSpec,
+{
+  fn from(rg: Rg<S>) -> Self {
+    rg.to_xy()
   }
 }
 
@@ -192,6 +222,33 @@ mod test {
       let xy = Xy::new(0.31271, 0.32902);
 
       assert_eq!(xy, [0.31271, 0.32902]);
+    }
+  }
+
+  #[cfg(feature = "chromaticity-rg")]
+  mod to_rg {
+    use super::*;
+    use crate::space::Srgb;
+
+    #[test]
+    fn it_converts_to_rg() {
+      let xy = Xy::new(0.31271, 0.32902);
+      let rg: Rg<Srgb> = xy.to_rg();
+      let xyz = xy.to_xyz(1.0);
+      let [r, g, b] = *Srgb::inversed_xyz_matrix() * xyz.components();
+      let sum = r + g + b;
+
+      assert!((rg.r() - r / sum).abs() < 1e-10);
+      assert!((rg.g() - g / sum).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_handles_zero_sum() {
+      let xy = Xy::new(0.0, 0.0);
+      let rg: Rg<Srgb> = xy.to_rg();
+
+      assert!(rg.r() == 0.0 || rg.r().is_finite());
+      assert!(rg.g() == 0.0 || rg.g().is_finite());
     }
   }
 

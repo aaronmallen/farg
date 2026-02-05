@@ -1,8 +1,12 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
+#[cfg(feature = "chromaticity-rg")]
+use super::Rg;
 #[cfg(feature = "chromaticity-uv")]
 use super::Uv;
 use super::Xy;
+#[cfg(feature = "chromaticity-rg")]
+use crate::space::RgbSpec;
 use crate::{component::Component, space::Xyz};
 
 /// CIE 1976 UCS chromaticity coordinates (u', v').
@@ -29,6 +33,14 @@ impl Upvp {
 
   pub fn components(&self) -> [f64; 2] {
     [self.u.0, self.v.0]
+  }
+
+  #[cfg(feature = "chromaticity-rg")]
+  pub fn to_rg<S>(&self) -> Rg<S>
+  where
+    S: RgbSpec,
+  {
+    self.to_xy().to_rg::<S>()
   }
 
   #[cfg(feature = "chromaticity-uv")]
@@ -79,6 +91,16 @@ where
 {
   fn from([u, v]: [T; 2]) -> Self {
     Self::new(u, v)
+  }
+}
+
+#[cfg(feature = "chromaticity-rg")]
+impl<S> From<Rg<S>> for Upvp
+where
+  S: RgbSpec,
+{
+  fn from(rg: Rg<S>) -> Self {
+    rg.to_upvp()
   }
 }
 
@@ -207,6 +229,21 @@ mod test {
       let upvp = Upvp::new(0.19784, 0.46869);
 
       assert_eq!(upvp, [0.19784, 0.46869]);
+    }
+  }
+
+  #[cfg(feature = "chromaticity-rg")]
+  mod to_rg {
+    use super::*;
+    use crate::space::Srgb;
+
+    #[test]
+    fn it_converts_to_rg_via_xy() {
+      let upvp = Upvp::new(0.19784, 0.46869);
+      let rg: Rg<Srgb> = upvp.to_rg();
+      let expected: Rg<Srgb> = upvp.to_xy().to_rg();
+
+      assert!(rg == expected);
     }
   }
 
