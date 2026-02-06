@@ -490,6 +490,14 @@ impl TryFrom<&str> for Lms {
   }
 }
 
+impl TryFrom<String> for Lms {
+  type Error = crate::Error;
+
+  fn try_from(value: String) -> Result<Self, Self::Error> {
+    Ok(Rgb::<Srgb>::try_from(value)?.to_lms())
+  }
+}
+
 #[cfg(test)]
 mod test {
   use super::*;

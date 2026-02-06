@@ -478,6 +478,14 @@ impl TryFrom<&str> for Xyz {
   }
 }
 
+impl TryFrom<String> for Xyz {
+  type Error = crate::Error;
+
+  fn try_from(value: String) -> Result<Self, Self::Error> {
+    Ok(Rgb::<Srgb>::try_from(value)?.to_xyz())
+  }
+}
+
 #[cfg(test)]
 mod test {
   use super::*;
