@@ -17,6 +17,7 @@ pub struct Uv {
 }
 
 impl Uv {
+  /// Creates new uv coordinates.
   pub fn new(u: impl Into<Component>, v: impl Into<Component>) -> Self {
     Self {
       u: u.into(),
@@ -24,6 +25,7 @@ impl Uv {
     }
   }
 
+  /// Creates new uv coordinates in a const context.
   pub const fn new_const(u: f64, v: f64) -> Self {
     Self {
       u: Component::new_const(u),
@@ -31,10 +33,12 @@ impl Uv {
     }
   }
 
+  /// Returns the [u, v] components as an array.
   pub fn components(&self) -> [f64; 2] {
     [self.u.0, self.v.0]
   }
 
+  /// Converts to rg chromaticity coordinates in the given RGB space.
   #[cfg(feature = "chromaticity-rg")]
   pub fn to_rg<S>(&self) -> Rg<S>
   where
@@ -43,12 +47,14 @@ impl Uv {
     self.to_xy().to_rg::<S>()
   }
 
+  /// Converts to CIE 1976 u'v' coordinates.
   #[cfg(feature = "chromaticity-upvp")]
   pub fn to_upvp(&self) -> Upvp {
     let [u, v] = self.components();
     Upvp::new(u, v * 1.5)
   }
 
+  /// Converts to CIE 1931 xy coordinates.
   pub fn to_xy(&self) -> Xy {
     let [u, v] = self.components();
     let denom = 2.0 * u - 8.0 * v + 4.0;
@@ -60,14 +66,17 @@ impl Uv {
     }
   }
 
+  /// Reconstructs XYZ tristimulus values via xy with the given luminance.
   pub fn to_xyz(&self, luminance: impl Into<Component>) -> Xyz {
     self.to_xy().to_xyz(luminance)
   }
 
+  /// Returns the u coordinate.
   pub fn u(&self) -> f64 {
     self.u.0
   }
 
+  /// Returns the v coordinate.
   pub fn v(&self) -> f64 {
     self.v.0
   }

@@ -2,38 +2,47 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use crate::space::Lms;
 
+/// An LMS cone response at a single wavelength.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ConeResponse([f64; 3]);
 
 impl ConeResponse {
+  /// Creates a new cone response from L, M, S values.
   pub const fn new(l: f64, m: f64, s: f64) -> Self {
     Self([l, m, s])
   }
 
+  /// Returns the [L, M, S] components as an array.
   pub fn components(&self) -> [f64; 3] {
     self.0
   }
 
+  /// Returns the L (long) cone response.
   pub fn l(&self) -> f64 {
     self.0[0]
   }
 
+  /// Alias for [`Self::l`].
   pub fn long(&self) -> f64 {
     self.l()
   }
 
+  /// Returns the M (medium) cone response.
   pub fn m(&self) -> f64 {
     self.0[1]
   }
 
+  /// Alias for [`Self::m`].
   pub fn medium(&self) -> f64 {
     self.m()
   }
 
+  /// Returns the S (short) cone response.
   pub fn s(&self) -> f64 {
     self.0[2]
   }
 
+  /// Alias for [`Self::s`].
   pub fn short(&self) -> f64 {
     self.s()
   }

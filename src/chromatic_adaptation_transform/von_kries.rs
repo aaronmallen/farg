@@ -1,6 +1,7 @@
 use super::ChromaticAdaptationTransform;
 
 impl ChromaticAdaptationTransform {
+  /// The default CAT when this is the highest-priority enabled transform.
   #[cfg(all(
     not(feature = "cat-bradford"),
     not(feature = "cat-cat16"),
@@ -8,6 +9,9 @@ impl ChromaticAdaptationTransform {
     not(feature = "cat-cmc-cat2000"),
   ))]
   pub const DEFAULT: Self = Self::VON_KRIES;
+  /// The Von Kries chromatic adaptation transform.
+  ///
+  /// A simple diagonal adaptation using Hunt-Pointer-Estevez-like cone responses.
   pub const VON_KRIES: Self = Self::new(
     "Von Kries",
     [

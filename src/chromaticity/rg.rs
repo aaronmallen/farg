@@ -13,6 +13,10 @@ use crate::{
   space::{RgbSpec, Srgb},
 };
 
+/// RGB-relative chromaticity coordinates (r, g) for a given RGB color space.
+///
+/// Derived by normalizing linear RGB: r = R/(R+G+B), g = G/(R+G+B).
+/// The space parameter `S` determines which RGB primaries are used.
 #[derive(Clone, Copy, Debug)]
 pub struct Rg<S = Srgb>
 where
@@ -27,6 +31,7 @@ impl<S> Rg<S>
 where
   S: RgbSpec,
 {
+  /// Creates new rg coordinates.
   pub fn new(r: impl Into<Component>, g: impl Into<Component>) -> Self {
     Self {
       g: g.into(),
@@ -35,6 +40,7 @@ where
     }
   }
 
+  /// Creates new rg coordinates in a const context.
   pub const fn new_const(r: f64, g: f64) -> Self {
     Self {
       g: Component::new_const(g),
@@ -43,28 +49,34 @@ where
     }
   }
 
+  /// Returns the [r, g] components as an array.
   pub fn components(&self) -> [f64; 2] {
     [self.r.0, self.g.0]
   }
 
+  /// Returns the g chromaticity coordinate.
   pub fn g(&self) -> f64 {
     self.g.0
   }
 
+  /// Returns the r chromaticity coordinate.
   pub fn r(&self) -> f64 {
     self.r.0
   }
 
+  /// Converts to CIE 1976 u'v' coordinates via xy.
   #[cfg(feature = "chromaticity-upvp")]
   pub fn to_upvp(&self) -> Upvp {
     self.to_xy().to_upvp()
   }
 
+  /// Converts to CIE 1960 uv coordinates via xy.
   #[cfg(feature = "chromaticity-uv")]
   pub fn to_uv(&self) -> Uv {
     self.to_xy().to_uv()
   }
 
+  /// Converts to CIE 1931 xy coordinates using the RGB space's primaries matrix.
   pub fn to_xy(&self) -> Xy {
     let [r, g] = self.components();
     let b = 1.0 - self.r.0 - self.g.0;

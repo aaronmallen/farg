@@ -104,12 +104,14 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use crate::{error::Error, spectral::Spd};
 
+/// Builder for constructing custom [`Illuminant`] instances.
 pub struct Builder {
   kind: Option<IlluminantType>,
   name: &'static str,
   spd: Option<&'static [(u32, f64)]>,
 }
 
+/// A standard or custom illuminant (light source) defined by its spectral power distribution.
 #[derive(Clone, Copy, Debug)]
 pub struct Illuminant {
   kind: IlluminantType,
@@ -117,20 +119,31 @@ pub struct Illuminant {
   spd: Spd,
 }
 
+/// The category of an illuminant.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum IlluminantType {
+  /// A Planckian (blackbody) radiator.
   Blackbody,
+  /// A user-defined illuminant.
   Custom,
+  /// A CIE daylight illuminant (e.g., D50, D65).
   Daylight,
+  /// The equal-energy illuminant (E).
   EqualEnergy,
+  /// A fluorescent lamp illuminant.
   Fluorescent,
+  /// A gas discharge lamp illuminant.
   GasDischarge,
+  /// An incandescent lamp illuminant (e.g., Illuminant A).
   Incandescent,
+  /// An LED illuminant.
   Led,
+  /// A narrow-band illuminant.
   NarrowBand,
 }
 
 impl Builder {
+  /// Creates a new illuminant builder with the given name.
   pub fn new(name: &'static str) -> Self {
     Self {
       kind: None,
@@ -139,6 +152,7 @@ impl Builder {
     }
   }
 
+  /// Builds the illuminant, returning an error if the type or SPD is missing.
   pub fn build(&self) -> Result<Illuminant, Error> {
     let spd_data = self.spd.ok_or(Error::MissingSpectralPowerDistribution)?;
     let kind = self.kind.ok_or(Error::MissingIlluminantType)?;
@@ -146,16 +160,19 @@ impl Builder {
     Ok(Illuminant::new(self.name, kind, Spd::new(spd_data)))
   }
 
+  /// Sets the illuminant type.
   pub fn with_kind(mut self, kind: IlluminantType) -> Self {
     self.kind = Some(kind);
     self
   }
 
+  /// Sets the spectral power distribution data.
   pub fn with_spd(mut self, spd: &'static [(u32, f64)]) -> Self {
     self.spd = Some(spd);
     self
   }
 
+  /// Alias for [`Self::with_spd`].
   pub fn with_spectral_power_distribution(self, spd: &'static [(u32, f64)]) -> Self {
     self.with_spd(spd)
   }
@@ -168,10 +185,12 @@ impl Display for Illuminant {
 }
 
 impl Illuminant {
+  /// Creates a new [`Builder`] for constructing a custom illuminant.
   pub fn builder(name: &'static str) -> Builder {
     Builder::new(name)
   }
 
+  /// Creates a new illuminant from a name, type, and spectral power distribution.
   pub const fn new(name: &'static str, kind: IlluminantType, spd: Spd) -> Self {
     Self {
       kind,
@@ -180,18 +199,22 @@ impl Illuminant {
     }
   }
 
+  /// Returns the illuminant type.
   pub fn kind(&self) -> IlluminantType {
     self.kind
   }
 
+  /// Returns the illuminant name (e.g., "D65", "A").
   pub fn name(&self) -> &'static str {
     self.name
   }
 
+  /// Returns the spectral power distribution.
   pub fn spd(&self) -> Spd {
     self.spd
   }
 
+  /// Alias for [`Self::spd`].
   pub fn spectral_power_distribution(&self) -> Spd {
     self.spd()
   }

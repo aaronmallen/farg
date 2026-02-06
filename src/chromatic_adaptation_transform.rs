@@ -25,8 +25,14 @@ use crate::{
   space::{Lms, Xyz},
 };
 
+/// Shorthand alias for [`ChromaticAdaptationTransform`].
 pub type Cat = ChromaticAdaptationTransform;
 
+/// A 3x3 matrix transform for adapting colors between different illuminant white points.
+///
+/// Chromatic adaptation transforms (CATs) model how the human visual system adjusts
+/// to changes in illumination. Each transform defines a matrix that converts XYZ tristimulus
+/// values into a cone-response-like space where adaptation scaling is applied.
 #[derive(Clone, Copy, Debug)]
 pub struct ChromaticAdaptationTransform {
   inverse: Matrix3,
@@ -35,6 +41,7 @@ pub struct ChromaticAdaptationTransform {
 }
 
 impl ChromaticAdaptationTransform {
+  /// Creates a new chromatic adaptation transform from a name and 3x3 matrix.
   pub const fn new(name: &'static str, matrix: [[f64; 3]; 3]) -> Self {
     let matrix = Matrix3::new(matrix);
 
@@ -45,6 +52,11 @@ impl ChromaticAdaptationTransform {
     }
   }
 
+  /// Adapts a color from one white point to another.
+  ///
+  /// Converts the color to a cone-response space using this transform's matrix,
+  /// scales each cone channel by the ratio of target to reference white, then
+  /// converts back to XYZ.
   pub fn adapt(&self, color: impl Into<Xyz>, reference_white: impl Into<Xyz>, target_white: impl Into<Xyz>) -> Xyz {
     let color = color.into();
     let reference_white = reference_white.into();
@@ -72,14 +84,17 @@ impl ChromaticAdaptationTransform {
     .with_context(target_white.context().with_cat(*self))
   }
 
+  /// Returns the inverse of the transformation matrix.
   pub fn inverse(&self) -> Matrix3 {
     self.inverse
   }
 
+  /// Returns the transformation matrix.
   pub fn matrix(&self) -> Matrix3 {
     self.matrix
   }
 
+  /// Returns the name of this transform (e.g., "Bradford", "CAT16").
   pub fn name(&self) -> &'static str {
     self.name
   }

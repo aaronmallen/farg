@@ -1,16 +1,22 @@
 use super::{Spd, Table, TristimulusResponse};
 use crate::space::Xyz;
 
+/// Shorthand alias for [`ColorMatchingFunction`].
 pub type Cmf = ColorMatchingFunction;
 
+/// CIE color matching functions mapping wavelengths to XYZ tristimulus responses.
 #[derive(Clone, Copy, Debug)]
 pub struct ColorMatchingFunction(&'static [(u32, TristimulusResponse)]);
 
 impl ColorMatchingFunction {
+  /// Creates a new CMF from static wavelength-response pairs.
   pub const fn new(table: &'static [(u32, TristimulusResponse)]) -> Self {
     Self(table)
   }
 
+  /// Integrates an SPD with this CMF and normalizes to unit luminance (Y=1).
+  ///
+  /// This produces the reference white XYZ used for chromatic adaptation.
   pub fn calculate_reference_white(&self, spd: &Spd) -> Xyz {
     let [x, y, z] = self.spectral_power_distribution_to_xyz(spd).components();
 
@@ -21,10 +27,12 @@ impl ColorMatchingFunction {
     }
   }
 
+  /// Alias for [`Self::spectral_power_distribution_to_xyz`].
   pub fn spd_to_xyz(&self, spd: &Spd) -> Xyz {
     self.spectral_power_distribution_to_xyz(spd)
   }
 
+  /// Integrates a spectral power distribution with this CMF to produce XYZ tristimulus values.
   pub fn spectral_power_distribution_to_xyz(&self, spd: &Spd) -> Xyz {
     let step = self.step() as f64;
     let mut components = [0.0_f64; 3];

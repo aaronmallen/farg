@@ -67,6 +67,14 @@ When writing ADRs, follow the template in `docs/process/architecture-decision-re
 2. Verify all code examples are accurate
 3. Ensure frontmatter tags are consistent with existing ADRs
 
+## Rust Doc Comments
+
+When writing `//!` (crate/module) or `///` (item) doc comments:
+
+- Include code examples in fenced blocks (` ``` `) so they run as doc tests
+- Use `#` prefix inside code blocks to hide setup lines from rendered docs
+- Link to other types with [`Type`] or [`module::Type`] syntax
+
 ## General Documentation
 
 For other technical docs:

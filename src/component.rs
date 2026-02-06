@@ -4,18 +4,26 @@ use std::{
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
+/// A numeric component value used throughout the library.
+///
+/// Wraps an `f64` and provides arithmetic operations that accept any numeric type
+/// via `Into<Component>` conversions. Used internally as the building block for
+/// color space coordinates, chromaticity values, and matrix elements.
 #[derive(Clone, Copy, Debug)]
 pub struct Component(pub(crate) f64);
 
 impl Component {
+  /// Creates a new component from any value convertible to `f64`.
   pub fn new(value: impl Into<f64>) -> Self {
     Self(value.into())
   }
 
+  /// Creates a new component in a const context.
   pub const fn new_const(value: f64) -> Self {
     Self(value)
   }
 
+  /// Returns this component clamped to the given range.
   pub fn clamp(&self, minimum: impl Into<Self>, maximum: impl Into<Self>) -> Self {
     Self(self.0.clamp(minimum.into().0, maximum.into().0))
   }

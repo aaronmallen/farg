@@ -23,6 +23,11 @@ use crate::{
   spectral::{ChromaticityCoordinates, Cmf, ConeFundamentals, ConeResponse, TristimulusResponse},
 };
 
+/// Builder for constructing custom [`Observer`] instances.
+///
+/// At minimum, color matching function (CMF) data must be provided. Chromaticity
+/// coordinates and cone fundamentals are automatically derived from the CMF if not
+/// explicitly set.
 pub struct Builder {
   age: Option<u8>,
   chromaticity_coordinates: Option<&'static [(u32, [f64; 2])]>,
@@ -33,6 +38,7 @@ pub struct Builder {
 }
 
 impl Builder {
+  /// Creates a new observer builder with the given name and visual field angle in degrees.
   pub fn new(name: &'static str, visual_field: impl Into<Component>) -> Self {
     Self {
       age: None,
@@ -44,6 +50,7 @@ impl Builder {
     }
   }
 
+  /// Builds the observer, returning an error if CMF data is missing.
   pub fn build(&self) -> Result<Observer, Error> {
     let cmf_data: Box<[(u32, TristimulusResponse)]> = self
       .cmf
@@ -85,31 +92,40 @@ impl Builder {
     ))
   }
 
+  /// Sets the observer's age for age-dependent calculations.
   pub fn with_age(mut self, age: u8) -> Self {
     self.age = Some(age);
     self
   }
 
+  /// Sets explicit chromaticity coordinate data, overriding auto-derivation from CMF.
   pub fn with_chromaticity_coordinates(mut self, data: &'static [(u32, [f64; 2])]) -> Self {
     self.chromaticity_coordinates = Some(data);
     self
   }
 
+  /// Sets the color matching function data.
   pub fn with_cmf(mut self, data: &'static [(u32, [f64; 3])]) -> Self {
     self.cmf = Some(data);
     self
   }
 
+  /// Alias for [`Self::with_cmf`].
   pub fn with_color_matching_function(self, data: &'static [(u32, [f64; 3])]) -> Self {
     self.with_cmf(data)
   }
 
+  /// Sets explicit cone fundamentals data, overriding auto-derivation from CMF.
   pub fn with_cone_fundamentals(mut self, data: &'static [(u32, [f64; 3])]) -> Self {
     self.cone_fundamentals = Some(data);
     self
   }
 }
 
+/// A standard or custom observer defined by color matching functions.
+///
+/// Observers model the human visual system's response to light at different wavelengths.
+/// Each observer includes CMF data, derived chromaticity coordinates, and cone fundamentals.
 #[derive(Clone, Copy, Debug)]
 pub struct Observer {
   age: Option<u8>,
@@ -121,10 +137,12 @@ pub struct Observer {
 }
 
 impl Observer {
+  /// Creates a new [`Builder`] for constructing a custom observer.
   pub fn builder(name: &'static str, visual_field: f64) -> Builder {
     Builder::new(name, visual_field)
   }
 
+  /// Creates a new observer from all required components.
   pub const fn new(
     name: &'static str,
     visual_field: f64,
@@ -143,26 +161,32 @@ impl Observer {
     }
   }
 
+  /// Returns the observer's age, if set.
   pub fn age(&self) -> Option<u8> {
     self.age
   }
 
+  /// Returns the spectral chromaticity coordinates.
   pub fn chromaticity_coordinates(&self) -> &ChromaticityCoordinates {
     &self.chromaticity_coordinates
   }
 
+  /// Returns the color matching functions.
   pub fn cmf(&self) -> &Cmf {
     &self.cmf
   }
 
+  /// Alias for [`Self::cmf`].
   pub fn color_matching_function(&self) -> &Cmf {
     self.cmf()
   }
 
+  /// Returns the cone fundamentals (LMS sensitivity data).
   pub fn cone_fundamentals(&self) -> &ConeFundamentals {
     &self.cone_fundamentals
   }
 
+  /// Returns the formatted observer name (e.g., "CIE 1931 2°").
   pub fn name(&self) -> String {
     if self.visual_field.fract() == 0.0 {
       format!("{} {}°", self.name, self.visual_field as i32)
@@ -171,6 +195,7 @@ impl Observer {
     }
   }
 
+  /// Returns the visual field angle in degrees.
   pub fn visual_field(&self) -> f64 {
     self.visual_field
   }

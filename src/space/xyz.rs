@@ -6,6 +6,10 @@ use std::{
 use super::{ColorSpace, LinearRgb, Lms, Rgb, RgbSpec, Srgb};
 use crate::{ColorimetricContext, chromaticity::Xy, component::Component};
 
+/// CIE 1931 XYZ tristimulus color space.
+///
+/// The device-independent reference space through which all conversions flow.
+/// Y represents relative luminance, while X and Z carry chromaticity information.
 #[derive(Clone, Copy, Debug)]
 pub struct Xyz {
   context: ColorimetricContext,
@@ -15,6 +19,7 @@ pub struct Xyz {
 }
 
 impl Xyz {
+  /// Creates a new XYZ color with the default viewing context.
   pub fn new(x: impl Into<Component>, y: impl Into<Component>, z: impl Into<Component>) -> Self {
     Self {
       context: ColorimetricContext::default(),
@@ -24,6 +29,7 @@ impl Xyz {
     }
   }
 
+  /// Creates a new XYZ color in a const context.
   pub const fn new_const(x: f64, y: f64, z: f64) -> Self {
     Self {
       context: ColorimetricContext::DEFAULT,
@@ -33,6 +39,7 @@ impl Xyz {
     }
   }
 
+  /// Adapts this color to a different viewing context using chromatic adaptation.
   pub fn adapt_to(&self, context: ColorimetricContext) -> Self {
     let reference_white = self.context.reference_white();
     let target_white = context.reference_white();
@@ -47,12 +54,14 @@ impl Xyz {
       .with_context(context)
   }
 
+  /// Returns a new color with all components scaled by the given factor.
   pub fn amplified_by(&self, factor: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.amplify(factor);
     xyz
   }
 
+  /// Scales all components in place by the given factor.
   pub fn amplify(&mut self, factor: impl Into<Component>) {
     let factor = factor.into();
     self.scale_x(factor);
@@ -60,6 +69,7 @@ impl Xyz {
     self.scale_z(factor);
   }
 
+  /// Divides all components in place by the given factor.
   pub fn attenuate(&mut self, factor: impl Into<Component>) {
     let factor = factor.into();
     self.x /= factor;
@@ -67,12 +77,14 @@ impl Xyz {
     self.z /= factor;
   }
 
+  /// Returns a new color with all components divided by the given factor.
   pub fn attenuated_by(&self, factor: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.attenuate(factor);
     xyz
   }
 
+  /// Returns the CIE 1931 xy chromaticity coordinates.
   pub fn chromaticity(&self) -> Xy {
     let [x, y, z] = self.components();
     let sum = x + y + z;
@@ -84,14 +96,17 @@ impl Xyz {
     }
   }
 
+  /// Returns the [X, Y, Z] components as an array.
   pub fn components(&self) -> [f64; 3] {
     [self.x.0, self.y.0, self.z.0]
   }
 
+  /// Returns the viewing context for this color.
   pub fn context(&self) -> &ColorimetricContext {
     &self.context
   }
 
+  /// Decreases luminance (Y) while proportionally scaling X and Z to preserve chromaticity.
   pub fn decrement_luminance(&mut self, amount: impl Into<Component>) {
     let luminance = self.y - amount.into();
 
@@ -104,18 +119,22 @@ impl Xyz {
     self.y = luminance;
   }
 
+  /// Decreases the X component by the given amount.
   pub fn decrement_x(&mut self, amount: impl Into<Component>) {
     self.x -= amount.into();
   }
 
+  /// Decreases the Y component by the given amount.
   pub fn decrement_y(&mut self, amount: impl Into<Component>) {
     self.y -= amount.into();
   }
 
+  /// Decreases the Z component by the given amount.
   pub fn decrement_z(&mut self, amount: impl Into<Component>) {
     self.z -= amount.into();
   }
 
+  /// Increases luminance (Y) while proportionally scaling X and Z to preserve chromaticity.
   pub fn increment_luminance(&mut self, amount: impl Into<Component>) {
     let luminance = self.y + amount.into();
 
@@ -128,34 +147,42 @@ impl Xyz {
     self.y = luminance;
   }
 
+  /// Increases the X component by the given amount.
   pub fn increment_x(&mut self, amount: impl Into<Component>) {
     self.x += amount.into();
   }
 
+  /// Increases the Y component by the given amount.
   pub fn increment_y(&mut self, amount: impl Into<Component>) {
     self.y += amount.into();
   }
 
+  /// Increases the Z component by the given amount.
   pub fn increment_z(&mut self, amount: impl Into<Component>) {
     self.z += amount.into();
   }
 
+  /// Returns the relative luminance (Y component).
   pub fn luminance(&self) -> f64 {
     self.y()
   }
 
+  /// Scales luminance by the given factor while proportionally scaling X and Z.
   pub fn scale_luminance(&mut self, factor: impl Into<Component>) {
     self.amplify(factor)
   }
 
+  /// Scales the X component by the given factor.
   pub fn scale_x(&mut self, factor: impl Into<Component>) {
     self.x *= factor.into();
   }
 
+  /// Scales the Y component by the given factor.
   pub fn scale_y(&mut self, factor: impl Into<Component>) {
     self.y *= factor.into();
   }
 
+  /// Scales the Z component by the given factor.
   pub fn scale_z(&mut self, factor: impl Into<Component>) {
     self.z *= factor.into();
   }
@@ -182,10 +209,12 @@ impl Xyz {
     self.z = z.into();
   }
 
+  /// Converts to the LMS cone response space using the context's CAT matrix.
   pub fn to_lms(&self) -> Lms {
     Lms::from(self.context.cat().matrix() * self.components()).with_context(self.context)
   }
 
+  /// Converts to the specified RGB color space.
   pub fn to_rgb<S>(&self) -> Rgb<S>
   where
     S: RgbSpec,
@@ -195,6 +224,7 @@ impl Xyz {
     LinearRgb::<S>::from_normalized(r, g, b).to_encoded()
   }
 
+  /// Returns this color with a different viewing context (without adaptation).
   pub fn with_context(&self, context: ColorimetricContext) -> Self {
     Self {
       context,
@@ -202,6 +232,7 @@ impl Xyz {
     }
   }
 
+  /// Returns a new color with the given luminance, scaling X and Z proportionally.
   pub fn with_luminance(&self, luminance: impl Into<Component>) -> Self {
     let luminance = luminance.into();
 
@@ -222,24 +253,28 @@ impl Xyz {
     }
   }
 
+  /// Returns a new color with luminance decreased by the given amount.
   pub fn with_luminance_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.decrement_luminance(amount);
     xyz
   }
 
+  /// Returns a new color with luminance increased by the given amount.
   pub fn with_luminance_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.increment_luminance(amount);
     xyz
   }
 
+  /// Returns a new color with luminance scaled by the given factor.
   pub fn with_luminance_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.scale_luminance(factor);
     xyz
   }
 
+  /// Returns a new color with the given X value.
   pub fn with_x(&self, x: impl Into<Component>) -> Self {
     Self {
       x: x.into(),
@@ -247,6 +282,7 @@ impl Xyz {
     }
   }
 
+  /// Returns a new color with the given Y value.
   pub fn with_y(&self, y: impl Into<Component>) -> Self {
     Self {
       y: y.into(),
@@ -254,6 +290,7 @@ impl Xyz {
     }
   }
 
+  /// Returns a new color with the given Z value.
   pub fn with_z(&self, z: impl Into<Component>) -> Self {
     Self {
       z: z.into(),
@@ -261,68 +298,80 @@ impl Xyz {
     }
   }
 
+  /// Returns a new color with X decreased by the given amount.
   pub fn with_x_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.decrement_x(amount);
     xyz
   }
 
+  /// Returns a new color with X increased by the given amount.
   pub fn with_x_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.increment_x(amount);
     xyz
   }
 
+  /// Returns a new color with X scaled by the given factor.
   pub fn with_x_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.scale_x(factor);
     xyz
   }
 
+  /// Returns a new color with Y decreased by the given amount.
   pub fn with_y_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.decrement_y(amount);
     xyz
   }
 
+  /// Returns a new color with Y increased by the given amount.
   pub fn with_y_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.increment_y(amount);
     xyz
   }
 
+  /// Returns a new color with Y scaled by the given factor.
   pub fn with_y_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.scale_y(factor);
     xyz
   }
 
+  /// Returns a new color with Z decreased by the given amount.
   pub fn with_z_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.decrement_z(amount);
     xyz
   }
 
+  /// Returns a new color with Z increased by the given amount.
   pub fn with_z_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.increment_z(amount);
     xyz
   }
 
+  /// Returns a new color with Z scaled by the given factor.
   pub fn with_z_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut xyz = *self;
     xyz.scale_z(factor);
     xyz
   }
 
+  /// Returns the X component.
   pub fn x(&self) -> f64 {
     self.x.0
   }
 
+  /// Returns the Y component.
   pub fn y(&self) -> f64 {
     self.y.0
   }
 
+  /// Returns the Z component.
   pub fn z(&self) -> f64 {
     self.z.0
   }

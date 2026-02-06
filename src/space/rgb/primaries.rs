@@ -1,5 +1,6 @@
 use crate::{chromaticity::Xy, matrix::Matrix3, space::Xyz};
 
+/// The red, green, and blue primary chromaticity coordinates defining an RGB gamut.
 pub struct RgbPrimaries {
   blue: Xy,
   green: Xy,
@@ -7,7 +8,7 @@ pub struct RgbPrimaries {
 }
 
 impl RgbPrimaries {
-  // Associated functions - public
+  /// Creates new RGB primaries from red, green, and blue chromaticity coordinates.
   pub fn new(red: impl Into<Xy>, green: impl Into<Xy>, blue: impl Into<Xy>) -> Self {
     Self {
       red: red.into(),
@@ -16,6 +17,7 @@ impl RgbPrimaries {
     }
   }
 
+  /// Creates new RGB primaries in a const context.
   pub const fn new_const(red: Xy, green: Xy, blue: Xy) -> Self {
     Self {
       red,
@@ -24,11 +26,12 @@ impl RgbPrimaries {
     }
   }
 
-  // Methods - public
+  /// Returns the blue primary chromaticity.
   pub fn blue(&self) -> &Xy {
     &self.blue
   }
 
+  /// Computes the 3x3 RGB-to-XYZ matrix for the given reference white point.
   pub fn calculate_xyz_matrix(&self, reference_white: impl Into<Xyz>) -> Matrix3 {
     let reference_white = reference_white.into();
 
@@ -52,10 +55,12 @@ impl RgbPrimaries {
     primary * scaling
   }
 
+  /// Returns the green primary chromaticity.
   pub fn green(&self) -> &Xy {
     &self.green
   }
 
+  /// Returns the red primary chromaticity.
   pub fn red(&self) -> &Xy {
     &self.red
   }

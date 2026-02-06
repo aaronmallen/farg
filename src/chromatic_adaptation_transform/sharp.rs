@@ -1,6 +1,7 @@
 use super::ChromaticAdaptationTransform;
 
 impl ChromaticAdaptationTransform {
+  /// The default CAT when this is the highest-priority enabled transform.
   #[cfg(all(
     not(feature = "cat-bradford"),
     not(feature = "cat-cat16"),
@@ -10,6 +11,7 @@ impl ChromaticAdaptationTransform {
     not(feature = "cat-hunt-pointer-estevez"),
   ))]
   pub const DEFAULT: Self = Self::SHARP;
+  /// The Sharp chromatic adaptation transform (Süsstrunk et al.).
   pub const SHARP: Self = Self::new(
     "Sharp",
     [

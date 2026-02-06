@@ -1,6 +1,9 @@
 use super::ChromaticAdaptationTransform;
 
 impl ChromaticAdaptationTransform {
+  /// The Bradford chromatic adaptation transform.
+  ///
+  /// Widely considered the best general-purpose CAT. Used as the default.
   pub const BRADFORD: Self = Self::new(
     "Bradford",
     [
@@ -9,5 +12,6 @@ impl ChromaticAdaptationTransform {
       [0.0389, -0.0685, 1.0296],
     ],
   );
+  /// The default CAT (Bradford when the `cat-bradford` feature is enabled).
   pub const DEFAULT: Self = Self::BRADFORD;
 }

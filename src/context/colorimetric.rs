@@ -2,6 +2,11 @@ use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 
 use crate::{Cat, Illuminant, Observer, space::Xyz};
 
+/// Defines the viewing conditions for colorimetric calculations.
+///
+/// A context combines an [`Illuminant`], [`Observer`], and [`Cat`] (chromatic adaptation
+/// transform) to fully specify the conditions under which colors are interpreted.
+/// The default context uses D65, CIE 1931 2°, and the Bradford CAT.
 #[derive(Clone, Copy, Debug)]
 pub struct ColorimetricContext {
   cat: Cat,
@@ -10,12 +15,14 @@ pub struct ColorimetricContext {
 }
 
 impl ColorimetricContext {
+  /// The default colorimetric context (D65, CIE 1931 2°, Bradford CAT).
   pub const DEFAULT: Self = Self {
     cat: Cat::DEFAULT,
     illuminant: Illuminant::DEFAULT,
     observer: Observer::DEFAULT,
   };
 
+  /// Creates a new context with default settings.
   pub const fn new() -> Self {
     Self {
       cat: Cat::DEFAULT,
@@ -24,26 +31,32 @@ impl ColorimetricContext {
     }
   }
 
+  /// Returns a reference to the chromatic adaptation transform.
   pub fn cat(&self) -> &Cat {
     &self.cat
   }
 
+  /// Returns a reference to the illuminant.
   pub fn illuminant(&self) -> &Illuminant {
     &self.illuminant
   }
 
+  /// Returns a reference to the observer.
   pub fn observer(&self) -> &Observer {
     &self.observer
   }
 
+  /// Returns a human-readable name combining illuminant and observer names.
   pub fn name(&self) -> String {
     format!("{} {}", self.illuminant.name(), self.observer.name())
   }
 
+  /// Calculates the reference white point XYZ by integrating the illuminant SPD with the observer CMF.
   pub fn reference_white(&self) -> Xyz {
     self.observer.cmf().calculate_reference_white(&self.illuminant.spd())
   }
 
+  /// Returns a new context with the given chromatic adaptation transform.
   pub const fn with_cat(&self, cat: Cat) -> Self {
     Self {
       cat,
@@ -51,10 +64,12 @@ impl ColorimetricContext {
     }
   }
 
+  /// Alias for [`Self::with_cat`].
   pub const fn with_chromatic_adaptation_transform(&self, cat: Cat) -> Self {
     self.with_cat(cat)
   }
 
+  /// Returns a new context with the given illuminant.
   pub const fn with_illuminant(&self, illuminant: Illuminant) -> Self {
     Self {
       illuminant,
@@ -62,6 +77,7 @@ impl ColorimetricContext {
     }
   }
 
+  /// Returns a new context with the given observer.
   pub const fn with_observer(&self, observer: Observer) -> Self {
     Self {
       observer,

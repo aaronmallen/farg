@@ -3,27 +3,35 @@ use std::{
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
+/// A 3x3 matrix for linear algebra operations.
+///
+/// Used internally for RGB-to-XYZ conversions, chromatic adaptation transforms,
+/// and other 3-component color space transformations.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Matrix3 {
   data: [[f64; 3]; 3],
 }
 
 impl Matrix3 {
+  /// Creates a new matrix from row-major data.
   pub const fn new(data: [[f64; 3]; 3]) -> Self {
     Self {
       data,
     }
   }
 
+  /// Returns the matrix data as a 3x3 array in row-major order.
   pub const fn data(&self) -> [[f64; 3]; 3] {
     self.data
   }
 
+  /// Computes the determinant of the matrix.
   pub const fn determinant(&self) -> f64 {
     let [[a, b, c], [d, e, f], [g, h, i]] = self.data;
     a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g)
   }
 
+  /// Computes the inverse of the matrix.
   pub const fn inverse(&self) -> Self {
     let [[a, b, c], [d, e, f], [g, h, i]] = self.data;
     let inv_det = 1.0 / self.determinant();

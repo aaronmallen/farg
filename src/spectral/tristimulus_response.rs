@@ -2,26 +2,32 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use crate::space::Xyz;
 
+/// An XYZ tristimulus response at a single wavelength.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TristimulusResponse([f64; 3]);
 
 impl TristimulusResponse {
+  /// Creates a new tristimulus response from X, Y, Z values.
   pub const fn new(x: f64, y: f64, z: f64) -> Self {
     Self([x, y, z])
   }
 
+  /// Returns the [X, Y, Z] components as an array.
   pub fn components(&self) -> [f64; 3] {
     self.0
   }
 
+  /// Returns the X component.
   pub fn x(&self) -> f64 {
     self.0[0]
   }
 
+  /// Returns the Y component.
   pub fn y(&self) -> f64 {
     self.0[1]
   }
 
+  /// Returns the Z component.
   pub fn z(&self) -> f64 {
     self.0[2]
   }

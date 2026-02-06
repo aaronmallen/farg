@@ -167,6 +167,11 @@ use crate::{
   space::{ColorSpace, Lms, Xyz},
 };
 
+/// An encoded RGB color in a specific color space.
+///
+/// The type parameter `S` determines which RGB space (sRGB, Display P3, etc.)
+/// this color belongs to. Defaults to [`Srgb`] when not specified.
+/// Components are stored as normalized values in the 0.0-1.0 range.
 #[derive(Clone, Copy, Debug)]
 pub struct Rgb<S = Srgb>
 where
@@ -183,6 +188,7 @@ impl<S> Rgb<S>
 where
   S: RgbSpec,
 {
+  /// Parses a hex color code (e.g., "#FF5733" or "F00") into an RGB color.
   pub fn from_hexcode(hexcode: impl Into<String>) -> Result<Self, Error> {
     let hexcode = hexcode.into();
     let hex = hexcode.strip_prefix('#').unwrap_or(&hexcode);
@@ -223,6 +229,7 @@ where
     Ok(Self::new(r, g, b))
   }
 
+  /// Creates an RGB color from normalized (0.0-1.0) component values.
   pub fn from_normalized(r: impl Into<Component>, g: impl Into<Component>, b: impl Into<Component>) -> Self {
     Self {
       b: b.into().clamp(0.0, 1.0),
@@ -233,6 +240,7 @@ where
     }
   }
 
+  /// Creates an RGB color from 8-bit (0-255) component values.
   pub fn new(r: u8, g: u8, b: u8) -> Self {
     Self {
       b: Component::from(b) / 255.0,
@@ -243,6 +251,7 @@ where
     }
   }
 
+  /// Creates an RGB color from 8-bit values in a const context.
   pub const fn new_const(r: u8, g: u8, b: u8) -> Self {
     let r = Component::new_const(r as f64 / 255.0);
     let g = Component::new_const(g as f64 / 255.0);
@@ -257,90 +266,112 @@ where
     }
   }
 
+  /// Returns the normalized blue component (0.0-1.0).
   pub fn b(&self) -> f64 {
     self.b.0
   }
 
+  /// Returns the blue component as a u8 (0-255).
   pub fn blue(&self) -> u8 {
     (self.b.0 * 255.0).round() as u8
   }
 
+  /// Returns the [R, G, B] components as normalized values.
   pub fn components(&self) -> [f64; 3] {
     [self.r.0, self.g.0, self.b.0]
   }
 
+  /// Returns the viewing context for this color space.
   pub fn context(&self) -> &ColorimetricContext {
     &self.context
   }
 
+  /// Returns the normalized green component (0.0-1.0).
   pub fn g(&self) -> f64 {
     self.g.0
   }
 
+  /// Returns the green component as a u8 (0-255).
   pub fn green(&self) -> u8 {
     (self.g.0 * 255.0).round() as u8
   }
 
+  /// Returns the normalized red component (0.0-1.0).
   pub fn r(&self) -> f64 {
     self.r.0
   }
 
+  /// Returns the red component as a u8 (0-255).
   pub fn red(&self) -> u8 {
     (self.r.0 * 255.0).round() as u8
   }
 
+  /// Decreases the blue channel by the given amount (in 0-255 scale).
   pub fn decrement_b(&mut self, amount: impl Into<Component>) {
     self.b = (self.b - amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::decrement_b`].
   pub fn decrement_blue(&mut self, amount: impl Into<Component>) {
     self.decrement_b(amount);
   }
 
+  /// Decreases the green channel by the given amount (in 0-255 scale).
   pub fn decrement_g(&mut self, amount: impl Into<Component>) {
     self.g = (self.g - amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::decrement_g`].
   pub fn decrement_green(&mut self, amount: impl Into<Component>) {
     self.decrement_g(amount);
   }
 
+  /// Decreases the red channel by the given amount (in 0-255 scale).
   pub fn decrement_r(&mut self, amount: impl Into<Component>) {
     self.r = (self.r - amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::decrement_r`].
   pub fn decrement_red(&mut self, amount: impl Into<Component>) {
     self.decrement_r(amount);
   }
 
+  /// Increases the blue channel by the given amount (in 0-255 scale).
   pub fn increment_b(&mut self, amount: impl Into<Component>) {
     self.b = (self.b + amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::increment_b`].
   pub fn increment_blue(&mut self, amount: impl Into<Component>) {
     self.increment_b(amount);
   }
 
+  /// Increases the green channel by the given amount (in 0-255 scale).
   pub fn increment_g(&mut self, amount: impl Into<Component>) {
     self.g = (self.g + amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::increment_g`].
   pub fn increment_green(&mut self, amount: impl Into<Component>) {
     self.increment_g(amount);
   }
 
+  /// Increases the red channel by the given amount (in 0-255 scale).
   pub fn increment_r(&mut self, amount: impl Into<Component>) {
     self.r = (self.r + amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::increment_r`].
   pub fn increment_red(&mut self, amount: impl Into<Component>) {
     self.increment_r(amount);
   }
 
+  /// Sets the blue channel to the given value (in 0-255 scale).
   pub fn set_b(&mut self, b: impl Into<Component>) {
     self.b = (b.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::set_b`].
   pub fn set_blue(&mut self, blue: impl Into<Component>) {
     self.set_b(blue);
   }
@@ -351,46 +382,57 @@ where
     self.set_b(components[2].clone());
   }
 
+  /// Sets the green channel to the given value (in 0-255 scale).
   pub fn set_g(&mut self, g: impl Into<Component>) {
     self.g = (g.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::set_g`].
   pub fn set_green(&mut self, green: impl Into<Component>) {
     self.set_g(green);
   }
 
+  /// Sets the red channel to the given value (in 0-255 scale).
   pub fn set_r(&mut self, r: impl Into<Component>) {
     self.r = (r.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::set_r`].
   pub fn set_red(&mut self, red: impl Into<Component>) {
     self.set_r(red);
   }
 
+  /// Scales the blue channel by the given factor, clamping to 0.0-1.0.
   pub fn scale_b(&mut self, factor: impl Into<Component>) {
     self.b = (self.b * factor.into()).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::scale_b`].
   pub fn scale_blue(&mut self, factor: impl Into<Component>) {
     self.scale_b(factor);
   }
 
+  /// Scales the green channel by the given factor, clamping to 0.0-1.0.
   pub fn scale_g(&mut self, factor: impl Into<Component>) {
     self.g = (self.g * factor.into()).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::scale_g`].
   pub fn scale_green(&mut self, factor: impl Into<Component>) {
     self.scale_g(factor);
   }
 
+  /// Scales the red channel by the given factor, clamping to 0.0-1.0.
   pub fn scale_r(&mut self, factor: impl Into<Component>) {
     self.r = (self.r * factor.into()).clamp(0.0, 1.0);
   }
 
+  /// Alias for [`Self::scale_r`].
   pub fn scale_red(&mut self, factor: impl Into<Component>) {
     self.scale_r(factor);
   }
 
+  /// Decodes to linear RGB by applying the inverse transfer function.
   pub fn to_linear(&self) -> LinearRgb<S> {
     let r = S::TRANSFER_FUNCTION.decode(self.r);
     let g = S::TRANSFER_FUNCTION.decode(self.g);
@@ -398,6 +440,7 @@ where
     LinearRgb::from_normalized(r, g, b)
   }
 
+  /// Converts to a different RGB color space via XYZ.
   pub fn to_rgb<OS>(&self) -> Rgb<OS>
   where
     OS: RgbSpec,
@@ -409,16 +452,19 @@ where
     }
   }
 
+  /// Converts to LMS via XYZ.
   pub fn to_lms(&self) -> Lms {
     self.to_xyz().to_lms()
   }
 
+  /// Converts to CIE XYZ via linear RGB and the space's RGB-to-XYZ matrix.
   pub fn to_xyz(&self) -> Xyz {
     let linear = self.to_linear();
     let [x, y, z] = *S::xyz_matrix() * linear.components();
     Xyz::new(x, y, z).with_context(self.context)
   }
 
+  /// Returns a new color with the given blue channel value (in 0-255 scale).
   pub fn with_b(&self, b: impl Into<Component>) -> Self {
     Self {
       b: (b.into() / 255.0).clamp(0.0, 1.0),
@@ -426,40 +472,48 @@ where
     }
   }
 
+  /// Returns a new color with the blue channel decreased by the given amount.
   pub fn with_b_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.decrement_b(amount);
     rgb
   }
 
+  /// Returns a new color with the blue channel increased by the given amount.
   pub fn with_b_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.increment_b(amount);
     rgb
   }
 
+  /// Returns a new color with the blue channel scaled by the given factor.
   pub fn with_b_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.scale_b(factor);
     rgb
   }
 
+  /// Alias for [`Self::with_b`].
   pub fn with_blue(&self, blue: impl Into<Component>) -> Self {
     self.with_b(blue)
   }
 
+  /// Alias for [`Self::with_b_decremented_by`].
   pub fn with_blue_decremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_b_decremented_by(amount)
   }
 
+  /// Alias for [`Self::with_b_incremented_by`].
   pub fn with_blue_incremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_b_incremented_by(amount)
   }
 
+  /// Alias for [`Self::with_b_scaled_by`].
   pub fn with_blue_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_b_scaled_by(factor)
   }
 
+  /// Returns a new color with the given green channel value (in 0-255 scale).
   pub fn with_g(&self, g: impl Into<Component>) -> Self {
     Self {
       g: (g.into() / 255.0).clamp(0.0, 1.0),
@@ -467,40 +521,48 @@ where
     }
   }
 
+  /// Returns a new color with the green channel decreased by the given amount.
   pub fn with_g_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.decrement_g(amount);
     rgb
   }
 
+  /// Returns a new color with the green channel increased by the given amount.
   pub fn with_g_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.increment_g(amount);
     rgb
   }
 
+  /// Returns a new color with the green channel scaled by the given factor.
   pub fn with_g_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.scale_g(factor);
     rgb
   }
 
+  /// Alias for [`Self::with_g`].
   pub fn with_green(&self, green: impl Into<Component>) -> Self {
     self.with_g(green)
   }
 
+  /// Alias for [`Self::with_g_decremented_by`].
   pub fn with_green_decremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_g_decremented_by(amount)
   }
 
+  /// Alias for [`Self::with_g_incremented_by`].
   pub fn with_green_incremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_g_incremented_by(amount)
   }
 
+  /// Alias for [`Self::with_g_scaled_by`].
   pub fn with_green_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_g_scaled_by(factor)
   }
 
+  /// Returns a new color with the given red channel value (in 0-255 scale).
   pub fn with_r(&self, r: impl Into<Component>) -> Self {
     Self {
       r: (r.into() / 255.0).clamp(0.0, 1.0),
@@ -508,36 +570,43 @@ where
     }
   }
 
+  /// Returns a new color with the red channel decreased by the given amount.
   pub fn with_r_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.decrement_r(amount);
     rgb
   }
 
+  /// Returns a new color with the red channel increased by the given amount.
   pub fn with_r_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.increment_r(amount);
     rgb
   }
 
+  /// Returns a new color with the red channel scaled by the given factor.
   pub fn with_r_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.scale_r(factor);
     rgb
   }
 
+  /// Alias for [`Self::with_r`].
   pub fn with_red(&self, red: impl Into<Component>) -> Self {
     self.with_r(red)
   }
 
+  /// Alias for [`Self::with_r_decremented_by`].
   pub fn with_red_decremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_r_decremented_by(amount)
   }
 
+  /// Alias for [`Self::with_r_incremented_by`].
   pub fn with_red_incremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_r_incremented_by(amount)
   }
 
+  /// Alias for [`Self::with_r_scaled_by`].
   pub fn with_red_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_r_scaled_by(factor)
   }

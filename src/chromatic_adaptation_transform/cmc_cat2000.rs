@@ -1,6 +1,7 @@
 use super::ChromaticAdaptationTransform;
 
 impl ChromaticAdaptationTransform {
+  /// The CMC CAT2000 chromatic adaptation transform.
   pub const CMC_CAT2000: Self = Self::new(
     "CMC CAT2000",
     [
@@ -9,6 +10,7 @@ impl ChromaticAdaptationTransform {
       [0.0008, 0.0239, 0.9753],
     ],
   );
+  /// The default CAT when this is the highest-priority enabled transform.
   #[cfg(all(
     not(feature = "cat-bradford"),
     not(feature = "cat-cat16"),

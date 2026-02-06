@@ -12,11 +12,17 @@ pub use cone_response::ConeResponse;
 pub use spectral_power_distribution::{Spd, SpectralPowerDistribution};
 pub use tristimulus_response::TristimulusResponse;
 
+/// Common interface for wavelength-indexed spectral data.
+///
+/// All spectral data types (SPD, CMF, chromaticity coordinates, cone fundamentals)
+/// implement this trait, providing uniform access to wavelength-value pairs.
 pub trait Table {
   type Value;
 
+  /// Returns the underlying wavelength-value pairs.
   fn table(&self) -> &[(u32, Self::Value)];
 
+  /// Returns the value at the given wavelength, or `None` if not present.
   fn at(&self, wavelength: u32) -> Option<&Self::Value> {
     self
       .table()
@@ -25,22 +31,27 @@ pub trait Table {
       .map(|i| &self.table()[i].1)
   }
 
+  /// Returns `true` if the table contains no entries.
   fn is_empty(&self) -> bool {
     self.table().is_empty()
   }
 
+  /// Returns the number of wavelength-value pairs.
   fn len(&self) -> usize {
     self.table().len()
   }
 
+  /// Returns the maximum wavelength in the table, or `None` if empty.
   fn max_wavelength(&self) -> Option<u32> {
     self.table().last().map(|(w, _)| *w)
   }
 
+  /// Returns the minimum wavelength in the table, or `None` if empty.
   fn min_wavelength(&self) -> Option<u32> {
     self.table().first().map(|(w, _)| *w)
   }
 
+  /// Returns the minimum step size between consecutive wavelengths.
   fn step(&self) -> u32 {
     if self.table().len() < 2 {
       return 1;
@@ -49,10 +60,12 @@ pub trait Table {
     self.table().windows(2).map(|w| w[1].0 - w[0].0).min().unwrap_or(1)
   }
 
+  /// Returns an iterator over the values (without wavelengths).
   fn values(&self) -> impl Iterator<Item = &Self::Value> + '_ {
     self.table().iter().map(|(_, v)| v)
   }
 
+  /// Returns an iterator over the wavelengths (without values).
   fn wavelengths(&self) -> impl Iterator<Item = u32> + '_ {
     self.table().iter().map(|(w, _)| *w)
   }

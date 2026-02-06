@@ -7,4 +7,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
-[unreleased]: https://git.aaronmallen.dev/farg/farg/
+## [v0.1.0] - 2026-02-05
+
+Initial release
+
+[unreleased]: https://git.aaronmallen.dev/farg/farg/~/compare/0.1.0...main

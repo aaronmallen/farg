@@ -1,18 +1,22 @@
 use super::{Cmf, ConeResponse, Spd, Table};
 use crate::space::{Lms, Xyz};
 
+/// Spectral cone sensitivity functions mapping wavelengths to LMS cone responses.
 #[derive(Clone, Copy, Debug)]
 pub struct ConeFundamentals(&'static [(u32, ConeResponse)]);
 
 impl ConeFundamentals {
+  /// Creates new cone fundamentals from static wavelength-response pairs.
   pub const fn new(table: &'static [(u32, ConeResponse)]) -> Self {
     Self(table)
   }
 
+  /// Alias for [`Self::spectral_power_distribution_to_lms`].
   pub fn spd_to_lms(&self, spd: &Spd) -> Lms {
     self.spectral_power_distribution_to_lms(spd)
   }
 
+  /// Integrates a spectral power distribution with cone fundamentals to produce LMS values.
   pub fn spectral_power_distribution_to_lms(&self, spd: &Spd) -> Lms {
     let step = self.step() as f64;
     let mut components = [0.0_f64; 3];

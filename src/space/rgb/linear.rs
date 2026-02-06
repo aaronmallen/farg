@@ -6,6 +6,9 @@ use std::{
 use super::{RgbSpec, space::Rgb};
 use crate::component::Component;
 
+/// Linear (scene-referred) RGB values before transfer function encoding.
+///
+/// Components are stored as normalized values in the 0.0-1.0 range.
 #[derive(Clone, Copy, Debug)]
 pub struct LinearRgb<S>
 where
@@ -21,6 +24,7 @@ impl<S> LinearRgb<S>
 where
   S: RgbSpec,
 {
+  /// Creates linear RGB from normalized (0.0-1.0) component values.
   pub fn from_normalized(r: impl Into<Component>, g: impl Into<Component>, b: impl Into<Component>) -> Self {
     Self {
       b: b.into().clamp(0.0, 1.0),
@@ -30,6 +34,7 @@ where
     }
   }
 
+  /// Creates linear RGB from 8-bit (0-255) component values.
   pub fn new(r: u8, g: u8, b: u8) -> Self {
     Self {
       b: Component::from(b) / 255.0,
@@ -39,6 +44,7 @@ where
     }
   }
 
+  /// Creates linear RGB from 8-bit values in a const context.
   pub const fn new_const(r: u8, g: u8, b: u8) -> Self {
     let r = Component::new_const(r as f64 / 255.0);
     let g = Component::new_const(g as f64 / 255.0);
@@ -52,10 +58,12 @@ where
     }
   }
 
+  /// Returns the normalized blue component (0.0-1.0).
   pub fn b(&self) -> f64 {
     self.b.0
   }
 
+  /// Returns the blue component as a u8 (0-255).
   pub fn blue(&self) -> u8 {
     (self.b.0 * 255.0).round() as u8
   }
@@ -64,22 +72,27 @@ where
     [self.r.0, self.g.0, self.b.0]
   }
 
+  /// Returns the normalized green component (0.0-1.0).
   pub fn g(&self) -> f64 {
     self.g.0
   }
 
+  /// Returns the green component as a u8 (0-255).
   pub fn green(&self) -> u8 {
     (self.g.0 * 255.0).round() as u8
   }
 
+  /// Returns the normalized red component (0.0-1.0).
   pub fn r(&self) -> f64 {
     self.r.0
   }
 
+  /// Returns the red component as a u8 (0-255).
   pub fn red(&self) -> u8 {
     (self.r.0 * 255.0).round() as u8
   }
 
+  /// Applies the transfer function to produce encoded (gamma-corrected) RGB values.
   pub fn to_encoded(&self) -> Rgb<S> {
     let r = S::TRANSFER_FUNCTION.encode(self.r);
     let g = S::TRANSFER_FUNCTION.encode(self.g);

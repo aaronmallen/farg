@@ -4,6 +4,9 @@ use crate::{
   space::rgb::{RgbPrimaries, RgbSpec, TransferFunction},
 };
 
+/// The standard RGB (sRGB) color space specification (IEC 61966-2-1).
+///
+/// Uses D65 illuminant, CIE 1931 2 degree observer, and the sRGB transfer function.
 #[derive(Clone, Copy, Debug)]
 pub struct Srgb;
 

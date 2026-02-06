@@ -1,6 +1,7 @@
 use super::ChromaticAdaptationTransform;
 
 impl ChromaticAdaptationTransform {
+  /// The default CAT when this is the highest-priority enabled transform.
   #[cfg(all(
     not(feature = "cat-bradford"),
     not(feature = "cat-cat16"),
@@ -11,6 +12,7 @@ impl ChromaticAdaptationTransform {
     not(feature = "cat-sharp"),
   ))]
   pub const DEFAULT: Self = Self::FAIRCHILD;
+  /// The Fairchild chromatic adaptation transform.
   pub const FAIRCHILD: Self = Self::new(
     "Fairchild",
     [

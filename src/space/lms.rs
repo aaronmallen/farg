@@ -6,6 +6,10 @@ use std::{
 use super::{ColorSpace, Rgb, RgbSpec, Srgb, Xyz};
 use crate::{ColorimetricContext, component::Component};
 
+/// LMS cone response color space.
+///
+/// Represents color as responses of the three types of cone cells in the human eye:
+/// Long (L), Medium (M), and Short (S) wavelength-sensitive.
 #[derive(Clone, Copy, Debug)]
 pub struct Lms {
   context: ColorimetricContext,
@@ -15,6 +19,7 @@ pub struct Lms {
 }
 
 impl Lms {
+  /// Creates a new LMS color with the default viewing context.
   pub fn new(l: impl Into<Component>, m: impl Into<Component>, s: impl Into<Component>) -> Self {
     Self {
       context: ColorimetricContext::default(),
@@ -24,6 +29,7 @@ impl Lms {
     }
   }
 
+  /// Creates a new LMS color in a const context.
   pub const fn new_const(l: f64, m: f64, s: f64) -> Self {
     Self {
       context: ColorimetricContext::DEFAULT,
@@ -33,6 +39,7 @@ impl Lms {
     }
   }
 
+  /// Adapts this color to a different viewing context via XYZ.
   pub fn adapt_to(&self, context: ColorimetricContext) -> Self {
     let reference_white = self.context.reference_white();
     let target_white = context.reference_white();
@@ -44,102 +51,127 @@ impl Lms {
     self.to_xyz().adapt_to(context).to_lms()
   }
 
+  /// Returns the [L, M, S] components as an array.
   pub fn components(&self) -> [f64; 3] {
     [self.l.0, self.m.0, self.s.0]
   }
 
+  /// Returns the viewing context for this color.
   pub fn context(&self) -> &ColorimetricContext {
     &self.context
   }
 
+  /// Decreases the L component by the given amount.
   pub fn decrement_l(&mut self, amount: impl Into<Component>) {
     self.l -= amount.into();
   }
 
+  /// Alias for [`Self::decrement_l`].
   pub fn decrement_long(&mut self, amount: impl Into<Component>) {
     self.decrement_l(amount)
   }
 
+  /// Decreases the M component by the given amount.
   pub fn decrement_m(&mut self, amount: impl Into<Component>) {
     self.m -= amount.into();
   }
 
+  /// Alias for [`Self::decrement_m`].
   pub fn decrement_medium(&mut self, amount: impl Into<Component>) {
     self.decrement_m(amount)
   }
 
+  /// Decreases the S component by the given amount.
   pub fn decrement_s(&mut self, amount: impl Into<Component>) {
     self.s -= amount.into();
   }
 
+  /// Alias for [`Self::decrement_s`].
   pub fn decrement_short(&mut self, amount: impl Into<Component>) {
     self.decrement_s(amount)
   }
 
+  /// Increases the L component by the given amount.
   pub fn increment_l(&mut self, amount: impl Into<Component>) {
     self.l += amount.into();
   }
 
+  /// Alias for [`Self::increment_l`].
   pub fn increment_long(&mut self, amount: impl Into<Component>) {
     self.increment_l(amount)
   }
 
+  /// Increases the M component by the given amount.
   pub fn increment_m(&mut self, amount: impl Into<Component>) {
     self.m += amount.into();
   }
 
+  /// Alias for [`Self::increment_m`].
   pub fn increment_medium(&mut self, amount: impl Into<Component>) {
     self.increment_m(amount)
   }
 
+  /// Increases the S component by the given amount.
   pub fn increment_s(&mut self, amount: impl Into<Component>) {
     self.s += amount.into();
   }
 
+  /// Alias for [`Self::increment_s`].
   pub fn increment_short(&mut self, amount: impl Into<Component>) {
     self.increment_s(amount)
   }
 
+  /// Returns the L (long) cone response.
   pub fn l(&self) -> f64 {
     self.l.0
   }
 
+  /// Alias for [`Self::l`].
   pub fn long(&self) -> f64 {
     self.l()
   }
 
+  /// Returns the M (medium) cone response.
   pub fn m(&self) -> f64 {
     self.m.0
   }
 
+  /// Alias for [`Self::m`].
   pub fn medium(&self) -> f64 {
     self.m()
   }
 
+  /// Returns the S (short) cone response.
   pub fn s(&self) -> f64 {
     self.s.0
   }
 
+  /// Scales the L component by the given factor.
   pub fn scale_l(&mut self, factor: impl Into<Component>) {
     self.l *= factor.into();
   }
 
+  /// Alias for [`Self::scale_l`].
   pub fn scale_long(&mut self, factor: impl Into<Component>) {
     self.scale_l(factor)
   }
 
+  /// Scales the M component by the given factor.
   pub fn scale_m(&mut self, factor: impl Into<Component>) {
     self.m *= factor.into();
   }
 
+  /// Alias for [`Self::scale_m`].
   pub fn scale_medium(&mut self, factor: impl Into<Component>) {
     self.scale_m(factor)
   }
 
+  /// Scales the S component by the given factor.
   pub fn scale_s(&mut self, factor: impl Into<Component>) {
     self.s *= factor.into();
   }
 
+  /// Alias for [`Self::scale_s`].
   pub fn scale_short(&mut self, factor: impl Into<Component>) {
     self.scale_s(factor)
   }
@@ -150,30 +182,37 @@ impl Lms {
     self.set_s(components[2].clone());
   }
 
+  /// Sets the L component to the given value.
   pub fn set_l(&mut self, l: impl Into<Component>) {
     self.l = l.into();
   }
 
+  /// Alias for [`Self::set_l`].
   pub fn set_long(&mut self, l: impl Into<Component>) {
     self.set_l(l)
   }
 
+  /// Sets the M component to the given value.
   pub fn set_m(&mut self, m: impl Into<Component>) {
     self.m = m.into();
   }
 
+  /// Alias for [`Self::set_m`].
   pub fn set_medium(&mut self, m: impl Into<Component>) {
     self.set_m(m)
   }
 
+  /// Sets the S component to the given value.
   pub fn set_s(&mut self, s: impl Into<Component>) {
     self.s = s.into();
   }
 
+  /// Alias for [`Self::set_s`].
   pub fn set_short(&mut self, s: impl Into<Component>) {
     self.set_s(s)
   }
 
+  /// Alias for [`Self::s`].
   pub fn short(&self) -> f64 {
     self.s()
   }
@@ -185,10 +224,12 @@ impl Lms {
     self.to_xyz().to_rgb()
   }
 
+  /// Converts to CIE XYZ using the inverse of the context's CAT matrix.
   pub fn to_xyz(&self) -> Xyz {
     Xyz::from(self.context.cat().inverse() * self.components()).with_context(self.context)
   }
 
+  /// Returns this color with a different viewing context (without adaptation).
   pub fn with_context(&self, context: ColorimetricContext) -> Self {
     Self {
       context,
@@ -196,6 +237,7 @@ impl Lms {
     }
   }
 
+  /// Returns a new color with the given L value.
   pub fn with_l(&self, l: impl Into<Component>) -> Self {
     Self {
       l: l.into(),
@@ -203,40 +245,48 @@ impl Lms {
     }
   }
 
+  /// Alias for [`Self::with_l`].
   pub fn with_long(&self, l: impl Into<Component>) -> Self {
     self.with_l(l)
   }
 
+  /// Returns a new color with L decreased by the given amount.
   pub fn with_l_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut lms = *self;
     lms.decrement_l(amount);
     lms
   }
 
+  /// Alias for [`Self::with_l_decremented_by`].
   pub fn with_long_decremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_l_decremented_by(amount)
   }
 
+  /// Returns a new color with L increased by the given amount.
   pub fn with_l_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut lms = *self;
     lms.increment_l(amount);
     lms
   }
 
+  /// Alias for [`Self::with_l_incremented_by`].
   pub fn with_long_incremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_l_incremented_by(amount)
   }
 
+  /// Returns a new color with L scaled by the given factor.
   pub fn with_l_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut lms = *self;
     lms.scale_l(factor);
     lms
   }
 
+  /// Alias for [`Self::with_l_scaled_by`].
   pub fn with_long_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_l_scaled_by(factor)
   }
 
+  /// Returns a new color with the given M value.
   pub fn with_m(&self, m: impl Into<Component>) -> Self {
     Self {
       m: m.into(),
@@ -244,40 +294,48 @@ impl Lms {
     }
   }
 
+  /// Alias for [`Self::with_m`].
   pub fn with_medium(&self, m: impl Into<Component>) -> Self {
     self.with_m(m)
   }
 
+  /// Returns a new color with M decreased by the given amount.
   pub fn with_m_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut lms = *self;
     lms.decrement_m(amount);
     lms
   }
 
+  /// Alias for [`Self::with_m_decremented_by`].
   pub fn with_medium_decremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_m_decremented_by(amount)
   }
 
+  /// Returns a new color with M increased by the given amount.
   pub fn with_m_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut lms = *self;
     lms.increment_m(amount);
     lms
   }
 
+  /// Alias for [`Self::with_m_incremented_by`].
   pub fn with_medium_incremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_m_incremented_by(amount)
   }
 
+  /// Returns a new color with M scaled by the given factor.
   pub fn with_m_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut lms = *self;
     lms.scale_m(factor);
     lms
   }
 
+  /// Alias for [`Self::with_m_scaled_by`].
   pub fn with_medium_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_m_scaled_by(factor)
   }
 
+  /// Returns a new color with the given S value.
   pub fn with_s(&self, s: impl Into<Component>) -> Self {
     Self {
       s: s.into(),
@@ -285,36 +343,43 @@ impl Lms {
     }
   }
 
+  /// Alias for [`Self::with_s`].
   pub fn with_short(&self, s: impl Into<Component>) -> Self {
     self.with_s(s)
   }
 
+  /// Returns a new color with S decreased by the given amount.
   pub fn with_s_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut lms = *self;
     lms.decrement_s(amount);
     lms
   }
 
+  /// Alias for [`Self::with_s_decremented_by`].
   pub fn with_short_decremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_s_decremented_by(amount)
   }
 
+  /// Returns a new color with S increased by the given amount.
   pub fn with_s_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut lms = *self;
     lms.increment_s(amount);
     lms
   }
 
+  /// Alias for [`Self::with_s_incremented_by`].
   pub fn with_short_incremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_s_incremented_by(amount)
   }
 
+  /// Returns a new color with S scaled by the given factor.
   pub fn with_s_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut lms = *self;
     lms.scale_s(factor);
     lms
   }
 
+  /// Alias for [`Self::with_s_scaled_by`].
   pub fn with_short_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_s_scaled_by(factor)
   }

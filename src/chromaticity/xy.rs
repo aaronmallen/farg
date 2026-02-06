@@ -10,6 +10,10 @@ use super::Uv;
 use crate::space::RgbSpec;
 use crate::{component::Component, space::Xyz};
 
+/// CIE 1931 chromaticity coordinates (x, y).
+///
+/// Derived from XYZ by normalizing: x = X/(X+Y+Z), y = Y/(X+Y+Z).
+/// Always available regardless of feature flags.
 #[derive(Clone, Copy, Debug)]
 pub struct Xy {
   x: Component,
@@ -17,6 +21,7 @@ pub struct Xy {
 }
 
 impl Xy {
+  /// Creates new chromaticity coordinates from x and y values.
   pub fn new(x: impl Into<Component>, y: impl Into<Component>) -> Self {
     Self {
       x: x.into(),
@@ -24,6 +29,7 @@ impl Xy {
     }
   }
 
+  /// Creates new chromaticity coordinates in a const context.
   pub const fn new_const(x: f64, y: f64) -> Self {
     Self {
       x: Component::new_const(x),
@@ -31,10 +37,12 @@ impl Xy {
     }
   }
 
+  /// Returns the [x, y] components as an array.
   pub fn components(&self) -> [f64; 2] {
     [self.x.0, self.y.0]
   }
 
+  /// Converts to rg chromaticity coordinates in the given RGB space.
   #[cfg(feature = "chromaticity-rg")]
   pub fn to_rg<S>(&self) -> Rg<S>
   where
@@ -51,6 +59,7 @@ impl Xy {
     }
   }
 
+  /// Converts to CIE 1976 u'v' chromaticity coordinates.
   #[cfg(feature = "chromaticity-upvp")]
   pub fn to_upvp(&self) -> Upvp {
     let [x, y] = self.components();
@@ -63,6 +72,7 @@ impl Xy {
     }
   }
 
+  /// Converts to CIE 1960 uv chromaticity coordinates.
   #[cfg(feature = "chromaticity-uv")]
   pub fn to_uv(&self) -> Uv {
     let [x, y] = self.components();
@@ -75,6 +85,7 @@ impl Xy {
     }
   }
 
+  /// Reconstructs XYZ tristimulus values from chromaticity and the given luminance (Y).
   pub fn to_xyz(&self, luminance: impl Into<Component>) -> Xyz {
     let luminance = luminance.into().0;
     let [x, y] = self.components();
@@ -86,10 +97,12 @@ impl Xy {
     }
   }
 
+  /// Returns the x chromaticity coordinate.
   pub fn x(&self) -> f64 {
     self.x.0
   }
 
+  /// Returns the y chromaticity coordinate.
   pub fn y(&self) -> f64 {
     self.y.0
   }

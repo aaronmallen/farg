@@ -1,19 +1,24 @@
 use super::Table;
 
+/// Shorthand alias for [`SpectralPowerDistribution`].
 pub type Spd = SpectralPowerDistribution;
 
+/// Spectral power distribution — the power of a light source at each wavelength.
 #[derive(Clone, Copy, Debug)]
 pub struct SpectralPowerDistribution(&'static [(u32, f64)]);
 
 impl SpectralPowerDistribution {
+  /// Creates a new SPD from static wavelength-power pairs.
   pub const fn new(table: &'static [(u32, f64)]) -> Self {
     Self(table)
   }
 
+  /// Returns the maximum power value across all wavelengths.
   pub fn peak_power(&self) -> f64 {
     self.values().cloned().fold(f64::NEG_INFINITY, f64::max)
   }
 
+  /// Returns the wavelength with the highest power, or `None` if empty.
   pub fn peak_wavelength(&self) -> Option<u32> {
     self
       .table()
@@ -22,6 +27,7 @@ impl SpectralPowerDistribution {
       .map(|(w, _)| *w)
   }
 
+  /// Returns the sum of power values across all wavelengths.
   pub fn total_power(&self) -> f64 {
     self.values().sum()
   }

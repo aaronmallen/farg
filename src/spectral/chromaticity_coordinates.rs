@@ -1,14 +1,19 @@
 use super::{Cmf, Table};
 use crate::{chromaticity::Xy, space::Xyz};
 
+/// Spectral locus chromaticity coordinates derived from color matching functions.
 #[derive(Clone, Copy, Debug)]
 pub struct ChromaticityCoordinates(&'static [(u32, Xy)]);
 
 impl ChromaticityCoordinates {
+  /// Creates new chromaticity coordinates from static wavelength-coordinate pairs.
   pub const fn new(table: &'static [(u32, Xy)]) -> Self {
     Self(table)
   }
 
+  /// Tests whether a chromaticity point lies inside the spectral locus.
+  ///
+  /// Uses the ray-casting (point-in-polygon) algorithm.
   pub fn contains_chromaticity(&self, chromaticity: impl Into<Xy>) -> bool {
     let [x, y] = chromaticity.into().components();
 

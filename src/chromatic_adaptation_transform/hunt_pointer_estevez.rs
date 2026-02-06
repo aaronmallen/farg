@@ -1,6 +1,7 @@
 use super::ChromaticAdaptationTransform;
 
 impl ChromaticAdaptationTransform {
+  /// The default CAT when this is the highest-priority enabled transform.
   #[cfg(all(
     not(feature = "cat-bradford"),
     not(feature = "cat-cat16"),
@@ -9,7 +10,9 @@ impl ChromaticAdaptationTransform {
     not(feature = "cat-von-kries"),
   ))]
   pub const DEFAULT: Self = Self::HUNT_POINTER_ESTEVEZ;
+  /// Shorthand alias for [`Self::HUNT_POINTER_ESTEVEZ`].
   pub const HPE: Self = Self::HUNT_POINTER_ESTEVEZ;
+  /// The Hunt-Pointer-Estevez chromatic adaptation transform.
   pub const HUNT_POINTER_ESTEVEZ: Self = Self::new(
     "Hunt-Pointer-Estevez",
     [

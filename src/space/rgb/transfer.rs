@@ -25,20 +25,33 @@ const SRGB_GAMMA: f64 = 2.4;
 const SRGB_LINEAR_SLOPE: f64 = 12.92;
 const SRGB_LINEAR_THRESHOLD: f64 = 0.0031308;
 
+/// Electro-optical transfer function (EOTF) for encoding/decoding RGB values.
+///
+/// Transfer functions map between linear light values and the nonlinear encoding
+/// used for display or storage. Also known as gamma curves.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum TransferFunction {
+  /// ITU-R BT.601 transfer function.
   Bt601,
+  /// ITU-R BT.709 transfer function.
   Bt709,
+  /// Pure power-law gamma with the given exponent.
   Gamma(f64),
+  /// Hybrid Log-Gamma (HLG) for HDR content.
   Hlg,
+  /// Linear (identity) transfer -- no encoding applied.
   Linear,
+  /// Perceptual Quantizer (PQ / SMPTE ST 2084) for HDR content.
   Pq,
+  /// ProPhoto RGB transfer function with linear segment.
   ProPhotoRgb,
   #[default]
+  /// The sRGB transfer function (IEC 61966-2-1).
   Srgb,
 }
 
 impl TransferFunction {
+  /// Decodes a nonlinear (encoded) value to linear light.
   #[must_use]
   pub fn decode(&self, encoded: impl Into<Component>) -> f64 {
     let encoded = encoded.into().0;
@@ -54,6 +67,7 @@ impl TransferFunction {
     }
   }
 
+  /// Encodes a linear light value to the nonlinear representation.
   #[must_use]
   pub fn encode(&self, linear: impl Into<Component>) -> f64 {
     let linear = linear.into().0;
