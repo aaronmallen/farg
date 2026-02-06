@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-#MISE description="Lint _default files with editorconfig-checker"
+#MISE description="Lint files with editorconfig-checker"
 #MISE alias=["l:ec", "l:editorconfig", "lint:ec"]
 
 set -e

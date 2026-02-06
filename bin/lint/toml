@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-#MISE description="Lint _default toml files"
+#MISE description="Lint toml files"
 #MISE alias=["l:toml"]
 
 set -e

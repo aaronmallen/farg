@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-#MISE description="Lint _default markdown files"
+#MISE description="Lint markdown files"
 #MISE alias=["l:md", "l:markdown", "lint:md"]
 
 set -e

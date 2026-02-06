@@ -4,4 +4,4 @@
 
 set -e
 
-cargo check --workspace --all-targets
+cargo check --workspace --all-targets --all-features

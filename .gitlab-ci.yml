@@ -1,0 +1,59 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - check
+  - lint
+  - test
+  - build
+
+default:
+  image: rust:latest
+  before_script:
+    - curl https://mise.run | sh
+    - export PATH="$HOME/.local/bin:$PATH"
+    - mise install
+
+check:
+  stage: check
+  script:
+    - mise run check
+
+lint:rust:
+  stage: lint
+  script:
+    - mise run lint:rust
+
+lint:toml:
+  stage: lint
+  script:
+    - mise run lint:toml
+
+lint:markdown:
+  stage: lint
+  script:
+    - mise run lint:markdown
+
+lint:editorconfig:
+  stage: lint
+  script:
+    - mise run lint:editorconfig
+
+test:
+  stage: test
+  script:
+    - mise run test
+  artifacts:
+    paths:
+      - coverage/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura.xml
+
+build:
+  stage: build
+  script:
+    - mise run build

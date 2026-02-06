@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-#MISE description="Lint _default rust files"
+#MISE description="Lint rust files"
 #MISE tools.rust="nightly"
 #MISE alias=["l:rust", "l:rs", "lint:rs"]
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-#MISE description="Format _default rust files"
+#MISE description="Format rust files"
 #MISE tools.rust="nightly"
 #MISE alias=["fmt:rust", "fmt:rs", "format:rs"]
 
