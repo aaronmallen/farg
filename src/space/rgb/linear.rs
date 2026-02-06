@@ -35,25 +35,26 @@ where
   }
 
   /// Creates linear RGB from 8-bit (0-255) component values.
-  pub fn new(r: u8, g: u8, b: u8) -> Self {
+  pub fn from_u8(r: impl Into<Component>, g: impl Into<Component>, b: impl Into<Component>) -> Self {
     Self {
-      b: Component::from(b) / 255.0,
-      g: Component::from(g) / 255.0,
-      r: Component::from(r) / 255.0,
+      b: b.into() / 255.0,
+      g: g.into() / 255.0,
+      r: r.into() / 255.0,
       _spec: PhantomData,
     }
   }
 
+  /// Creates linear RGB from 8-bit (0-255) component values.
+  pub fn new(r: u8, g: u8, b: u8) -> Self {
+    Self::from_u8(r, g, b)
+  }
+
   /// Creates linear RGB from 8-bit values in a const context.
   pub const fn new_const(r: u8, g: u8, b: u8) -> Self {
-    let r = Component::new_const(r as f64 / 255.0);
-    let g = Component::new_const(g as f64 / 255.0);
-    let b = Component::new_const(b as f64 / 255.0);
-
     Self {
-      b,
-      g,
-      r,
+      b: Component::new_const(b as f64 / 255.0),
+      g: Component::new_const(g as f64 / 255.0),
+      r: Component::new_const(r as f64 / 255.0),
       _spec: PhantomData,
     }
   }

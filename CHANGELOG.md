@@ -7,6 +7,10 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+### Fixed
+
+- Allow `LinearRgb::new` to accept `impl Into<Component>` via new `from_u8` constructor
+
 ## [v0.1.0] - 2026-02-05
 
 Initial release
