@@ -1,7 +1,11 @@
+#[cfg(feature = "space-hsl")]
+mod hsl;
 mod lms;
 mod rgb;
 mod xyz;
 
+#[cfg(feature = "space-hsl")]
+pub use hsl::Hsl;
 pub use lms::Lms;
 pub use rgb::*;
 pub use xyz::Xyz;
@@ -82,6 +86,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Sets the luminance to the given value in place.
   fn set_luminance(&mut self, luminance: impl Into<Component>) {
     self.set_components(self.with_luminance(luminance).components())
+  }
+
+  #[cfg(feature = "space-hsl")]
+  /// Converts to the HSL color space with sRGB encoding.
+  fn to_hsl(&self) -> Hsl<Srgb> {
+    self.to_rgb::<Srgb>().to_hsl()
   }
 
   /// Converts to the LMS cone response space.

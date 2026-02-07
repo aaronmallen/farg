@@ -3,6 +3,8 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+#[cfg(feature = "space-hsl")]
+use super::Hsl;
 use super::{ColorSpace, LinearRgb, Lms, Rgb, RgbSpec, Srgb};
 use crate::{ColorimetricContext, chromaticity::Xy, component::Component};
 
@@ -426,6 +428,16 @@ where
 {
   fn from([x, y, z]: [T; 3]) -> Self {
     Self::new(x, y, z)
+  }
+}
+
+#[cfg(feature = "space-hsl")]
+impl<S> From<Hsl<S>> for Xyz
+where
+  S: RgbSpec,
+{
+  fn from(hsl: Hsl<S>) -> Self {
+    hsl.to_xyz()
   }
 }
 

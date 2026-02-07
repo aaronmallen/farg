@@ -83,6 +83,7 @@ all-rgb-spaces = [
   "rgb-sony-s-gamut-3-cine",
   "rgb-wide-gamut-rgb",
 ]
+all-spaces = ["all-rgb-spaces", "space-hsl"]
 cat-bradford = []
 cat-cat02 = []
 cat-cat16 = []
@@ -102,7 +103,7 @@ full = [
   "all-chromaticity",
   "all-illuminants",
   "all-observers",
-  "all-rgb-spaces",
+  "all-spaces",
 ]
 illuminant-a = []
 illuminant-b = []
@@ -256,6 +257,7 @@ rgb-smpte-c = []
 rgb-sony-s-gamut-3 = []
 rgb-sony-s-gamut-3-cine = []
 rgb-wide-gamut-rgb = ["illuminant-d50"]
+space-hsl = []
 
 [dev-dependencies]
 pretty_assertions = "1.4"

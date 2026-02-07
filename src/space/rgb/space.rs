@@ -161,6 +161,8 @@ pub use standard::Srgb;
 pub use wide_gamut_rgb::WideGamutRgb;
 
 use super::{LinearRgb, RgbSpec};
+#[cfg(feature = "space-hsl")]
+use crate::space::Hsl;
 use crate::{
   ColorimetricContext, Error,
   component::Component,
@@ -441,6 +443,39 @@ where
     LinearRgb::from_normalized(r, g, b)
   }
 
+  /// Converts to HSL in this color space.
+  #[cfg(feature = "space-hsl")]
+  pub fn to_hsl(&self) -> Hsl<S> {
+    let r = self.r.0;
+    let g = self.g.0;
+    let b = self.b.0;
+
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
+    let delta = max - min;
+    let l = (max + min) / 2.0;
+
+    if delta <= 0.0 {
+      return Hsl::new(0.0, 0.0, l * 100.0);
+    }
+
+    let s = if l <= 0.5 {
+      delta / (max + min)
+    } else {
+      delta / (2.0 - max - min)
+    };
+
+    let h = if (max - r).abs() < f64::EPSILON {
+      ((g - b) / delta).rem_euclid(6.0) / 6.0
+    } else if (max - g).abs() < f64::EPSILON {
+      (2.0 + (b - r) / delta) / 6.0
+    } else {
+      (4.0 + (r - g) / delta) / 6.0
+    };
+
+    Hsl::new(h * 360.0, s * 100.0, l * 100.0)
+  }
+
   /// Converts to a different RGB color space via XYZ.
   pub fn to_rgb<OS>(&self) -> Rgb<OS>
   where
@@ -702,6 +737,17 @@ where
 {
   fn from([r, g, b]: [T; 3]) -> Self {
     Self::from_normalized(r, g, b)
+  }
+}
+
+#[cfg(feature = "space-hsl")]
+impl<OS, S> From<Hsl<OS>> for Rgb<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(hsl: Hsl<OS>) -> Self {
+    hsl.to_rgb::<S>()
   }
 }
 
@@ -1404,6 +1450,82 @@ mod test {
       let original = Rgb::<Srgb>::new(200, 100, 50);
       let lms = original.to_lms();
       let back: Rgb<Srgb> = Rgb::from(lms);
+
+      assert_eq!(back.red(), original.red());
+      assert_eq!(back.green(), original.green());
+      assert_eq!(back.blue(), original.blue());
+    }
+  }
+
+  #[cfg(feature = "space-hsl")]
+  mod to_hsl {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+    use crate::space::Hsl;
+
+    #[test]
+    fn it_converts_pure_red() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.0, 0.0, 0.0);
+      let hsl = rgb.to_hsl();
+
+      assert!((hsl.hue() - 0.0).abs() < 1e-10);
+      assert!((hsl.saturation() - 100.0).abs() < 1e-10);
+      assert!((hsl.lightness() - 50.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_pure_green() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.0, 1.0, 0.0);
+      let hsl = rgb.to_hsl();
+
+      assert!((hsl.hue() - 120.0).abs() < 1e-10);
+      assert!((hsl.saturation() - 100.0).abs() < 1e-10);
+      assert!((hsl.lightness() - 50.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_pure_blue() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.0, 0.0, 1.0);
+      let hsl = rgb.to_hsl();
+
+      assert!((hsl.hue() - 240.0).abs() < 1e-10);
+      assert!((hsl.saturation() - 100.0).abs() < 1e-10);
+      assert!((hsl.lightness() - 50.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_black_to_zero_saturation() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.0, 0.0, 0.0);
+      let hsl = rgb.to_hsl();
+
+      assert!((hsl.saturation()).abs() < 1e-10);
+      assert!((hsl.lightness()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_white_to_zero_saturation() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.0, 1.0, 1.0);
+      let hsl = rgb.to_hsl();
+
+      assert!((hsl.saturation()).abs() < 1e-10);
+      assert!((hsl.lightness() - 100.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_gray_to_zero_saturation() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      let hsl = rgb.to_hsl();
+
+      assert!((hsl.saturation()).abs() < 1e-10);
+      assert!((hsl.lightness() - 50.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_roundtrips_with_from_hsl() {
+      let original = Rgb::<Srgb>::new(200, 100, 50);
+      let hsl = original.to_hsl();
+      let back: Rgb<Srgb> = Rgb::from(hsl);
 
       assert_eq!(back.red(), original.red());
       assert_eq!(back.green(), original.green());

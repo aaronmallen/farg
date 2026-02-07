@@ -7,6 +7,12 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+### Added
+
+- Add `Hsl` (Hue, Saturation, Lightness) color space, feature-gated behind `space-hsl`
+- Add `Rgb::to_hsl()` conversion method (requires `space-hsl` feature)
+- Add `From<Hsl<S>>` conversions for `Rgb`, `Xyz`, and `Lms`
+
 ### Changed
 
 - **BREAKING:** `Rgb` short-name methods (`set_b`/`set_g`/`set_r`, `decrement_b`/`decrement_g`/`decrement_r`,
