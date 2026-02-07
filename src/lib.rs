@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 //! A Rust library for colorimetry, color space conversions, and color manipulation.
 //!
 //! Farg provides context-aware color conversions with f64 precision, spectral data processing,
