@@ -306,100 +306,101 @@ where
     (self.r.0 * 255.0).round() as u8
   }
 
-  /// Decreases the blue channel by the given amount (in 0-255 scale).
+  /// Decreases the blue channel by the given normalized amount (0.0-1.0).
   pub fn decrement_b(&mut self, amount: impl Into<Component>) {
+    self.b = (self.b - amount.into()).clamp(0.0, 1.0);
+  }
+
+  /// Decreases the blue channel by the given amount (0-255 scale).
+  pub fn decrement_blue(&mut self, amount: impl Into<Component>) {
     self.b = (self.b - amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
-  /// Alias for [`Self::decrement_b`].
-  pub fn decrement_blue(&mut self, amount: impl Into<Component>) {
-    self.decrement_b(amount);
+  /// Decreases the green channel by the given normalized amount (0.0-1.0).
+  pub fn decrement_g(&mut self, amount: impl Into<Component>) {
+    self.g = (self.g - amount.into()).clamp(0.0, 1.0);
   }
 
-  /// Decreases the green channel by the given amount (in 0-255 scale).
-  pub fn decrement_g(&mut self, amount: impl Into<Component>) {
+  /// Decreases the green channel by the given amount (0-255 scale).
+  pub fn decrement_green(&mut self, amount: impl Into<Component>) {
     self.g = (self.g - amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
-  /// Alias for [`Self::decrement_g`].
-  pub fn decrement_green(&mut self, amount: impl Into<Component>) {
-    self.decrement_g(amount);
+  /// Decreases the red channel by the given normalized amount (0.0-1.0).
+  pub fn decrement_r(&mut self, amount: impl Into<Component>) {
+    self.r = (self.r - amount.into()).clamp(0.0, 1.0);
   }
 
-  /// Decreases the red channel by the given amount (in 0-255 scale).
-  pub fn decrement_r(&mut self, amount: impl Into<Component>) {
+  /// Decreases the red channel by the given amount (0-255 scale).
+  pub fn decrement_red(&mut self, amount: impl Into<Component>) {
     self.r = (self.r - amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
-  /// Alias for [`Self::decrement_r`].
-  pub fn decrement_red(&mut self, amount: impl Into<Component>) {
-    self.decrement_r(amount);
+  /// Increases the blue channel by the given normalized amount (0.0-1.0).
+  pub fn increment_b(&mut self, amount: impl Into<Component>) {
+    self.b = (self.b + amount.into()).clamp(0.0, 1.0);
   }
 
-  /// Increases the blue channel by the given amount (in 0-255 scale).
-  pub fn increment_b(&mut self, amount: impl Into<Component>) {
+  /// Increases the blue channel by the given amount (0-255 scale).
+  pub fn increment_blue(&mut self, amount: impl Into<Component>) {
     self.b = (self.b + amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
-  /// Alias for [`Self::increment_b`].
-  pub fn increment_blue(&mut self, amount: impl Into<Component>) {
-    self.increment_b(amount);
+  /// Increases the green channel by the given normalized amount (0.0-1.0).
+  pub fn increment_g(&mut self, amount: impl Into<Component>) {
+    self.g = (self.g + amount.into()).clamp(0.0, 1.0);
   }
 
-  /// Increases the green channel by the given amount (in 0-255 scale).
-  pub fn increment_g(&mut self, amount: impl Into<Component>) {
+  /// Increases the green channel by the given amount (0-255 scale).
+  pub fn increment_green(&mut self, amount: impl Into<Component>) {
     self.g = (self.g + amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
-  /// Alias for [`Self::increment_g`].
-  pub fn increment_green(&mut self, amount: impl Into<Component>) {
-    self.increment_g(amount);
+  /// Increases the red channel by the given normalized amount (0.0-1.0).
+  pub fn increment_r(&mut self, amount: impl Into<Component>) {
+    self.r = (self.r + amount.into()).clamp(0.0, 1.0);
   }
 
-  /// Increases the red channel by the given amount (in 0-255 scale).
-  pub fn increment_r(&mut self, amount: impl Into<Component>) {
+  /// Increases the red channel by the given amount (0-255 scale).
+  pub fn increment_red(&mut self, amount: impl Into<Component>) {
     self.r = (self.r + amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
-  /// Alias for [`Self::increment_r`].
-  pub fn increment_red(&mut self, amount: impl Into<Component>) {
-    self.increment_r(amount);
-  }
-
-  /// Sets the blue channel to the given value (in 0-255 scale).
+  /// Sets the blue channel to the given normalized value (0.0-1.0).
   pub fn set_b(&mut self, b: impl Into<Component>) {
-    self.b = (b.into() / 255.0).clamp(0.0, 1.0);
+    self.b = b.into().clamp(0.0, 1.0);
   }
 
-  /// Alias for [`Self::set_b`].
+  /// Sets the blue channel to the given value (0-255 scale).
   pub fn set_blue(&mut self, blue: impl Into<Component>) {
-    self.set_b(blue);
+    self.b = (blue.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Sets the [R, G, B] components from normalized values (0.0-1.0).
   pub fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
     self.set_r(components[0].clone());
     self.set_g(components[1].clone());
     self.set_b(components[2].clone());
   }
 
-  /// Sets the green channel to the given value (in 0-255 scale).
+  /// Sets the green channel to the given normalized value (0.0-1.0).
   pub fn set_g(&mut self, g: impl Into<Component>) {
-    self.g = (g.into() / 255.0).clamp(0.0, 1.0);
+    self.g = g.into().clamp(0.0, 1.0);
   }
 
-  /// Alias for [`Self::set_g`].
+  /// Sets the green channel to the given value (0-255 scale).
   pub fn set_green(&mut self, green: impl Into<Component>) {
-    self.set_g(green);
+    self.g = (green.into() / 255.0).clamp(0.0, 1.0);
   }
 
-  /// Sets the red channel to the given value (in 0-255 scale).
+  /// Sets the red channel to the given normalized value (0.0-1.0).
   pub fn set_r(&mut self, r: impl Into<Component>) {
-    self.r = (r.into() / 255.0).clamp(0.0, 1.0);
+    self.r = r.into().clamp(0.0, 1.0);
   }
 
-  /// Alias for [`Self::set_r`].
+  /// Sets the red channel to the given value (0-255 scale).
   pub fn set_red(&mut self, red: impl Into<Component>) {
-    self.set_r(red);
+    self.r = (red.into() / 255.0).clamp(0.0, 1.0);
   }
 
   /// Scales the blue channel by the given factor, clamping to 0.0-1.0.
@@ -464,22 +465,22 @@ where
     Xyz::new(x, y, z).with_context(self.context)
   }
 
-  /// Returns a new color with the given blue channel value (in 0-255 scale).
+  /// Returns a new color with the given normalized blue channel value (0.0-1.0).
   pub fn with_b(&self, b: impl Into<Component>) -> Self {
     Self {
-      b: (b.into() / 255.0).clamp(0.0, 1.0),
+      b: b.into().clamp(0.0, 1.0),
       ..*self
     }
   }
 
-  /// Returns a new color with the blue channel decreased by the given amount.
+  /// Returns a new color with the blue channel decreased by the given normalized amount (0.0-1.0).
   pub fn with_b_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.decrement_b(amount);
     rgb
   }
 
-  /// Returns a new color with the blue channel increased by the given amount.
+  /// Returns a new color with the blue channel increased by the given normalized amount (0.0-1.0).
   pub fn with_b_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.increment_b(amount);
@@ -493,19 +494,26 @@ where
     rgb
   }
 
-  /// Alias for [`Self::with_b`].
+  /// Returns a new color with the given blue channel value (0-255 scale).
   pub fn with_blue(&self, blue: impl Into<Component>) -> Self {
-    self.with_b(blue)
+    Self {
+      b: (blue.into() / 255.0).clamp(0.0, 1.0),
+      ..*self
+    }
   }
 
-  /// Alias for [`Self::with_b_decremented_by`].
+  /// Returns a new color with the blue channel decreased by the given amount (0-255 scale).
   pub fn with_blue_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    self.with_b_decremented_by(amount)
+    let mut rgb = *self;
+    rgb.decrement_blue(amount);
+    rgb
   }
 
-  /// Alias for [`Self::with_b_incremented_by`].
+  /// Returns a new color with the blue channel increased by the given amount (0-255 scale).
   pub fn with_blue_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    self.with_b_incremented_by(amount)
+    let mut rgb = *self;
+    rgb.increment_blue(amount);
+    rgb
   }
 
   /// Alias for [`Self::with_b_scaled_by`].
@@ -513,22 +521,22 @@ where
     self.with_b_scaled_by(factor)
   }
 
-  /// Returns a new color with the given green channel value (in 0-255 scale).
+  /// Returns a new color with the given normalized green channel value (0.0-1.0).
   pub fn with_g(&self, g: impl Into<Component>) -> Self {
     Self {
-      g: (g.into() / 255.0).clamp(0.0, 1.0),
+      g: g.into().clamp(0.0, 1.0),
       ..*self
     }
   }
 
-  /// Returns a new color with the green channel decreased by the given amount.
+  /// Returns a new color with the green channel decreased by the given normalized amount (0.0-1.0).
   pub fn with_g_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.decrement_g(amount);
     rgb
   }
 
-  /// Returns a new color with the green channel increased by the given amount.
+  /// Returns a new color with the green channel increased by the given normalized amount (0.0-1.0).
   pub fn with_g_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.increment_g(amount);
@@ -542,19 +550,26 @@ where
     rgb
   }
 
-  /// Alias for [`Self::with_g`].
+  /// Returns a new color with the given green channel value (0-255 scale).
   pub fn with_green(&self, green: impl Into<Component>) -> Self {
-    self.with_g(green)
+    Self {
+      g: (green.into() / 255.0).clamp(0.0, 1.0),
+      ..*self
+    }
   }
 
-  /// Alias for [`Self::with_g_decremented_by`].
+  /// Returns a new color with the green channel decreased by the given amount (0-255 scale).
   pub fn with_green_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    self.with_g_decremented_by(amount)
+    let mut rgb = *self;
+    rgb.decrement_green(amount);
+    rgb
   }
 
-  /// Alias for [`Self::with_g_incremented_by`].
+  /// Returns a new color with the green channel increased by the given amount (0-255 scale).
   pub fn with_green_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    self.with_g_incremented_by(amount)
+    let mut rgb = *self;
+    rgb.increment_green(amount);
+    rgb
   }
 
   /// Alias for [`Self::with_g_scaled_by`].
@@ -562,22 +577,22 @@ where
     self.with_g_scaled_by(factor)
   }
 
-  /// Returns a new color with the given red channel value (in 0-255 scale).
+  /// Returns a new color with the given normalized red channel value (0.0-1.0).
   pub fn with_r(&self, r: impl Into<Component>) -> Self {
     Self {
-      r: (r.into() / 255.0).clamp(0.0, 1.0),
+      r: r.into().clamp(0.0, 1.0),
       ..*self
     }
   }
 
-  /// Returns a new color with the red channel decreased by the given amount.
+  /// Returns a new color with the red channel decreased by the given normalized amount (0.0-1.0).
   pub fn with_r_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.decrement_r(amount);
     rgb
   }
 
-  /// Returns a new color with the red channel increased by the given amount.
+  /// Returns a new color with the red channel increased by the given normalized amount (0.0-1.0).
   pub fn with_r_incremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.increment_r(amount);
@@ -591,19 +606,26 @@ where
     rgb
   }
 
-  /// Alias for [`Self::with_r`].
+  /// Returns a new color with the given red channel value (0-255 scale).
   pub fn with_red(&self, red: impl Into<Component>) -> Self {
-    self.with_r(red)
+    Self {
+      r: (red.into() / 255.0).clamp(0.0, 1.0),
+      ..*self
+    }
   }
 
-  /// Alias for [`Self::with_r_decremented_by`].
+  /// Returns a new color with the red channel decreased by the given amount (0-255 scale).
   pub fn with_red_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    self.with_r_decremented_by(amount)
+    let mut rgb = *self;
+    rgb.decrement_red(amount);
+    rgb
   }
 
-  /// Alias for [`Self::with_r_incremented_by`].
+  /// Returns a new color with the red channel increased by the given amount (0-255 scale).
   pub fn with_red_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    self.with_r_incremented_by(amount)
+    let mut rgb = *self;
+    rgb.increment_red(amount);
+    rgb
   }
 
   /// Alias for [`Self::with_r_scaled_by`].
@@ -826,14 +848,34 @@ mod test {
   }
 
   mod decrement_b {
+    use super::*;
+
+    #[test]
+    fn it_decrements_blue_by_normalized_amount() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      rgb.decrement_b(0.25);
+
+      assert!((rgb.b() - 0.25).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_clamps_to_zero() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.1);
+      rgb.decrement_b(0.5);
+
+      assert!((rgb.b()).abs() < 1e-10);
+    }
+  }
+
+  mod decrement_blue {
     use pretty_assertions::assert_eq;
 
     use super::*;
 
     #[test]
-    fn it_decrements_blue_by_amount() {
+    fn it_decrements_blue_by_u8_amount() {
       let mut rgb = Rgb::<Srgb>::new(128, 128, 128);
-      rgb.decrement_b(64);
+      rgb.decrement_blue(64);
 
       assert_eq!(rgb.blue(), 64);
     }
@@ -841,21 +883,41 @@ mod test {
     #[test]
     fn it_clamps_to_zero() {
       let mut rgb = Rgb::<Srgb>::new(128, 128, 32);
-      rgb.decrement_b(64);
+      rgb.decrement_blue(64);
 
       assert_eq!(rgb.blue(), 0);
     }
   }
 
   mod decrement_g {
+    use super::*;
+
+    #[test]
+    fn it_decrements_green_by_normalized_amount() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      rgb.decrement_g(0.25);
+
+      assert!((rgb.g() - 0.25).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_clamps_to_zero() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.1, 0.5);
+      rgb.decrement_g(0.5);
+
+      assert!((rgb.g()).abs() < 1e-10);
+    }
+  }
+
+  mod decrement_green {
     use pretty_assertions::assert_eq;
 
     use super::*;
 
     #[test]
-    fn it_decrements_green_by_amount() {
+    fn it_decrements_green_by_u8_amount() {
       let mut rgb = Rgb::<Srgb>::new(128, 128, 128);
-      rgb.decrement_g(64);
+      rgb.decrement_green(64);
 
       assert_eq!(rgb.green(), 64);
     }
@@ -863,21 +925,41 @@ mod test {
     #[test]
     fn it_clamps_to_zero() {
       let mut rgb = Rgb::<Srgb>::new(128, 32, 128);
-      rgb.decrement_g(64);
+      rgb.decrement_green(64);
 
       assert_eq!(rgb.green(), 0);
     }
   }
 
   mod decrement_r {
+    use super::*;
+
+    #[test]
+    fn it_decrements_red_by_normalized_amount() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      rgb.decrement_r(0.25);
+
+      assert!((rgb.r() - 0.25).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_clamps_to_zero() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.1, 0.5, 0.5);
+      rgb.decrement_r(0.5);
+
+      assert!((rgb.r()).abs() < 1e-10);
+    }
+  }
+
+  mod decrement_red {
     use pretty_assertions::assert_eq;
 
     use super::*;
 
     #[test]
-    fn it_decrements_red_by_amount() {
+    fn it_decrements_red_by_u8_amount() {
       let mut rgb = Rgb::<Srgb>::new(128, 128, 128);
-      rgb.decrement_r(64);
+      rgb.decrement_red(64);
 
       assert_eq!(rgb.red(), 64);
     }
@@ -885,7 +967,7 @@ mod test {
     #[test]
     fn it_clamps_to_zero() {
       let mut rgb = Rgb::<Srgb>::new(32, 128, 128);
-      rgb.decrement_r(64);
+      rgb.decrement_red(64);
 
       assert_eq!(rgb.red(), 0);
     }
@@ -1039,14 +1121,34 @@ mod test {
   }
 
   mod increment_b {
+    use super::*;
+
+    #[test]
+    fn it_increments_blue_by_normalized_amount() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.25);
+      rgb.increment_b(0.25);
+
+      assert!((rgb.b() - 0.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_clamps_to_1() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.8);
+      rgb.increment_b(0.5);
+
+      assert!((rgb.b() - 1.0).abs() < 1e-10);
+    }
+  }
+
+  mod increment_blue {
     use pretty_assertions::assert_eq;
 
     use super::*;
 
     #[test]
-    fn it_increments_blue_by_amount() {
+    fn it_increments_blue_by_u8_amount() {
       let mut rgb = Rgb::<Srgb>::new(128, 128, 64);
-      rgb.increment_b(64);
+      rgb.increment_blue(64);
 
       assert_eq!(rgb.blue(), 128);
     }
@@ -1054,21 +1156,41 @@ mod test {
     #[test]
     fn it_clamps_to_255() {
       let mut rgb = Rgb::<Srgb>::new(128, 128, 200);
-      rgb.increment_b(100);
+      rgb.increment_blue(100);
 
       assert_eq!(rgb.blue(), 255);
     }
   }
 
   mod increment_g {
+    use super::*;
+
+    #[test]
+    fn it_increments_green_by_normalized_amount() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.25, 0.5);
+      rgb.increment_g(0.25);
+
+      assert!((rgb.g() - 0.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_clamps_to_1() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.8, 0.5);
+      rgb.increment_g(0.5);
+
+      assert!((rgb.g() - 1.0).abs() < 1e-10);
+    }
+  }
+
+  mod increment_green {
     use pretty_assertions::assert_eq;
 
     use super::*;
 
     #[test]
-    fn it_increments_green_by_amount() {
+    fn it_increments_green_by_u8_amount() {
       let mut rgb = Rgb::<Srgb>::new(128, 64, 128);
-      rgb.increment_g(64);
+      rgb.increment_green(64);
 
       assert_eq!(rgb.green(), 128);
     }
@@ -1076,21 +1198,41 @@ mod test {
     #[test]
     fn it_clamps_to_255() {
       let mut rgb = Rgb::<Srgb>::new(128, 200, 128);
-      rgb.increment_g(100);
+      rgb.increment_green(100);
 
       assert_eq!(rgb.green(), 255);
     }
   }
 
   mod increment_r {
+    use super::*;
+
+    #[test]
+    fn it_increments_red_by_normalized_amount() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.25, 0.5, 0.5);
+      rgb.increment_r(0.25);
+
+      assert!((rgb.r() - 0.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_clamps_to_1() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.8, 0.5, 0.5);
+      rgb.increment_r(0.5);
+
+      assert!((rgb.r() - 1.0).abs() < 1e-10);
+    }
+  }
+
+  mod increment_red {
     use pretty_assertions::assert_eq;
 
     use super::*;
 
     #[test]
-    fn it_increments_red_by_amount() {
+    fn it_increments_red_by_u8_amount() {
       let mut rgb = Rgb::<Srgb>::new(64, 128, 128);
-      rgb.increment_r(64);
+      rgb.increment_red(64);
 
       assert_eq!(rgb.red(), 128);
     }
@@ -1098,7 +1240,7 @@ mod test {
     #[test]
     fn it_clamps_to_255() {
       let mut rgb = Rgb::<Srgb>::new(200, 128, 128);
-      rgb.increment_r(100);
+      rgb.increment_red(100);
 
       assert_eq!(rgb.red(), 255);
     }
@@ -1358,47 +1500,41 @@ mod test {
   }
 
   mod with_b {
-    use pretty_assertions::assert_eq;
-
     use super::*;
 
     #[test]
-    fn it_returns_rgb_with_new_blue() {
-      let rgb = Rgb::<Srgb>::new(128, 128, 128);
-      let result = rgb.with_b(64);
+    fn it_returns_rgb_with_new_normalized_blue() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      let result = rgb.with_b(0.25);
 
-      assert_eq!(result.blue(), 64);
-      assert_eq!(result.red(), 128);
-      assert_eq!(result.green(), 128);
+      assert!((result.b() - 0.25).abs() < 1e-10);
+      assert!((result.r() - 0.5).abs() < 1e-10);
+      assert!((result.g() - 0.5).abs() < 1e-10);
     }
   }
 
   mod with_b_decremented_by {
-    use pretty_assertions::assert_eq;
-
     use super::*;
 
     #[test]
     fn it_returns_rgb_with_decremented_blue() {
-      let rgb = Rgb::<Srgb>::new(128, 128, 128);
-      let result = rgb.with_b_decremented_by(64);
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      let result = rgb.with_b_decremented_by(0.25);
 
-      assert_eq!(result.blue(), 64);
-      assert_eq!(rgb.blue(), 128);
+      assert!((result.b() - 0.25).abs() < 1e-10);
+      assert!((rgb.b() - 0.5).abs() < 1e-10);
     }
   }
 
   mod with_b_incremented_by {
-    use pretty_assertions::assert_eq;
-
     use super::*;
 
     #[test]
     fn it_returns_rgb_with_incremented_blue() {
-      let rgb = Rgb::<Srgb>::new(128, 128, 64);
-      let result = rgb.with_b_incremented_by(64);
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.25);
+      let result = rgb.with_b_incremented_by(0.25);
 
-      assert_eq!(result.blue(), 128);
+      assert!((result.b() - 0.5).abs() < 1e-10);
     }
   }
 
@@ -1416,47 +1552,86 @@ mod test {
     }
   }
 
-  mod with_g {
+  mod with_blue {
     use pretty_assertions::assert_eq;
 
     use super::*;
 
     #[test]
-    fn it_returns_rgb_with_new_green() {
+    fn it_returns_rgb_with_new_u8_blue() {
       let rgb = Rgb::<Srgb>::new(128, 128, 128);
-      let result = rgb.with_g(64);
+      let result = rgb.with_blue(64);
 
-      assert_eq!(result.green(), 64);
+      assert_eq!(result.blue(), 64);
       assert_eq!(result.red(), 128);
+      assert_eq!(result.green(), 128);
+    }
+  }
+
+  mod with_blue_decremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_decremented_blue() {
+      let rgb = Rgb::<Srgb>::new(128, 128, 128);
+      let result = rgb.with_blue_decremented_by(64);
+
+      assert_eq!(result.blue(), 64);
+      assert_eq!(rgb.blue(), 128);
+    }
+  }
+
+  mod with_blue_incremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_incremented_blue() {
+      let rgb = Rgb::<Srgb>::new(128, 128, 64);
+      let result = rgb.with_blue_incremented_by(64);
+
       assert_eq!(result.blue(), 128);
     }
   }
 
-  mod with_g_decremented_by {
-    use pretty_assertions::assert_eq;
+  mod with_g {
+    use super::*;
 
+    #[test]
+    fn it_returns_rgb_with_new_normalized_green() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      let result = rgb.with_g(0.25);
+
+      assert!((result.g() - 0.25).abs() < 1e-10);
+      assert!((result.r() - 0.5).abs() < 1e-10);
+      assert!((result.b() - 0.5).abs() < 1e-10);
+    }
+  }
+
+  mod with_g_decremented_by {
     use super::*;
 
     #[test]
     fn it_returns_rgb_with_decremented_green() {
-      let rgb = Rgb::<Srgb>::new(128, 128, 128);
-      let result = rgb.with_g_decremented_by(64);
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      let result = rgb.with_g_decremented_by(0.25);
 
-      assert_eq!(result.green(), 64);
+      assert!((result.g() - 0.25).abs() < 1e-10);
     }
   }
 
   mod with_g_incremented_by {
-    use pretty_assertions::assert_eq;
-
     use super::*;
 
     #[test]
     fn it_returns_rgb_with_incremented_green() {
-      let rgb = Rgb::<Srgb>::new(128, 64, 128);
-      let result = rgb.with_g_incremented_by(64);
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.25, 0.5);
+      let result = rgb.with_g_incremented_by(0.25);
 
-      assert_eq!(result.green(), 128);
+      assert!((result.g() - 0.5).abs() < 1e-10);
     }
   }
 
@@ -1474,47 +1649,85 @@ mod test {
     }
   }
 
-  mod with_r {
+  mod with_green {
     use pretty_assertions::assert_eq;
 
     use super::*;
 
     #[test]
-    fn it_returns_rgb_with_new_red() {
+    fn it_returns_rgb_with_new_u8_green() {
       let rgb = Rgb::<Srgb>::new(128, 128, 128);
-      let result = rgb.with_r(64);
+      let result = rgb.with_green(64);
 
-      assert_eq!(result.red(), 64);
-      assert_eq!(result.green(), 128);
+      assert_eq!(result.green(), 64);
+      assert_eq!(result.red(), 128);
       assert_eq!(result.blue(), 128);
     }
   }
 
-  mod with_r_decremented_by {
+  mod with_green_decremented_by {
     use pretty_assertions::assert_eq;
 
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_decremented_green() {
+      let rgb = Rgb::<Srgb>::new(128, 128, 128);
+      let result = rgb.with_green_decremented_by(64);
+
+      assert_eq!(result.green(), 64);
+    }
+  }
+
+  mod with_green_incremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_incremented_green() {
+      let rgb = Rgb::<Srgb>::new(128, 64, 128);
+      let result = rgb.with_green_incremented_by(64);
+
+      assert_eq!(result.green(), 128);
+    }
+  }
+
+  mod with_r {
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_new_normalized_red() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      let result = rgb.with_r(0.25);
+
+      assert!((result.r() - 0.25).abs() < 1e-10);
+      assert!((result.g() - 0.5).abs() < 1e-10);
+      assert!((result.b() - 0.5).abs() < 1e-10);
+    }
+  }
+
+  mod with_r_decremented_by {
     use super::*;
 
     #[test]
     fn it_returns_rgb_with_decremented_red() {
-      let rgb = Rgb::<Srgb>::new(128, 128, 128);
-      let result = rgb.with_r_decremented_by(64);
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      let result = rgb.with_r_decremented_by(0.25);
 
-      assert_eq!(result.red(), 64);
+      assert!((result.r() - 0.25).abs() < 1e-10);
     }
   }
 
   mod with_r_incremented_by {
-    use pretty_assertions::assert_eq;
-
     use super::*;
 
     #[test]
     fn it_returns_rgb_with_incremented_red() {
-      let rgb = Rgb::<Srgb>::new(64, 128, 128);
-      let result = rgb.with_r_incremented_by(64);
+      let rgb = Rgb::<Srgb>::from_normalized(0.25, 0.5, 0.5);
+      let result = rgb.with_r_incremented_by(0.25);
 
-      assert_eq!(result.red(), 128);
+      assert!((result.r() - 0.5).abs() < 1e-10);
     }
   }
 
@@ -1529,6 +1742,50 @@ mod test {
       let result = rgb.with_r_scaled_by(0.5);
 
       assert_eq!(result.red(), 64);
+    }
+  }
+
+  mod with_red {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_new_u8_red() {
+      let rgb = Rgb::<Srgb>::new(128, 128, 128);
+      let result = rgb.with_red(64);
+
+      assert_eq!(result.red(), 64);
+      assert_eq!(result.green(), 128);
+      assert_eq!(result.blue(), 128);
+    }
+  }
+
+  mod with_red_decremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_decremented_red() {
+      let rgb = Rgb::<Srgb>::new(128, 128, 128);
+      let result = rgb.with_red_decremented_by(64);
+
+      assert_eq!(result.red(), 64);
+    }
+  }
+
+  mod with_red_incremented_by {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_incremented_red() {
+      let rgb = Rgb::<Srgb>::new(64, 128, 128);
+      let result = rgb.with_red_incremented_by(64);
+
+      assert_eq!(result.red(), 128);
     }
   }
 }
