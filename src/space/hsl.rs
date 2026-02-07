@@ -437,14 +437,15 @@ where
   }
 }
 
-impl<S> Add for Hsl<S>
+impl<S, T> Add<T> for Hsl<S>
 where
   S: RgbSpec,
+  T: Into<Self>,
 {
   type Output = Self;
 
-  fn add(self, rhs: Self) -> Self {
-    Self::from(self.to_rgb::<S>() + rhs.to_rgb::<S>())
+  fn add(self, rhs: T) -> Self {
+    Self::from(self.to_rgb::<S>() + rhs.into().to_rgb::<S>())
   }
 }
 
@@ -481,14 +482,15 @@ where
   }
 }
 
-impl<S> Div for Hsl<S>
+impl<S, T> Div<T> for Hsl<S>
 where
   S: RgbSpec,
+  T: Into<Self>,
 {
   type Output = Self;
 
-  fn div(self, rhs: Self) -> Self {
-    Self::from(self.to_rgb::<S>() / rhs.to_rgb::<S>())
+  fn div(self, rhs: T) -> Self {
+    Self::from(self.to_rgb::<S>() / rhs.into().to_rgb::<S>())
   }
 }
 
@@ -499,16 +501,6 @@ where
 {
   fn from([h, s, l]: [T; 3]) -> Self {
     Self::new(h, s, l)
-  }
-}
-
-impl<OS, S> From<Hsl<S>> for Hsl<OS>
-where
-  OS: RgbSpec,
-  S: RgbSpec,
-{
-  fn from(hsl: Hsl<S>) -> Self {
-    hsl.to_rgb::<OS>().to_hsl()
   }
 }
 
@@ -540,14 +532,15 @@ where
   }
 }
 
-impl<S> Mul for Hsl<S>
+impl<S, T> Mul<T> for Hsl<S>
 where
   S: RgbSpec,
+  T: Into<Self>,
 {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self {
-    Self::from(self.to_rgb::<S>() * rhs.to_rgb::<S>())
+  fn mul(self, rhs: T) -> Self {
+    Self::from(self.to_rgb::<S>() * rhs.into().to_rgb::<S>())
   }
 }
 
@@ -562,14 +555,15 @@ where
   }
 }
 
-impl<S> Sub for Hsl<S>
+impl<S, T> Sub<T> for Hsl<S>
 where
   S: RgbSpec,
+  T: Into<Self>,
 {
   type Output = Self;
 
-  fn sub(self, rhs: Self) -> Self {
-    Self::from(self.to_rgb::<S>() - rhs.to_rgb::<S>())
+  fn sub(self, rhs: T) -> Self {
+    Self::from(self.to_rgb::<S>() - rhs.into().to_rgb::<S>())
   }
 }
 
@@ -635,8 +629,6 @@ mod test {
   }
 
   mod decrement_l {
-    use pretty_assertions::assert_eq;
-
     use super::*;
 
     #[test]
@@ -644,7 +636,7 @@ mod test {
       let mut hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
       hsl.decrement_l(0.2);
 
-      assert_eq!(hsl.l(), 0.30000000000000004);
+      assert!((hsl.l() - 0.3).abs() < 1e-10);
     }
   }
 
@@ -661,8 +653,6 @@ mod test {
   }
 
   mod decrement_s {
-    use pretty_assertions::assert_eq;
-
     use super::*;
 
     #[test]
@@ -670,7 +660,7 @@ mod test {
       let mut hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
       hsl.decrement_s(0.2);
 
-      assert_eq!(hsl.s(), 0.30000000000000004);
+      assert!((hsl.s() - 0.3).abs() < 1e-10);
     }
   }
 
@@ -1261,7 +1251,7 @@ mod test {
       let hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
       let result = hsl.with_l_decremented_by(0.2);
 
-      assert_eq!(result.l(), 0.30000000000000004);
+      assert!((result.l() - 0.3).abs() < 1e-10);
       assert_eq!(hsl.l(), 0.5);
     }
   }
@@ -1358,7 +1348,7 @@ mod test {
       let hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
       let result = hsl.with_s_decremented_by(0.2);
 
-      assert_eq!(result.s(), 0.30000000000000004);
+      assert!((result.s() - 0.3).abs() < 1e-10);
       assert_eq!(hsl.s(), 0.5);
     }
   }

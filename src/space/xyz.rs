@@ -393,11 +393,14 @@ impl ColorSpace<3> for Xyz {
   }
 }
 
-impl Add for Xyz {
+impl<T> Add<T> for Xyz
+where
+  T: Into<Self>,
+{
   type Output = Self;
 
-  fn add(self, rhs: Self) -> Self::Output {
-    Self::from(self.to_rgb::<Srgb>() + rhs.to_rgb::<Srgb>())
+  fn add(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() + rhs.into().to_rgb::<Srgb>())
   }
 }
 
@@ -414,11 +417,14 @@ impl Display for Xyz {
   }
 }
 
-impl Div for Xyz {
+impl<T> Div<T> for Xyz
+where
+  T: Into<Self>,
+{
   type Output = Self;
 
-  fn div(self, rhs: Self) -> Self::Output {
-    Self::from(self.to_rgb::<Srgb>() / rhs.to_rgb::<Srgb>())
+  fn div(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() / rhs.into().to_rgb::<Srgb>())
   }
 }
 
@@ -456,11 +462,14 @@ where
   }
 }
 
-impl Mul for Xyz {
+impl<T> Mul<T> for Xyz
+where
+  T: Into<Self>,
+{
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self::Output {
-    Self::from(self.to_rgb::<Srgb>() * rhs.to_rgb::<Srgb>())
+  fn mul(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() * rhs.into().to_rgb::<Srgb>())
   }
 }
 
@@ -474,11 +483,14 @@ where
   }
 }
 
-impl Sub for Xyz {
+impl<T> Sub<T> for Xyz
+where
+  T: Into<Self>,
+{
   type Output = Self;
 
-  fn sub(self, rhs: Self) -> Self::Output {
-    Self::from(self.to_rgb::<Srgb>() - rhs.to_rgb::<Srgb>())
+  fn sub(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() - rhs.into().to_rgb::<Srgb>())
   }
 }
 

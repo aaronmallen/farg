@@ -669,13 +669,15 @@ where
   }
 }
 
-impl<S> Add for Rgb<S>
+impl<S, T> Add<T> for Rgb<S>
 where
   S: RgbSpec,
+  T: Into<Self>,
 {
   type Output = Self;
 
-  fn add(self, rhs: Self) -> Self {
+  fn add(self, rhs: T) -> Self {
+    let rhs = rhs.into();
     let r = (self.r + rhs.r).clamp(0.0, 1.0);
     let g = (self.g + rhs.g).clamp(0.0, 1.0);
     let b = (self.b + rhs.b).clamp(0.0, 1.0);
@@ -716,13 +718,15 @@ where
   }
 }
 
-impl<S> Div for Rgb<S>
+impl<S, T> Div<T> for Rgb<S>
 where
   S: RgbSpec,
+  T: Into<Self>,
 {
   type Output = Self;
 
-  fn div(self, rhs: Self) -> Self {
+  fn div(self, rhs: T) -> Self {
+    let rhs = rhs.into();
     let r = (self.r / rhs.r).clamp(0.0, 1.0);
     let g = (self.g / rhs.g).clamp(0.0, 1.0);
     let b = (self.b / rhs.b).clamp(0.0, 1.0);
@@ -769,13 +773,15 @@ where
   }
 }
 
-impl<S> Mul for Rgb<S>
+impl<S, T> Mul<T> for Rgb<S>
 where
   S: RgbSpec,
+  T: Into<Self>,
 {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self {
+  fn mul(self, rhs: T) -> Self {
+    let rhs = rhs.into();
     let r = (self.r * rhs.r).clamp(0.0, 1.0);
     let g = (self.g * rhs.g).clamp(0.0, 1.0);
     let b = (self.b * rhs.b).clamp(0.0, 1.0);
@@ -794,13 +800,15 @@ where
   }
 }
 
-impl<S> Sub for Rgb<S>
+impl<S, T> Sub<T> for Rgb<S>
 where
   S: RgbSpec,
+  T: Into<Self>,
 {
   type Output = Self;
 
-  fn sub(self, rhs: Self) -> Self {
+  fn sub(self, rhs: T) -> Self {
+    let rhs = rhs.into();
     let r = (self.r - rhs.r).clamp(0.0, 1.0);
     let g = (self.g - rhs.g).clamp(0.0, 1.0);
     let b = (self.b - rhs.b).clamp(0.0, 1.0);
@@ -1462,7 +1470,6 @@ mod test {
     use pretty_assertions::assert_eq;
 
     use super::*;
-    use crate::space::Hsl;
 
     #[test]
     fn it_converts_pure_red() {

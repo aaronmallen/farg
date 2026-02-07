@@ -19,6 +19,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
   `increment_b`/`increment_g`/`increment_r`, `with_b`/`with_g`/`with_r`, and their `_decremented_by`/`_incremented_by`
   builder variants) now accept normalized values (0.0-1.0) instead of 0-255 scale values. The long-name variants
   (`set_blue`/`set_green`/`set_red`, etc.) retain the 0-255 scale behavior. These methods are no longer aliases.
+- Generalize arithmetic operators (`Add`, `Sub`, `Mul`, `Div`) on `Rgb`, `Xyz`, `Lms`, and `Hsl` to accept
+  `impl Into<Self>`, enabling cross-type arithmetic (e.g., `xyz + rgb`)
 
 ### Fixed
 

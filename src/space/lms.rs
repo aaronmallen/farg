@@ -219,13 +219,6 @@ impl Lms {
     self.s()
   }
 
-  pub fn to_rgb<S>(&self) -> Rgb<S>
-  where
-    S: RgbSpec,
-  {
-    self.to_xyz().to_rgb()
-  }
-
   /// Converts to CIE XYZ using the inverse of the context's CAT matrix.
   pub fn to_xyz(&self) -> Xyz {
     Xyz::from(self.context.cat().inverse() * self.components()).with_context(self.context)
@@ -387,11 +380,14 @@ impl Lms {
   }
 }
 
-impl Add for Lms {
+impl<T> Add<T> for Lms
+where
+  T: Into<Self>,
+{
   type Output = Self;
 
-  fn add(self, rhs: Self) -> Self::Output {
-    Self::from(self.to_rgb::<Srgb>() + rhs.to_rgb::<Srgb>())
+  fn add(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() + rhs.into().to_rgb::<Srgb>())
   }
 }
 
@@ -426,11 +422,14 @@ impl Display for Lms {
   }
 }
 
-impl Div for Lms {
+impl<T> Div<T> for Lms
+where
+  T: Into<Self>,
+{
   type Output = Self;
 
-  fn div(self, rhs: Self) -> Self::Output {
-    Self::from(self.to_rgb::<Srgb>() / rhs.to_rgb::<Srgb>())
+  fn div(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() / rhs.into().to_rgb::<Srgb>())
   }
 }
 
@@ -468,17 +467,20 @@ impl From<Xyz> for Lms {
   }
 }
 
-impl Mul for Lms {
+impl<T> Mul<T> for Lms
+where
+  T: Into<Self>,
+{
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self::Output {
-    Self::from(self.to_rgb::<Srgb>() * rhs.to_rgb::<Srgb>())
+  fn mul(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() * rhs.into().to_rgb::<Srgb>())
   }
 }
 
 impl<T> PartialEq<T> for Lms
 where
-  T: Into<Lms> + Copy,
+  T: Into<Self> + Copy,
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
@@ -486,11 +488,14 @@ where
   }
 }
 
-impl Sub for Lms {
+impl<T> Sub<T> for Lms
+where
+  T: Into<Self>,
+{
   type Output = Self;
 
-  fn sub(self, rhs: Self) -> Self::Output {
-    Self::from(self.to_rgb::<Srgb>() - rhs.to_rgb::<Srgb>())
+  fn sub(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() - rhs.into().to_rgb::<Srgb>())
   }
 }
 
