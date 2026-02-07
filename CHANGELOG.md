@@ -7,6 +7,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+## [v0.1.1] - 2026-02-07
+
 ### Added
 
 - `TryFrom<String>` for `Xyz` and `Lms` color spaces (parse from CSS color strings via sRGB conversion)
@@ -15,8 +17,9 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 - Allow `LinearRgb::new` to accept `impl Into<Component>` via new `from_u8` constructor
 
-## [v0.1.0] - 2026-02-05
+## v0.1.0 - 2026-02-05
 
 Initial release
 
-[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.0...main
+[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.1...main
+[v0.1.1]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.0..0.1.1
