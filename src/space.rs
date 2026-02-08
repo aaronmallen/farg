@@ -1,3 +1,5 @@
+#[cfg(feature = "space-cmy")]
+mod cmy;
 #[cfg(feature = "space-hsl")]
 mod hsl;
 #[cfg(feature = "space-hsv")]
@@ -8,6 +10,8 @@ mod lms;
 mod rgb;
 mod xyz;
 
+#[cfg(feature = "space-cmy")]
+pub use cmy::Cmy;
 #[cfg(feature = "space-hsl")]
 pub use hsl::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -94,6 +98,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Sets the luminance to the given value in place.
   fn set_luminance(&mut self, luminance: impl Into<Component>) {
     self.set_components(self.with_luminance(luminance).components())
+  }
+
+  #[cfg(feature = "space-cmy")]
+  /// Converts to the CMY color space with sRGB encoding.
+  fn to_cmy(&self) -> Cmy<Srgb> {
+    self.to_rgb::<Srgb>().to_cmy()
   }
 
   #[cfg(feature = "space-hsv")]

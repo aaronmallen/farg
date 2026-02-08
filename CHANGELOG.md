@@ -9,6 +9,7 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add `Cmy` color space with full conversion support, feature-gated behind `space-cmy`
 - Add `Hsl` color space with full conversion support, feature-gated behind `space-hsl`
 - Add `Hsb`/`Hsv` color space with full conversion support, feature-gated behind `space-hsb` / `space-hsv`
 - Add `Hwb` color space with full conversion support, feature-gated behind `space-hwb`

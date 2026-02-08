@@ -83,7 +83,7 @@ all-rgb-spaces = [
   "rgb-sony-s-gamut-3-cine",
   "rgb-wide-gamut-rgb",
 ]
-all-spaces = ["all-rgb-spaces", "space-hsl", "space-hsv", "space-hwb"]
+all-spaces = ["all-rgb-spaces", "space-cmy", "space-hsl", "space-hsv", "space-hwb"]
 cat-bradford = []
 cat-cat02 = []
 cat-cat16 = []
@@ -257,6 +257,7 @@ rgb-smpte-c = []
 rgb-sony-s-gamut-3 = []
 rgb-sony-s-gamut-3-cine = []
 rgb-wide-gamut-rgb = ["illuminant-d50"]
+space-cmy = []
 space-hsb = ["space-hsv"]
 space-hsl = []
 space-hsv = []

@@ -3,6 +3,8 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+#[cfg(feature = "space-cmy")]
+use super::Cmy;
 #[cfg(feature = "space-hsl")]
 use super::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -443,6 +445,16 @@ where
 {
   fn from([l, m, s]: [T; 3]) -> Self {
     Self::new(l, m, s)
+  }
+}
+
+#[cfg(feature = "space-cmy")]
+impl<S> From<Cmy<S>> for Lms
+where
+  S: RgbSpec,
+{
+  fn from(cmy: Cmy<S>) -> Self {
+    cmy.to_lms()
   }
 }
 

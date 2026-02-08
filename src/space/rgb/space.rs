@@ -161,6 +161,8 @@ pub use standard::Srgb;
 pub use wide_gamut_rgb::WideGamutRgb;
 
 use super::{LinearRgb, RgbSpec};
+#[cfg(feature = "space-cmy")]
+use crate::space::Cmy;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
 #[cfg(feature = "space-hwb")]
@@ -437,6 +439,16 @@ where
   /// Alias for [`Self::scale_r`].
   pub fn scale_red(&mut self, factor: impl Into<Component>) {
     self.scale_r(factor);
+  }
+
+  #[cfg(feature = "space-cmy")]
+  /// Converts to CMY in this color space.
+  pub fn to_cmy(&self) -> Cmy<S> {
+    Cmy::new(
+      (1.0 - self.r.0) * 100.0,
+      (1.0 - self.g.0) * 100.0,
+      (1.0 - self.b.0) * 100.0,
+    )
   }
 
   #[cfg(feature = "space-hsv")]
@@ -805,6 +817,17 @@ where
 {
   fn from([r, g, b]: [T; 3]) -> Self {
     Self::from_normalized(r, g, b)
+  }
+}
+
+#[cfg(feature = "space-cmy")]
+impl<OS, S> From<Cmy<OS>> for Rgb<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(cmy: Cmy<OS>) -> Self {
+    cmy.to_rgb::<S>()
   }
 }
 

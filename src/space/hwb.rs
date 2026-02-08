@@ -4,6 +4,8 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+#[cfg(feature = "space-cmy")]
+use crate::space::Cmy;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -542,6 +544,17 @@ where
 {
   fn from([h, w, b]: [T; 3]) -> Self {
     Self::new(h, w, b)
+  }
+}
+
+#[cfg(feature = "space-cmy")]
+impl<OS, S> From<Cmy<OS>> for Hwb<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(cmy: Cmy<OS>) -> Self {
+    cmy.to_rgb::<S>().to_hwb()
   }
 }
 

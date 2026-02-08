@@ -4,6 +4,8 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+#[cfg(feature = "space-cmy")]
+use super::Cmy;
 #[cfg(feature = "space-hwb")]
 use super::Hwb;
 #[cfg(feature = "space-hsv")]
@@ -543,31 +545,14 @@ where
   }
 }
 
-impl<OS, S> From<Rgb<OS>> for Hsl<S>
+#[cfg(feature = "space-cmy")]
+impl<OS, S> From<Cmy<OS>> for Hsl<S>
 where
   OS: RgbSpec,
   S: RgbSpec,
 {
-  fn from(rgb: Rgb<OS>) -> Self {
-    rgb.to_rgb::<S>().to_hsl()
-  }
-}
-
-impl<S> From<Lms> for Hsl<S>
-where
-  S: RgbSpec,
-{
-  fn from(lms: Lms) -> Self {
-    lms.to_rgb::<S>().to_hsl()
-  }
-}
-
-impl<S> From<Xyz> for Hsl<S>
-where
-  S: RgbSpec,
-{
-  fn from(xyz: Xyz) -> Self {
-    xyz.to_rgb::<S>().to_hsl()
+  fn from(cmy: Cmy<OS>) -> Self {
+    cmy.to_rgb::<S>().to_hsl()
   }
 }
 
@@ -590,6 +575,34 @@ where
 {
   fn from(hwb: Hwb<OS>) -> Self {
     hwb.to_rgb::<S>().to_hsl()
+  }
+}
+
+impl<S> From<Lms> for Hsl<S>
+where
+  S: RgbSpec,
+{
+  fn from(lms: Lms) -> Self {
+    lms.to_rgb::<S>().to_hsl()
+  }
+}
+
+impl<OS, S> From<Rgb<OS>> for Hsl<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(rgb: Rgb<OS>) -> Self {
+    rgb.to_rgb::<S>().to_hsl()
+  }
+}
+
+impl<S> From<Xyz> for Hsl<S>
+where
+  S: RgbSpec,
+{
+  fn from(xyz: Xyz) -> Self {
+    xyz.to_rgb::<S>().to_hsl()
   }
 }
 

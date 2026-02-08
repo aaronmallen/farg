@@ -4,6 +4,8 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+#[cfg(feature = "space-cmy")]
+use crate::space::Cmy;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
 #[cfg(feature = "space-hwb")]
@@ -624,6 +626,17 @@ where
   }
 }
 
+#[cfg(feature = "space-cmy")]
+impl<OS, S> From<Cmy<OS>> for Hsv<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(cmy: Cmy<OS>) -> Self {
+    cmy.to_rgb::<S>().to_hsv()
+  }
+}
+
 #[cfg(feature = "space-hsl")]
 impl<OS, S> From<Hsl<OS>> for Hsv<S>
 where
@@ -646,6 +659,15 @@ where
   }
 }
 
+impl<S> From<Lms> for Hsv<S>
+where
+  S: RgbSpec,
+{
+  fn from(lms: Lms) -> Self {
+    lms.to_rgb::<S>().to_hsv()
+  }
+}
+
 impl<OS, S> From<Rgb<OS>> for Hsv<S>
 where
   OS: RgbSpec,
@@ -653,15 +675,6 @@ where
 {
   fn from(rgb: Rgb<OS>) -> Self {
     rgb.to_rgb::<S>().to_hsv()
-  }
-}
-
-impl<S> From<Lms> for Hsv<S>
-where
-  S: RgbSpec,
-{
-  fn from(lms: Lms) -> Self {
-    lms.to_rgb::<S>().to_hsv()
   }
 }
 

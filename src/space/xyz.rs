@@ -3,6 +3,8 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+#[cfg(feature = "space-cmy")]
+use super::Cmy;
 #[cfg(feature = "space-hsl")]
 use super::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -383,6 +385,17 @@ impl Xyz {
   }
 }
 
+impl<T> Add<T> for Xyz
+where
+  T: Into<Self>,
+{
+  type Output = Self;
+
+  fn add(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() + rhs.into().to_rgb::<Srgb>())
+  }
+}
+
 impl ColorSpace<3> for Xyz {
   fn components(&self) -> [f64; 3] {
     self.components()
@@ -394,17 +407,6 @@ impl ColorSpace<3> for Xyz {
 
   fn to_xyz(&self) -> Self {
     *self
-  }
-}
-
-impl<T> Add<T> for Xyz
-where
-  T: Into<Self>,
-{
-  type Output = Self;
-
-  fn add(self, rhs: T) -> Self::Output {
-    Self::from(self.to_rgb::<Srgb>() + rhs.into().to_rgb::<Srgb>())
   }
 }
 
@@ -438,6 +440,16 @@ where
 {
   fn from([x, y, z]: [T; 3]) -> Self {
     Self::new(x, y, z)
+  }
+}
+
+#[cfg(feature = "space-cmy")]
+impl<S> From<Cmy<S>> for Xyz
+where
+  S: RgbSpec,
+{
+  fn from(cmy: Cmy<S>) -> Self {
+    cmy.to_xyz()
   }
 }
 
