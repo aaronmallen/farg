@@ -32,6 +32,7 @@ variables:
   before_script:
     - curl https://mise.run | sh
     - export PATH="$CI_PROJECT_DIR/.mise/bin:$CI_PROJECT_DIR/.cargo/bin:$PATH"
+    - cp .config/mise.toml mise.toml
     - mise install
 
 check:
