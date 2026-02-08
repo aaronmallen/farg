@@ -163,6 +163,8 @@ pub use wide_gamut_rgb::WideGamutRgb;
 use super::{LinearRgb, RgbSpec};
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
+#[cfg(feature = "space-hwb")]
+use crate::space::Hwb;
 #[cfg(feature = "space-hsv")]
 use crate::space::{Hsb, Hsv};
 use crate::{
@@ -504,6 +506,32 @@ where
     Hsv::new(h * 360.0, s * 100.0, max * 100.0)
   }
 
+  #[cfg(feature = "space-hwb")]
+  /// Converts to HWB in this color space.
+  pub fn to_hwb(&self) -> Hwb<S> {
+    let r = self.r.0;
+    let g = self.g.0;
+    let b = self.b.0;
+
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
+    let delta = max - min;
+
+    if delta <= 0.0 {
+      return Hwb::new(0.0, min * 100.0, (1.0 - max) * 100.0);
+    }
+
+    let h = if (max - r).abs() < f64::EPSILON {
+      ((g - b) / delta).rem_euclid(6.0) / 6.0
+    } else if (max - g).abs() < f64::EPSILON {
+      (2.0 + (b - r) / delta) / 6.0
+    } else {
+      (4.0 + (r - g) / delta) / 6.0
+    };
+
+    Hwb::new(h * 360.0, min * 100.0, (1.0 - max) * 100.0)
+  }
+
   /// Decodes to linear RGB by applying the inverse transfer function.
   pub fn to_linear(&self) -> LinearRgb<S> {
     let r = S::TRANSFER_FUNCTION.decode(self.r);
@@ -799,6 +827,17 @@ where
 {
   fn from(hsv: Hsv<OS>) -> Self {
     hsv.to_rgb::<S>()
+  }
+}
+
+#[cfg(feature = "space-hwb")]
+impl<OS, S> From<Hwb<OS>> for Rgb<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(hwb: Hwb<OS>) -> Self {
+    hwb.to_rgb::<S>()
   }
 }
 
@@ -1513,6 +1552,81 @@ mod test {
   }
 
   #[cfg(feature = "space-hsl")]
+  #[cfg(feature = "space-hwb")]
+  mod to_hwb {
+    use super::*;
+
+    #[test]
+    fn it_converts_pure_red() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.0, 0.0, 0.0);
+      let hwb = rgb.to_hwb();
+
+      assert!((hwb.hue() - 0.0).abs() < 1e-10);
+      assert!((hwb.whiteness() - 0.0).abs() < 1e-10);
+      assert!((hwb.blackness() - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_pure_green() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.0, 1.0, 0.0);
+      let hwb = rgb.to_hwb();
+
+      assert!((hwb.hue() - 120.0).abs() < 1e-10);
+      assert!((hwb.whiteness() - 0.0).abs() < 1e-10);
+      assert!((hwb.blackness() - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_pure_blue() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.0, 0.0, 1.0);
+      let hwb = rgb.to_hwb();
+
+      assert!((hwb.hue() - 240.0).abs() < 1e-10);
+      assert!((hwb.whiteness() - 0.0).abs() < 1e-10);
+      assert!((hwb.blackness() - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_black_to_full_blackness() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.0, 0.0, 0.0);
+      let hwb = rgb.to_hwb();
+
+      assert!((hwb.whiteness()).abs() < 1e-10);
+      assert!((hwb.blackness() - 100.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_white_to_full_whiteness() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.0, 1.0, 1.0);
+      let hwb = rgb.to_hwb();
+
+      assert!((hwb.whiteness() - 100.0).abs() < 1e-10);
+      assert!((hwb.blackness()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_gray_to_equal_whiteness_blackness() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+      let hwb = rgb.to_hwb();
+
+      assert!((hwb.whiteness() - 50.0).abs() < 1e-10);
+      assert!((hwb.blackness() - 50.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_roundtrips_with_from_hwb() {
+      use pretty_assertions::assert_eq;
+
+      let original = Rgb::<Srgb>::new(200, 100, 50);
+      let hwb = original.to_hwb();
+      let back: Rgb<Srgb> = Rgb::from(hwb);
+
+      assert_eq!(back.red(), original.red());
+      assert_eq!(back.green(), original.green());
+      assert_eq!(back.blue(), original.blue());
+    }
+  }
+
   mod to_hsl {
     use pretty_assertions::assert_eq;
 

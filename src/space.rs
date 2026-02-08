@@ -2,6 +2,8 @@
 mod hsl;
 #[cfg(feature = "space-hsv")]
 mod hsv;
+#[cfg(feature = "space-hwb")]
+mod hwb;
 mod lms;
 mod rgb;
 mod xyz;
@@ -10,6 +12,8 @@ mod xyz;
 pub use hsl::Hsl;
 #[cfg(feature = "space-hsv")]
 pub use hsv::{Hsb, Hsv};
+#[cfg(feature = "space-hwb")]
+pub use hwb::Hwb;
 pub use lms::Lms;
 pub use rgb::*;
 pub use xyz::Xyz;
@@ -108,6 +112,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Converts to the HSV color space with sRGB encoding.
   fn to_hsv(&self) -> Hsv<Srgb> {
     self.to_rgb::<Srgb>().to_hsv()
+  }
+
+  #[cfg(feature = "space-hwb")]
+  /// Converts to the HWB color space with sRGB encoding.
+  fn to_hwb(&self) -> Hwb<Srgb> {
+    self.to_rgb::<Srgb>().to_hwb()
   }
 
   /// Converts to the LMS cone response space.

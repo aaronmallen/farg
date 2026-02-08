@@ -7,6 +7,8 @@ use std::{
 use super::Hsl;
 #[cfg(feature = "space-hsv")]
 use super::Hsv;
+#[cfg(feature = "space-hwb")]
+use super::Hwb;
 use super::{ColorSpace, Rgb, RgbSpec, Srgb, Xyz};
 use crate::{ColorimetricContext, component::Component};
 
@@ -461,6 +463,16 @@ where
 {
   fn from(hsv: Hsv<S>) -> Self {
     hsv.to_lms()
+  }
+}
+
+#[cfg(feature = "space-hwb")]
+impl<S> From<Hwb<S>> for Lms
+where
+  S: RgbSpec,
+{
+  fn from(hwb: Hwb<S>) -> Self {
+    hwb.to_lms()
   }
 }
 

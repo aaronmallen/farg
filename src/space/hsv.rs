@@ -6,6 +6,8 @@ use std::{
 
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
+#[cfg(feature = "space-hwb")]
+use crate::space::Hwb;
 use crate::{
   ColorimetricContext,
   component::Component,
@@ -291,6 +293,17 @@ where
     };
 
     Hsl::<S>::new(h, ns, nl)
+  }
+
+  #[cfg(feature = "space-hwb")]
+  /// Converts this HSV color to an [`Hwb`] color in the specified RGB color space.
+  pub fn to_hwb(&self) -> Hwb<S> {
+    let [h, s, v] = self.components();
+
+    let nw = (1.0 - s) * v;
+    let nb = 1.0 - v;
+
+    Hwb::<S>::new(h * 360.0, nw * 100.0, nb * 100.0)
   }
 
   /// Converts this HSV color to an [`Rgb`] color in the specified output space.
@@ -619,6 +632,17 @@ where
 {
   fn from(hsl: Hsl<OS>) -> Self {
     hsl.to_rgb::<S>().to_hsv()
+  }
+}
+
+#[cfg(feature = "space-hwb")]
+impl<OS, S> From<Hwb<OS>> for Hsv<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(hwb: Hwb<OS>) -> Self {
+    hwb.to_rgb::<S>().to_hsv()
   }
 }
 
@@ -1215,6 +1239,50 @@ mod test {
       let original = Hsv::<Srgb>::new(210.0, 80.0, 40.0);
       let rgb: Rgb<Srgb> = original.to_rgb();
       let back: Hsv<Srgb> = rgb.into();
+
+      assert!((back.hue() - original.hue()).abs() < 1.0);
+      assert!((back.saturation() - original.saturation()).abs() < 1.0);
+      assert!((back.value() - original.value()).abs() < 1.0);
+    }
+  }
+
+  #[cfg(feature = "space-hwb")]
+  mod to_hwb {
+    use super::*;
+
+    #[test]
+    fn it_converts_black() {
+      let hsv = Hsv::<Srgb>::new(0.0, 0.0, 0.0);
+      let hwb = hsv.to_hwb();
+
+      assert!((hwb.whiteness()).abs() < 1e-10);
+      assert!((hwb.blackness() - 100.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_pure_color() {
+      let hsv = Hsv::<Srgb>::new(120.0, 100.0, 100.0);
+      let hwb = hsv.to_hwb();
+
+      assert!((hwb.hue() - 120.0).abs() < 1.0);
+      assert!((hwb.whiteness()).abs() < 1.0);
+      assert!((hwb.blackness()).abs() < 1.0);
+    }
+
+    #[test]
+    fn it_converts_white() {
+      let hsv = Hsv::<Srgb>::new(0.0, 0.0, 100.0);
+      let hwb = hsv.to_hwb();
+
+      assert!((hwb.whiteness() - 100.0).abs() < 1e-10);
+      assert!((hwb.blackness()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_roundtrips_with_from_hwb() {
+      let original = Hsv::<Srgb>::new(210.0, 80.0, 40.0);
+      let hwb = original.to_hwb();
+      let back: Hsv<Srgb> = hwb.into();
 
       assert!((back.hue() - original.hue()).abs() < 1.0);
       assert!((back.saturation() - original.saturation()).abs() < 1.0);
