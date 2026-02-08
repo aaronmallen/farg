@@ -9,9 +9,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
-- Add `Hsl` (Hue, Saturation, Lightness) color space, feature-gated behind `space-hsl`
-- Add `Rgb::to_hsl()` conversion method (requires `space-hsl` feature)
-- Add `From<Hsl<S>>` conversions for `Rgb`, `Xyz`, and `Lms`
+- Add `Hsv`/`Hsb` color space with full conversion support, feature-gated behind `space-hsv` / `space-hsb`
+- Add `Hsl` color space with full conversion support, feature-gated behind `space-hsl`
 
 ### Changed
 

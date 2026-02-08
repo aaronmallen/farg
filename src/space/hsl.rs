@@ -4,6 +4,8 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+#[cfg(feature = "space-hsv")]
+use super::{Hsb, Hsv};
 use crate::{
   ColorimetricContext,
   component::Component,
@@ -221,6 +223,23 @@ where
   /// Sets the saturation from a percentage value (0-100%).
   pub fn set_saturation(&mut self, saturation: impl Into<Component>) {
     self.s = saturation.into() / 100.0;
+  }
+
+  #[cfg(feature = "space-hsv")]
+  /// Converts this HSL color in the [`Hsb`] color space.
+  pub fn to_hsb(&self) -> Hsb<S> {
+    self.to_hsv()
+  }
+
+  #[cfg(feature = "space-hsv")]
+  /// Converts this HSL color in the [`Hsv`] color space.
+  pub fn to_hsv(&self) -> Hsv<S> {
+    let [h, s, l] = self.components();
+
+    let v = l + (s * l.min(1.0 - l));
+    let ns = if v == 0.0 { 0.0 } else { 2.0 * (1.0 - (l / v)) };
+
+    Hsv::<S>::new(h, ns, v)
   }
 
   /// Converts this HSL color to an [`Rgb`] color in the specified output space.
@@ -529,6 +548,17 @@ where
 {
   fn from(xyz: Xyz) -> Self {
     xyz.to_rgb::<S>().to_hsl()
+  }
+}
+
+#[cfg(feature = "space-hsv")]
+impl<OS, S> From<Hsv<OS>> for Hsl<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(hsv: Hsv<OS>) -> Self {
+    hsv.to_rgb::<S>().to_hsl()
   }
 }
 

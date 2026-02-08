@@ -1,11 +1,15 @@
 #[cfg(feature = "space-hsl")]
 mod hsl;
+#[cfg(feature = "space-hsv")]
+mod hsv;
 mod lms;
 mod rgb;
 mod xyz;
 
 #[cfg(feature = "space-hsl")]
 pub use hsl::Hsl;
+#[cfg(feature = "space-hsv")]
+pub use hsv::{Hsb, Hsv};
 pub use lms::Lms;
 pub use rgb::*;
 pub use xyz::Xyz;
@@ -88,10 +92,22 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.set_components(self.with_luminance(luminance).components())
   }
 
+  #[cfg(feature = "space-hsv")]
+  /// Converts to the HSB color space with sRGB encoding.
+  fn to_hsb(&self) -> Hsb<Srgb> {
+    self.to_rgb::<Srgb>().to_hsb()
+  }
+
   #[cfg(feature = "space-hsl")]
   /// Converts to the HSL color space with sRGB encoding.
   fn to_hsl(&self) -> Hsl<Srgb> {
     self.to_rgb::<Srgb>().to_hsl()
+  }
+
+  #[cfg(feature = "space-hsv")]
+  /// Converts to the HSV color space with sRGB encoding.
+  fn to_hsv(&self) -> Hsv<Srgb> {
+    self.to_rgb::<Srgb>().to_hsv()
   }
 
   /// Converts to the LMS cone response space.

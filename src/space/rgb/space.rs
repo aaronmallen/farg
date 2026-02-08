@@ -163,6 +163,8 @@ pub use wide_gamut_rgb::WideGamutRgb;
 use super::{LinearRgb, RgbSpec};
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
+#[cfg(feature = "space-hsv")]
+use crate::space::{Hsb, Hsv};
 use crate::{
   ColorimetricContext, Error,
   component::Component,
@@ -435,16 +437,14 @@ where
     self.scale_r(factor);
   }
 
-  /// Decodes to linear RGB by applying the inverse transfer function.
-  pub fn to_linear(&self) -> LinearRgb<S> {
-    let r = S::TRANSFER_FUNCTION.decode(self.r);
-    let g = S::TRANSFER_FUNCTION.decode(self.g);
-    let b = S::TRANSFER_FUNCTION.decode(self.b);
-    LinearRgb::from_normalized(r, g, b)
+  #[cfg(feature = "space-hsv")]
+  /// Converts to HSB in this color space. Alias for [`Self::to_hsv`].
+  pub fn to_hsb(&self) -> Hsb<S> {
+    self.to_hsv()
   }
 
-  /// Converts to HSL in this color space.
   #[cfg(feature = "space-hsl")]
+  /// Converts to HSL in this color space.
   pub fn to_hsl(&self) -> Hsl<S> {
     let r = self.r.0;
     let g = self.g.0;
@@ -474,6 +474,42 @@ where
     };
 
     Hsl::new(h * 360.0, s * 100.0, l * 100.0)
+  }
+
+  #[cfg(feature = "space-hsv")]
+  /// Converts to HSV in this color space.
+  pub fn to_hsv(&self) -> Hsv<S> {
+    let r = self.r.0;
+    let g = self.g.0;
+    let b = self.b.0;
+
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
+    let delta = max - min;
+
+    if delta <= 0.0 {
+      return Hsv::new(0.0, 0.0, max * 100.0);
+    }
+
+    let s = delta / max;
+
+    let h = if (max - r).abs() < f64::EPSILON {
+      ((g - b) / delta).rem_euclid(6.0) / 6.0
+    } else if (max - g).abs() < f64::EPSILON {
+      (2.0 + (b - r) / delta) / 6.0
+    } else {
+      (4.0 + (r - g) / delta) / 6.0
+    };
+
+    Hsv::new(h * 360.0, s * 100.0, max * 100.0)
+  }
+
+  /// Decodes to linear RGB by applying the inverse transfer function.
+  pub fn to_linear(&self) -> LinearRgb<S> {
+    let r = S::TRANSFER_FUNCTION.decode(self.r);
+    let g = S::TRANSFER_FUNCTION.decode(self.g);
+    let b = S::TRANSFER_FUNCTION.decode(self.b);
+    LinearRgb::from_normalized(r, g, b)
   }
 
   /// Converts to a different RGB color space via XYZ.
@@ -752,6 +788,17 @@ where
 {
   fn from(hsl: Hsl<OS>) -> Self {
     hsl.to_rgb::<S>()
+  }
+}
+
+#[cfg(feature = "space-hsv")]
+impl<OS, S> From<Hsv<OS>> for Rgb<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(hsv: Hsv<OS>) -> Self {
+    hsv.to_rgb::<S>()
   }
 }
 
