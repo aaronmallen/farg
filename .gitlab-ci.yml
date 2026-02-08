@@ -9,40 +9,63 @@ stages:
   - test
   - build
 
-default:
-  image: rust:latest
+variables:
+  MISE_YES: "true"
+  MISE_DATA_DIR: "$CI_PROJECT_DIR/.mise-data"
+  MISE_INSTALL_PATH: "$CI_PROJECT_DIR/.mise/bin/mise"
+  MISE_JOBS: "1"
+  CARGO_HOME: "$CI_PROJECT_DIR/.cargo"
+  CARGO_BUILD_JOBS: "2"
+
+.mise:
+  cache:
+    key:
+      files:
+        - Cargo.lock
+      prefix: ${CI_JOB_NAME}
+    paths:
+      - .mise/
+      - .mise-data/
+      - .cargo/
+      - target/
+    policy: pull-push
   before_script:
     - curl https://mise.run | sh
-    - export PATH="$HOME/.local/bin:$PATH"
-    - mise trust
+    - export PATH="$CI_PROJECT_DIR/.mise/bin:$CI_PROJECT_DIR/.cargo/bin:$PATH"
     - mise install
 
 check:
+  extends: .mise
   stage: check
   script:
     - mise run check
 
 lint:rust:
+  extends: .mise
   stage: lint
   script:
     - mise run lint:rust
 
 lint:toml:
+  extends: .mise
   stage: lint
   script:
     - mise run lint:toml
 
 lint:markdown:
+  extends: .mise
   stage: lint
   script:
     - mise run lint:markdown
 
 lint:editorconfig:
+  extends: .mise
   stage: lint
   script:
     - mise run lint:editorconfig
 
 test:
+  extends: .mise
   stage: test
   script:
     - mise run test
@@ -55,6 +78,7 @@ test:
         path: coverage/cobertura.xml
 
 build:
+  extends: .mise
   stage: build
   script:
     - mise run build
