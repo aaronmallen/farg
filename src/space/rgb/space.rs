@@ -1683,7 +1683,6 @@ mod test {
     }
   }
 
-  #[cfg(feature = "space-hsl")]
   #[cfg(feature = "space-hwb")]
   mod to_hwb {
     use super::*;
@@ -1759,6 +1758,7 @@ mod test {
     }
   }
 
+  #[cfg(feature = "space-hsl")]
   mod to_hsl {
     use pretty_assertions::assert_eq;
 
