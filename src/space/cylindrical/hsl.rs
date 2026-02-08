@@ -5,13 +5,13 @@ use std::{
 };
 
 #[cfg(feature = "space-cmy")]
-use super::Cmy;
+use crate::space::Cmy;
 #[cfg(feature = "space-cmyk")]
-use super::Cmyk;
+use crate::space::Cmyk;
 #[cfg(feature = "space-hwb")]
-use super::Hwb;
+use crate::space::Hwb;
 #[cfg(feature = "space-hsv")]
-use super::{Hsb, Hsv};
+use crate::space::{Hsb, Hsv};
 use crate::{
   ColorimetricContext,
   component::Component,

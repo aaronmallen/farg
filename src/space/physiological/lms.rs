@@ -4,17 +4,20 @@ use std::{
 };
 
 #[cfg(feature = "space-cmy")]
-use super::Cmy;
+use crate::space::Cmy;
 #[cfg(feature = "space-cmyk")]
-use super::Cmyk;
+use crate::space::Cmyk;
 #[cfg(feature = "space-hsl")]
-use super::Hsl;
+use crate::space::Hsl;
 #[cfg(feature = "space-hsv")]
-use super::Hsv;
+use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
-use super::Hwb;
-use super::{ColorSpace, Rgb, RgbSpec, Srgb, Xyz};
-use crate::{ColorimetricContext, component::Component};
+use crate::space::Hwb;
+use crate::{
+  ColorimetricContext,
+  component::Component,
+  space::{ColorSpace, Rgb, RgbSpec, Srgb, Xyz},
+};
 
 /// LMS cone response color space.
 ///

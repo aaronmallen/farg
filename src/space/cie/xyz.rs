@@ -4,17 +4,21 @@ use std::{
 };
 
 #[cfg(feature = "space-cmy")]
-use super::Cmy;
+use crate::space::Cmy;
 #[cfg(feature = "space-cmyk")]
-use super::Cmyk;
+use crate::space::Cmyk;
 #[cfg(feature = "space-hsl")]
-use super::Hsl;
+use crate::space::Hsl;
 #[cfg(feature = "space-hsv")]
-use super::Hsv;
+use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
-use super::Hwb;
-use super::{ColorSpace, LinearRgb, Lms, Rgb, RgbSpec, Srgb};
-use crate::{ColorimetricContext, chromaticity::Xy, component::Component};
+use crate::space::Hwb;
+use crate::{
+  ColorimetricContext,
+  chromaticity::Xy,
+  component::Component,
+  space::{ColorSpace, LinearRgb, Lms, Rgb, RgbSpec, Srgb},
+};
 
 /// CIE 1931 XYZ tristimulus color space.
 ///

@@ -1,30 +1,18 @@
-#[cfg(feature = "space-cmy")]
-mod cmy;
-#[cfg(feature = "space-cmyk")]
-mod cmyk;
-#[cfg(feature = "space-hsl")]
-mod hsl;
-#[cfg(feature = "space-hsv")]
-mod hsv;
-#[cfg(feature = "space-hwb")]
-mod hwb;
-mod lms;
+mod cie;
+#[cfg(any(feature = "space-hsl", feature = "space-hsv", feature = "space-hwb"))]
+mod cylindrical;
+mod physiological;
 mod rgb;
-mod xyz;
+#[cfg(any(feature = "space-cmy", feature = "space-cmyk"))]
+mod subtractive;
 
-#[cfg(feature = "space-cmy")]
-pub use cmy::Cmy;
-#[cfg(feature = "space-cmyk")]
-pub use cmyk::Cmyk;
-#[cfg(feature = "space-hsl")]
-pub use hsl::Hsl;
-#[cfg(feature = "space-hsv")]
-pub use hsv::{Hsb, Hsv};
-#[cfg(feature = "space-hwb")]
-pub use hwb::Hwb;
-pub use lms::Lms;
+pub use cie::*;
+#[cfg(any(feature = "space-hsl", feature = "space-hsv", feature = "space-hwb"))]
+pub use cylindrical::*;
+pub use physiological::*;
 pub use rgb::*;
-pub use xyz::Xyz;
+#[cfg(any(feature = "space-cmy", feature = "space-cmyk"))]
+pub use subtractive::*;
 
 use crate::{chromaticity::Xy, component::Component};
 
