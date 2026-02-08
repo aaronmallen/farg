@@ -7,7 +7,7 @@ keywords = ["color", "colorimetry", "color-science"]
 license = "MIT"
 name = "farg"
 repository = "https://git.aaronmallen.dev/farg/farg"
-version = "0.1.1"
+version = "0.2.0"
 
 [package.metadata.docs.rs]
 all-features = true

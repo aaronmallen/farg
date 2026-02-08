@@ -7,6 +7,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+## [v0.2.0] - 2026-02-08
+
 ### Added
 
 - Add `Cmy` color space with full conversion support, feature-gated behind `space-cmy`
@@ -43,5 +45,6 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 Initial release
 
-[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.1...main
+[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.2.0...main
 [v0.1.1]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.0..0.1.1
+[v0.2.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.1..0.2.0

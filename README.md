@@ -9,6 +9,8 @@ observers, and adaptation transforms.
 ## Features
 
 - **40+ RGB color spaces** — sRGB, Display P3, Adobe RGB, Rec. 2020, ACES, and many more
+- **Cylindrical color spaces** — HSL, HSV/HSB, HWB
+- **Subtractive color spaces** — CMY, CMYK
 - **CIE XYZ and LMS** — Device-independent color spaces as conversion hubs
 - **Chromatic adaptation** — Bradford, CAT02, CAT16, Von Kries, and other transforms
 - **Spectral data** — SPD and color matching function support with wavelength-level access
@@ -24,7 +26,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-farg = "0.1"
+farg = "0.2"
 ```
 
 By default, farg includes the Bradford chromatic adaptation transform and the D65 illuminant with CIE 1931 2° observer.
@@ -32,14 +34,14 @@ Enable additional features as needed:
 
 ```toml
 [dependencies]
-farg = { version = "0.1", features = ["all-rgb-spaces", "all-illuminants"] }
+farg = { version = "0.2", features = ["all-rgb-spaces", "all-illuminants"] }
 ```
 
 Or enable everything:
 
 ```toml
 [dependencies]
-farg = { version = "0.1", features = ["full"] }
+farg = { version = "0.2", features = ["full"] }
 ```
 
 ## Quick Start
@@ -82,6 +84,23 @@ let xy: Xy = xyz.chromaticity();
 let reconstructed = xy.to_xyz(1.0);
 ```
 
+### Convert to cylindrical and subtractive spaces
+
+```rust
+use farg::space::{Hsl, Hsv, Hwb, Cmy, Cmyk, Rgb, Srgb};
+
+let color = Rgb::<Srgb>::new(255, 87, 51);
+
+// Convert to cylindrical spaces
+let hsl: Hsl<Srgb> = color.to_hsl();
+let hsv: Hsv<Srgb> = color.to_hsv();
+let hwb: Hwb<Srgb> = color.to_hwb();
+
+// Convert to subtractive spaces
+let cmy: Cmy<Srgb> = color.to_cmy();
+let cmyk: Cmyk<Srgb> = color.to_cmyk();
+```
+
 ### Chromatic adaptation
 
 ```rust
@@ -94,7 +113,7 @@ let d50_context = ColorimetricContext::new()
     .with_cat(Cat::BRADFORD);
 
 let color = Xyz::new(0.95047, 1.0, 1.08883);
-let adapted = color.adapt_to(&d50_context);
+let adapted = color.adapt_to(d50_context);
 ```
 
 ### Spectral data
@@ -109,7 +128,7 @@ let spd = d65.spd();
 let power_at_550nm = spd.at(550);
 
 // Use observer color matching functions
-let observer = Observer::default(); // CIE 1931 2°
+let observer = Observer::CIE_1931_2D;
 let cmf = observer.cmf();
 let xyz = cmf.spectral_power_distribution_to_xyz(spd);
 ```
@@ -120,14 +139,15 @@ Farg uses granular feature flags so you only compile what you need.
 
 ### Meta Features
 
-| Feature            | Contents                            |
-|--------------------|-------------------------------------|
-| `full`             | Everything below                    |
-| `all-cats`         | All chromatic adaptation transforms |
-| `all-chromaticity` | All chromaticity coordinate systems |
-| `all-illuminants`  | All standard illuminants            |
-| `all-observers`    | All standard observers              |
-| `all-rgb-spaces`   | All RGB color spaces                |
+| Feature            | Contents                                         |
+|--------------------|--------------------------------------------------|
+| `full`             | Everything below                                 |
+| `all-cats`         | All chromatic adaptation transforms              |
+| `all-chromaticity` | All chromaticity coordinate systems              |
+| `all-illuminants`  | All standard illuminants                         |
+| `all-observers`    | All standard observers                           |
+| `all-spaces`       | All color spaces (RGB, cylindrical, subtractive) |
+| `all-rgb-spaces`   | All RGB color spaces                             |
 
 ### Individual Features
 
@@ -138,6 +158,7 @@ Farg uses granular feature flags so you only compile what you need.
 | `illuminant-*`   | `illuminant-d50`, `illuminant-daylight`, `illuminant-led`           |
 | `observer-*`     | `observer-cie-1964-10d`, `observer-cie-2006-2d`                     |
 | `rgb-*`          | `rgb-display-p3`, `rgb-adobe-rgb`, `rgb-rec-2020`, `rgb-aces-cg`    |
+| `space-*`        | `space-hsl`, `space-hsv`, `space-hwb`, `space-cmy`, `space-cmyk`    |
 
 The D65 illuminant, CIE 1931 2° observer, sRGB, and XYZ/LMS spaces are always available.
 
