@@ -5,6 +5,8 @@ use std::{
 
 #[cfg(feature = "space-cmy")]
 use super::Cmy;
+#[cfg(feature = "space-cmyk")]
+use super::Cmyk;
 #[cfg(feature = "space-hsl")]
 use super::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -458,6 +460,16 @@ where
   }
 }
 
+#[cfg(feature = "space-cmyk")]
+impl<S> From<Cmyk<S>> for Lms
+where
+  S: RgbSpec,
+{
+  fn from(cmyk: Cmyk<S>) -> Self {
+    cmyk.to_lms()
+  }
+}
+
 #[cfg(feature = "space-hsl")]
 impl<S> From<Hsl<S>> for Lms
 where
@@ -702,6 +714,21 @@ mod test {
 
       assert_eq!(format!("{:.2}", lms), "LMS(0.12, 0.23, 0.35)");
       assert_eq!(format!("{:.6}", lms), "LMS(0.123457, 0.234568, 0.345679)");
+    }
+  }
+
+  #[cfg(feature = "space-cmyk")]
+  mod from_cmyk {
+    use super::*;
+
+    #[test]
+    fn it_converts_from_cmyk_via_rgb() {
+      let cmyk = Cmyk::<Srgb>::new(25.0, 50.0, 75.0, 10.0);
+      let lms: Lms = cmyk.into();
+
+      assert!(lms.l().is_finite());
+      assert!(lms.m().is_finite());
+      assert!(lms.s().is_finite());
     }
   }
 

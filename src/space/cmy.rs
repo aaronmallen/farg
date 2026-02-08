@@ -4,6 +4,8 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+#[cfg(feature = "space-cmyk")]
+use crate::space::Cmyk;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -218,6 +220,29 @@ where
   /// Sets the yellow from a percentage value (0-100%).
   pub fn set_yellow(&mut self, yellow: impl Into<Component>) {
     self.y = yellow.into() / 100.0;
+  }
+
+  #[cfg(feature = "space-cmyk")]
+  /// Converts this CMY color to a [`Cmyk`] color in the specified output space.
+  pub fn to_cmyk<OS>(&self) -> Cmyk<OS>
+  where
+    OS: RgbSpec,
+  {
+    let nc = self.c.0;
+    let nm = self.m.0;
+    let ny = self.y.0;
+    let k = nc.min(nm).min(ny);
+
+    if (k - 1.0).abs() < f64::EPSILON {
+      return Cmyk::<OS>::new(0.0, 0.0, 0.0, 100.0);
+    }
+
+    Cmyk::<OS>::new(
+      ((nc - k) / (1.0 - k)) * 100.0,
+      ((nm - k) / (1.0 - k)) * 100.0,
+      ((ny - k) / (1.0 - k)) * 100.0,
+      k * 100.0,
+    )
   }
 
   /// Converts this CMY color to an [`Rgb`] color in the specified output space.
@@ -482,6 +507,17 @@ where
   }
 }
 
+#[cfg(feature = "space-cmyk")]
+impl<OS, S> From<Cmyk<OS>> for Cmy<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(cmyk: Cmyk<OS>) -> Self {
+    cmyk.to_cmy()
+  }
+}
+
 #[cfg(feature = "space-hsl")]
 impl<OS, S> From<Hsl<OS>> for Cmy<S>
 where
@@ -701,6 +737,21 @@ mod test {
       assert!(result.c().is_finite());
       assert!(result.m().is_finite());
       assert!(result.y().is_finite());
+    }
+  }
+
+  #[cfg(feature = "space-cmyk")]
+  mod from_cmyk {
+    use super::*;
+
+    #[test]
+    fn it_converts_via_to_cmy() {
+      let cmyk = Cmyk::<Srgb>::new(100.0, 0.0, 100.0, 0.0);
+      let cmy: Cmy<Srgb> = cmyk.into();
+
+      assert!((cmy.cyan() - 100.0).abs() < 1.0);
+      assert!((cmy.magenta()).abs() < 1.0);
+      assert!((cmy.yellow() - 100.0).abs() < 1.0);
     }
   }
 
@@ -1037,6 +1088,46 @@ mod test {
       assert!(result.c().is_finite());
       assert!(result.m().is_finite());
       assert!(result.y().is_finite());
+    }
+  }
+
+  #[cfg(feature = "space-cmyk")]
+  mod to_cmyk {
+    use super::*;
+
+    #[test]
+    fn it_converts_pure_cyan() {
+      let cmy = Cmy::<Srgb>::new(100.0, 0.0, 0.0);
+      let cmyk: Cmyk<Srgb> = cmy.to_cmyk();
+
+      assert!((cmyk.cyan() - 100.0).abs() < 1e-10);
+      assert!((cmyk.magenta()).abs() < 1e-10);
+      assert!((cmyk.yellow()).abs() < 1e-10);
+      assert!((cmyk.key()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_full_black() {
+      let cmy = Cmy::<Srgb>::new(100.0, 100.0, 100.0);
+      let cmyk: Cmyk<Srgb> = cmy.to_cmyk();
+
+      assert!((cmyk.cyan()).abs() < 1e-10);
+      assert!((cmyk.magenta()).abs() < 1e-10);
+      assert!((cmyk.yellow()).abs() < 1e-10);
+      assert!((cmyk.key() - 100.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_roundtrips_preserving_color() {
+      let original = Cmy::<Srgb>::new(25.0, 50.0, 75.0);
+      let cmyk: Cmyk<Srgb> = original.to_cmyk();
+      let back: Cmy<Srgb> = cmyk.into();
+      let original_rgb: Rgb<Srgb> = original.to_rgb();
+      let back_rgb: Rgb<Srgb> = back.to_rgb();
+
+      assert_eq!(original_rgb.red(), back_rgb.red());
+      assert_eq!(original_rgb.green(), back_rgb.green());
+      assert_eq!(original_rgb.blue(), back_rgb.blue());
     }
   }
 

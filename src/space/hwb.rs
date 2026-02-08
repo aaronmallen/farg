@@ -6,6 +6,8 @@ use std::{
 
 #[cfg(feature = "space-cmy")]
 use crate::space::Cmy;
+#[cfg(feature = "space-cmyk")]
+use crate::space::Cmyk;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -558,6 +560,17 @@ where
   }
 }
 
+#[cfg(feature = "space-cmyk")]
+impl<OS, S> From<Cmyk<OS>> for Hwb<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(cmyk: Cmyk<OS>) -> Self {
+    cmyk.to_rgb::<S>().to_hwb()
+  }
+}
+
 #[cfg(feature = "space-hsl")]
 impl<OS, S> From<Hsl<OS>> for Hwb<S>
 where
@@ -814,6 +827,21 @@ mod test {
       assert!((hwb.hue() - 120.0).abs() < 1.0);
       assert!((hwb.whiteness() - 0.0).abs() < 1.0);
       assert!((hwb.blackness() - 0.0).abs() < 1.0);
+    }
+  }
+
+  #[cfg(feature = "space-cmyk")]
+  mod from_cmyk {
+    use super::*;
+
+    #[test]
+    fn it_converts_via_rgb() {
+      let cmyk = Cmyk::<Srgb>::new(100.0, 0.0, 0.0, 0.0);
+      let hwb: Hwb<Srgb> = cmyk.into();
+
+      assert!((hwb.hue() - 180.0).abs() < 1.0);
+      assert!((hwb.whiteness()).abs() < 1.0);
+      assert!((hwb.blackness()).abs() < 1.0);
     }
   }
 

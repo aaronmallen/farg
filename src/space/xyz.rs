@@ -5,6 +5,8 @@ use std::{
 
 #[cfg(feature = "space-cmy")]
 use super::Cmy;
+#[cfg(feature = "space-cmyk")]
+use super::Cmyk;
 #[cfg(feature = "space-hsl")]
 use super::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -450,6 +452,16 @@ where
 {
   fn from(cmy: Cmy<S>) -> Self {
     cmy.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-cmyk")]
+impl<S> From<Cmyk<S>> for Xyz
+where
+  S: RgbSpec,
+{
+  fn from(cmyk: Cmyk<S>) -> Self {
+    cmyk.to_xyz()
   }
 }
 
@@ -1227,6 +1239,21 @@ mod test {
       let result = xyz.with_z_scaled_by(2.0);
 
       assert_eq!(result.z(), 0.6);
+    }
+  }
+
+  #[cfg(feature = "space-cmyk")]
+  mod from_cmyk {
+    use super::*;
+
+    #[test]
+    fn it_converts_from_cmyk_via_rgb() {
+      let cmyk = Cmyk::<Srgb>::new(25.0, 50.0, 75.0, 10.0);
+      let xyz: Xyz = cmyk.into();
+
+      assert!(xyz.x().is_finite());
+      assert!(xyz.y().is_finite());
+      assert!(xyz.z().is_finite());
     }
   }
 

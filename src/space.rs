@@ -1,5 +1,7 @@
 #[cfg(feature = "space-cmy")]
 mod cmy;
+#[cfg(feature = "space-cmyk")]
+mod cmyk;
 #[cfg(feature = "space-hsl")]
 mod hsl;
 #[cfg(feature = "space-hsv")]
@@ -12,6 +14,8 @@ mod xyz;
 
 #[cfg(feature = "space-cmy")]
 pub use cmy::Cmy;
+#[cfg(feature = "space-cmyk")]
+pub use cmyk::Cmyk;
 #[cfg(feature = "space-hsl")]
 pub use hsl::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -62,6 +66,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns the color's components as an array.
   fn components(&self) -> [f64; N];
 
+  #[cfg(feature = "space-cmyk")]
+  /// Returns the sRGB cyan component as a percentage (0-100%).
+  fn cyan(&self) -> f64 {
+    self.to_cmyk().cyan()
+  }
+
   /// Decreases luminance in place by the given amount.
   fn decrement_luminance(&mut self, amount: impl Into<Component>) {
     self.set_components(self.with_luminance_decremented_by(amount).components())
@@ -80,6 +90,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns the relative luminance (CIE Y).
   fn luminance(&self) -> f64 {
     self.to_xyz().luminance()
+  }
+
+  #[cfg(feature = "space-cmyk")]
+  /// Returns the sRGB magenta component as a percentage (0-100%).
+  fn magenta(&self) -> f64 {
+    self.to_cmyk().magenta()
   }
 
   /// Returns the sRGB red channel as a u8 (0-255).
@@ -104,6 +120,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Converts to the CMY color space with sRGB encoding.
   fn to_cmy(&self) -> Cmy<Srgb> {
     self.to_rgb::<Srgb>().to_cmy()
+  }
+
+  #[cfg(feature = "space-cmyk")]
+  /// Converts to the CMYK color space with sRGB encoding.
+  fn to_cmyk(&self) -> Cmyk<Srgb> {
+    self.to_rgb::<Srgb>().to_cmyk()
   }
 
   #[cfg(feature = "space-hsv")]
@@ -164,5 +186,11 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns a new color with luminance scaled by the given factor.
   fn with_luminance_scaled_by(&self, factor: impl Into<Component>) -> Self {
     Self::from(self.to_xyz().with_luminance_scaled_by(factor))
+  }
+
+  #[cfg(feature = "space-cmyk")]
+  /// Returns the sRGB yellow component as a percentage (0-100%).
+  fn yellow(&self) -> f64 {
+    self.to_cmyk().yellow()
   }
 }
