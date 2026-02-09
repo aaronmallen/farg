@@ -7,6 +7,25 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+### Added
+
+- Add alpha/opacity support to all color spaces (`Xyz`, `Lms`, `Rgb`, `LinearRgb`, `Hsl`, `Hsv`, `Hwb`, `Cmy`, `Cmyk`)
+  with `alpha()`, `set_alpha()`, `with_alpha()`, `opacity()`, `set_opacity()`, `with_opacity()`, and
+  increment/decrement/scale variants on the `ColorSpace` trait
+- Add alpha compositing on `Rgb` via `flatten_alpha()`, `flatten_alpha_against()`, and their `with_*` builder variants
+- Add `Rgb::BLACK` and `Rgb::WHITE` associated constants
+- Preserve alpha through all color space conversions and chromatic adaptation transforms
+
+### Changed
+
+- **BREAKING:** `ColorSpace` trait now requires `alpha()`, `set_alpha()` implementations
+- **BREAKING:** `PartialEq` on all color spaces now includes the alpha channel in comparisons
+- `Display` formatting on all color spaces now includes opacity percentage when alpha is below 1.0
+
+### Fixed
+
+- Chromatic adaptation transforms now preserve the alpha channel of the input color
+
 ## [v0.2.0] - 2026-02-08
 
 ### Added

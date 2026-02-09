@@ -29,6 +29,7 @@ pub struct Hsl<S = Srgb>
 where
   S: RgbSpec,
 {
+  alpha: Component,
   context: ColorimetricContext,
   h: Component,
   l: Component,
@@ -43,6 +44,7 @@ where
   /// Creates a new HSL color from hue (0-360°), saturation (0-100%), and lightness (0-100%).
   pub fn new(h: impl Into<Component>, s: impl Into<Component>, l: impl Into<Component>) -> Self {
     Self {
+      alpha: Component::new(1.0),
       context: S::CONTEXT,
       h: Component::new((h.into().0 / 360.0).rem_euclid(1.0)),
       l: l.into() / 100.0,
@@ -56,6 +58,7 @@ where
     let r = (h / 360.0) % 1.0;
 
     Self {
+      alpha: Component::new_const(1.0),
       context: S::CONTEXT,
       h: Component::new_const(if r < 0.0 { r + 1.0 } else { r }),
       l: Component::new_const(l / 100.0),
@@ -245,7 +248,7 @@ where
     let v = l + (s * l.min(1.0 - l));
     let ns = if v == 0.0 { 0.0 } else { 2.0 * (1.0 - (l / v)) };
 
-    Hsv::<S>::new(h, ns, v)
+    Hsv::<S>::new(h, ns, v).with_alpha(self.alpha)
   }
 
   #[cfg(feature = "space-hwb")]
@@ -256,14 +259,14 @@ where
     let v = if l <= 0.5 { l * (1.0 + s) } else { (l + s) - (l * s) };
 
     if v == 0.0 {
-      return Hwb::<S>::new(h * 360.0, 0.0, 100.0);
+      return Hwb::<S>::new(h * 360.0, 0.0, 100.0).with_alpha(self.alpha);
     }
 
     let sv = 2.0 * (v - l) / v;
     let w = v * (1.0 - sv);
     let b = 1.0 - v;
 
-    Hwb::<S>::new(h * 360.0, w * 100.0, b * 100.0)
+    Hwb::<S>::new(h * 360.0, w * 100.0, b * 100.0).with_alpha(self.alpha)
   }
 
   /// Converts this HSL color to an [`Rgb`] color in the specified output space.
@@ -276,13 +279,17 @@ where
     let l = self.l.0;
 
     if s <= 0.0 {
-      return Rgb::<S>::from_normalized(l, l, l).to_rgb::<OS>();
+      return Rgb::<S>::from_normalized(l, l, l).to_rgb::<OS>().with_alpha(self.alpha);
     }
     if l <= 0.0 {
-      return Rgb::<S>::from_normalized(0.0, 0.0, 0.0).to_rgb::<OS>();
+      return Rgb::<S>::from_normalized(0.0, 0.0, 0.0)
+        .to_rgb::<OS>()
+        .with_alpha(self.alpha);
     }
     if l >= 1.0 {
-      return Rgb::<S>::from_normalized(1.0, 1.0, 1.0).to_rgb::<OS>();
+      return Rgb::<S>::from_normalized(1.0, 1.0, 1.0)
+        .to_rgb::<OS>()
+        .with_alpha(self.alpha);
     }
 
     let c = (1.0 - ((2.0 * l) - 1.0).abs()) * s;
@@ -300,7 +307,9 @@ where
       _ => unreachable!(),
     };
 
-    Rgb::<S>::from_normalized(r1 + m, g1 + m, b1 + m).to_rgb::<OS>()
+    Rgb::<S>::from_normalized(r1 + m, g1 + m, b1 + m)
+      .to_rgb::<OS>()
+      .with_alpha(self.alpha)
   }
 
   /// Returns this color with a different viewing context (without adaptation).
@@ -496,8 +505,16 @@ impl<S> ColorSpace<3> for Hsl<S>
 where
   S: RgbSpec,
 {
+  fn alpha(&self) -> f64 {
+    self.alpha.0
+  }
+
   fn components(&self) -> [f64; 3] {
     self.components()
+  }
+
+  fn set_alpha(&mut self, alpha: impl Into<Component>) {
+    self.alpha = alpha.into().clamp(0.0, 1.0)
   }
 
   fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
@@ -514,14 +531,25 @@ where
   S: RgbSpec,
 {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(
-      f,
-      "HSL({:.precision$}°, {:.precision$}%, {:.precision$}%)",
-      self.hue(),
-      self.saturation(),
-      self.lightness(),
-      precision = f.precision().unwrap_or(2)
-    )
+    let precision = f.precision().unwrap_or(2);
+    if self.alpha.0 < 1.0 {
+      write!(
+        f,
+        "HSL({:.precision$}°, {:.precision$}%, {:.precision$}%, {:.0}%)",
+        self.hue(),
+        self.saturation(),
+        self.lightness(),
+        self.opacity()
+      )
+    } else {
+      write!(
+        f,
+        "HSL({:.precision$}°, {:.precision$}%, {:.precision$}%)",
+        self.hue(),
+        self.saturation(),
+        self.lightness()
+      )
+    }
   }
 }
 
@@ -638,7 +666,7 @@ where
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
-    self.h == other.h && self.s == other.s && self.l == other.l
+    self.alpha == other.alpha && self.h == other.h && self.s == other.s && self.l == other.l
   }
 }
 
@@ -780,6 +808,20 @@ mod test {
       let hsl = Hsl::<Srgb>::new(120.12345, 50.6789, 75.4321);
 
       assert_eq!(format!("{:.4}", hsl), "HSL(120.1235°, 50.6789%, 75.4321%)");
+    }
+
+    #[test]
+    fn it_includes_opacity_when_alpha_below_one() {
+      let hsl = Hsl::<Srgb>::new(120.0, 50.0, 75.0).with_alpha(0.5);
+
+      assert_eq!(format!("{}", hsl), "HSL(120.00°, 50.00%, 75.00%, 50%)");
+    }
+
+    #[test]
+    fn it_omits_opacity_when_fully_opaque() {
+      let hsl = Hsl::<Srgb>::new(120.0, 50.0, 75.0);
+
+      assert_eq!(format!("{}", hsl), "HSL(120.00°, 50.00%, 75.00%)");
     }
   }
 
@@ -1065,6 +1107,14 @@ mod test {
 
       assert_ne!(a, b);
     }
+
+    #[test]
+    fn it_compares_unequal_when_alpha_differs() {
+      let a = Hsl::<Srgb>::new(180.0, 50.0, 50.0).with_alpha(0.5);
+      let b = Hsl::<Srgb>::new(180.0, 50.0, 50.0);
+
+      assert_ne!(a, b);
+    }
   }
 
   mod scale_h {
@@ -1203,6 +1253,14 @@ mod test {
       assert!((back.hue() - original.hue()).abs() < 1.0);
       assert!((back.saturation() - original.saturation()).abs() < 1.0);
       assert!((back.lightness() - original.lightness()).abs() < 1.0);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let hsl = Hsl::<Srgb>::new(120.0, 50.0, 50.0).with_alpha(0.3);
+      let rgb: Rgb<Srgb> = hsl.to_rgb();
+
+      assert!((rgb.alpha() - 0.3).abs() < 1e-10);
     }
   }
 

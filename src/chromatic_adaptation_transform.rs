@@ -22,7 +22,7 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use crate::{
   matrix::Matrix3,
-  space::{Lms, Xyz},
+  space::{ColorSpace, Lms, Xyz},
 };
 
 /// Shorthand alias for [`ChromaticAdaptationTransform`].
@@ -82,6 +82,7 @@ impl ChromaticAdaptationTransform {
     ])
     .to_xyz()
     .with_context(target_white.context().with_cat(*self))
+    .with_alpha(color.alpha())
   }
 
   /// Returns the inverse of the transformation matrix.
@@ -148,6 +149,17 @@ mod test {
       assert!((adapted.x() - color.x()).abs() < 1e-10);
       assert!((adapted.y() - color.y()).abs() < 1e-10);
       assert!((adapted.z() - color.z()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let cat = Cat::default();
+      let d65 = Xyz::new(0.95047, 1.0, 1.08883);
+      let d50 = Xyz::new(0.96422, 1.0, 0.82521);
+      let color = Xyz::new(0.4, 0.2, 0.1).with_alpha(0.7);
+      let adapted = cat.adapt(color, d65, d50);
+
+      assert!((adapted.alpha() - 0.7).abs() < 1e-10);
     }
   }
 

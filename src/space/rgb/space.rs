@@ -187,6 +187,7 @@ pub struct Rgb<S = Srgb>
 where
   S: RgbSpec,
 {
+  alpha: Component,
   b: Component,
   context: ColorimetricContext,
   g: Component,
@@ -198,6 +199,11 @@ impl<S> Rgb<S>
 where
   S: RgbSpec,
 {
+  /// Black (0, 0, 0).
+  pub const BLACK: Self = Self::new_const(0, 0, 0);
+  /// White (255, 255, 255).
+  pub const WHITE: Self = Self::new_const(255, 255, 255);
+
   /// Parses a hex color code (e.g., "#FF5733" or "F00") into an RGB color.
   pub fn from_hexcode(hexcode: impl Into<String>) -> Result<Self, Error> {
     let hexcode = hexcode.into();
@@ -242,6 +248,7 @@ where
   /// Creates an RGB color from normalized (0.0-1.0) component values.
   pub fn from_normalized(r: impl Into<Component>, g: impl Into<Component>, b: impl Into<Component>) -> Self {
     Self {
+      alpha: Component::new(1.0),
       b: b.into().clamp(0.0, 1.0),
       context: S::CONTEXT,
       g: g.into().clamp(0.0, 1.0),
@@ -253,6 +260,7 @@ where
   /// Creates an RGB color from 8-bit (0-255) component values.
   pub fn new(r: u8, g: u8, b: u8) -> Self {
     Self {
+      alpha: Component::new(1.0),
       b: Component::from(b) / 255.0,
       context: S::CONTEXT,
       g: Component::from(g) / 255.0,
@@ -268,6 +276,7 @@ where
     let b = Component::new_const(b as f64 / 255.0);
 
     Self {
+      alpha: Component::new_const(1.0),
       b,
       context: S::CONTEXT,
       g,
@@ -294,26 +303,6 @@ where
   /// Returns the viewing context for this color space.
   pub fn context(&self) -> &ColorimetricContext {
     &self.context
-  }
-
-  /// Returns the normalized green component (0.0-1.0).
-  pub fn g(&self) -> f64 {
-    self.g.0
-  }
-
-  /// Returns the green component as a u8 (0-255).
-  pub fn green(&self) -> u8 {
-    (self.g.0 * 255.0).round() as u8
-  }
-
-  /// Returns the normalized red component (0.0-1.0).
-  pub fn r(&self) -> f64 {
-    self.r.0
-  }
-
-  /// Returns the red component as a u8 (0-255).
-  pub fn red(&self) -> u8 {
-    (self.r.0 * 255.0).round() as u8
   }
 
   /// Decreases the blue channel by the given normalized amount (0.0-1.0).
@@ -346,6 +335,43 @@ where
     self.r = (self.r - amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Flattens the alpha channel against black, compositing the color.
+  pub fn flatten_alpha(&mut self) {
+    self.flatten_alpha_against(Self::BLACK)
+  }
+
+  /// Flattens the alpha channel against the given background color.
+  pub fn flatten_alpha_against(&mut self, background: impl Into<Self>) {
+    let alpha = self.alpha.0;
+    let [r, g, b] = self.components();
+    let [br, bg, bb] = background.into().components();
+
+    self.r = Component::new((r * alpha) + (br * (1.0 - alpha)));
+    self.g = Component::new((g * alpha) + (bg * (1.0 - alpha)));
+    self.b = Component::new((b * alpha) + (bb * (1.0 - alpha)));
+    self.alpha = Component::new(1.0);
+  }
+
+  /// Alias for [`Self::flatten_alpha`].
+  pub fn flatten_opacity(&mut self) {
+    self.flatten_alpha()
+  }
+
+  /// Alias for [`Self::flatten_alpha_against`].
+  pub fn flatten_opacity_against(&mut self, background: impl Into<Self>) {
+    self.flatten_alpha_against(background)
+  }
+
+  /// Returns the normalized green component (0.0-1.0).
+  pub fn g(&self) -> f64 {
+    self.g.0
+  }
+
+  /// Returns the green component as a u8 (0-255).
+  pub fn green(&self) -> u8 {
+    (self.g.0 * 255.0).round() as u8
+  }
+
   /// Increases the blue channel by the given normalized amount (0.0-1.0).
   pub fn increment_b(&mut self, amount: impl Into<Component>) {
     self.b = (self.b + amount.into()).clamp(0.0, 1.0);
@@ -374,6 +400,16 @@ where
   /// Increases the red channel by the given amount (0-255 scale).
   pub fn increment_red(&mut self, amount: impl Into<Component>) {
     self.r = (self.r + amount.into() / 255.0).clamp(0.0, 1.0);
+  }
+
+  /// Returns the normalized red component (0.0-1.0).
+  pub fn r(&self) -> f64 {
+    self.r.0
+  }
+
+  /// Returns the red component as a u8 (0-255).
+  pub fn red(&self) -> u8 {
+    (self.r.0 * 255.0).round() as u8
   }
 
   /// Scales the blue channel by the given factor, clamping to 0.0-1.0.
@@ -451,6 +487,7 @@ where
       (1.0 - self.g.0) * 100.0,
       (1.0 - self.b.0) * 100.0,
     )
+    .with_alpha(self.alpha)
   }
 
   #[cfg(feature = "space-cmyk")]
@@ -462,7 +499,7 @@ where
     let k = 1.0 - r.max(g).max(b);
 
     if (k - 1.0).abs() < f64::EPSILON {
-      return Cmyk::new(0.0, 0.0, 0.0, 100.0);
+      return Cmyk::new(0.0, 0.0, 0.0, 100.0).with_alpha(self.alpha);
     }
 
     Cmyk::new(
@@ -471,6 +508,7 @@ where
       ((1.0 - b - k) / (1.0 - k)) * 100.0,
       k * 100.0,
     )
+    .with_alpha(self.alpha)
   }
 
   #[cfg(feature = "space-hsv")]
@@ -492,7 +530,7 @@ where
     let l = (max + min) / 2.0;
 
     if delta <= 0.0 {
-      return Hsl::new(0.0, 0.0, l * 100.0);
+      return Hsl::new(0.0, 0.0, l * 100.0).with_alpha(self.alpha);
     }
 
     let s = if l <= 0.5 {
@@ -509,7 +547,7 @@ where
       (4.0 + (r - g) / delta) / 6.0
     };
 
-    Hsl::new(h * 360.0, s * 100.0, l * 100.0)
+    Hsl::new(h * 360.0, s * 100.0, l * 100.0).with_alpha(self.alpha)
   }
 
   #[cfg(feature = "space-hsv")]
@@ -524,7 +562,7 @@ where
     let delta = max - min;
 
     if delta <= 0.0 {
-      return Hsv::new(0.0, 0.0, max * 100.0);
+      return Hsv::new(0.0, 0.0, max * 100.0).with_alpha(self.alpha);
     }
 
     let s = delta / max;
@@ -537,7 +575,7 @@ where
       (4.0 + (r - g) / delta) / 6.0
     };
 
-    Hsv::new(h * 360.0, s * 100.0, max * 100.0)
+    Hsv::new(h * 360.0, s * 100.0, max * 100.0).with_alpha(self.alpha)
   }
 
   #[cfg(feature = "space-hwb")]
@@ -552,7 +590,7 @@ where
     let delta = max - min;
 
     if delta <= 0.0 {
-      return Hwb::new(0.0, min * 100.0, (1.0 - max) * 100.0);
+      return Hwb::new(0.0, min * 100.0, (1.0 - max) * 100.0).with_alpha(self.alpha);
     }
 
     let h = if (max - r).abs() < f64::EPSILON {
@@ -563,7 +601,7 @@ where
       (4.0 + (r - g) / delta) / 6.0
     };
 
-    Hwb::new(h * 360.0, min * 100.0, (1.0 - max) * 100.0)
+    Hwb::new(h * 360.0, min * 100.0, (1.0 - max) * 100.0).with_alpha(self.alpha)
   }
 
   /// Decodes to linear RGB by applying the inverse transfer function.
@@ -571,7 +609,7 @@ where
     let r = S::TRANSFER_FUNCTION.decode(self.r);
     let g = S::TRANSFER_FUNCTION.decode(self.g);
     let b = S::TRANSFER_FUNCTION.decode(self.b);
-    LinearRgb::from_normalized(r, g, b)
+    LinearRgb::from_normalized(r, g, b).with_alpha(self.alpha)
   }
 
   /// Converts to a different RGB color space via XYZ.
@@ -580,22 +618,39 @@ where
     OS: RgbSpec,
   {
     if S::NAME == OS::NAME {
-      Rgb::<OS>::from_normalized(self.r(), self.g(), self.b())
+      Rgb::<OS>::from_normalized(self.r(), self.g(), self.b()).with_alpha(self.alpha())
     } else {
-      self.to_xyz().to_rgb::<OS>()
+      self.to_xyz().to_rgb::<OS>().with_alpha(self.alpha())
     }
-  }
-
-  /// Converts to LMS via XYZ.
-  pub fn to_lms(&self) -> Lms {
-    self.to_xyz().to_lms()
   }
 
   /// Converts to CIE XYZ via linear RGB and the space's RGB-to-XYZ matrix.
   pub fn to_xyz(&self) -> Xyz {
     let linear = self.to_linear();
     let [x, y, z] = *S::xyz_matrix() * linear.components();
-    Xyz::new(x, y, z).with_context(self.context)
+    Xyz::new(x, y, z).with_context(self.context).with_alpha(self.alpha)
+  }
+
+  /// Returns a new color with the given alpha value on a 0.0 to 1.0 scale.
+  pub fn with_alpha(&self, alpha: impl Into<Component>) -> Self {
+    Self {
+      alpha: alpha.into().clamp(0.0, 1.0),
+      ..*self
+    }
+  }
+
+  /// Returns a new color with the alpha channel flattened against black.
+  pub fn with_alpha_flattened(&self) -> Self {
+    let mut rgb = *self;
+    rgb.flatten_alpha();
+    rgb
+  }
+
+  /// Returns a new color with the alpha channel flattened against the given background.
+  pub fn with_alpha_flattened_against(&self, background: impl Into<Self>) -> Self {
+    let mut rgb = *self;
+    rgb.flatten_alpha_against(background);
+    rgb
   }
 
   /// Returns a new color with the given normalized blue channel value (0.0-1.0).
@@ -710,6 +765,16 @@ where
     self.with_g_scaled_by(factor)
   }
 
+  /// Alias for [`Self::with_alpha_flattened`].
+  pub fn with_opacity_flattened(&self) -> Self {
+    self.with_alpha_flattened()
+  }
+
+  /// Alias for [`Self::with_alpha_flattened_against`].
+  pub fn with_opacity_flattened_against(&self, background: impl Into<Self>) -> Self {
+    self.with_alpha_flattened_against(background)
+  }
+
   /// Returns a new color with the given normalized red channel value (0.0-1.0).
   pub fn with_r(&self, r: impl Into<Component>) -> Self {
     Self {
@@ -779,7 +844,7 @@ where
     let r = (self.r + rhs.r).clamp(0.0, 1.0);
     let g = (self.g + rhs.g).clamp(0.0, 1.0);
     let b = (self.b + rhs.b).clamp(0.0, 1.0);
-    Self::from_normalized(r, g, b)
+    Self::from_normalized(r, g, b).with_alpha(self.alpha)
   }
 }
 
@@ -787,8 +852,16 @@ impl<S> ColorSpace<3> for Rgb<S>
 where
   S: RgbSpec,
 {
+  fn alpha(&self) -> f64 {
+    self.alpha.0
+  }
+
   fn components(&self) -> [f64; 3] {
     self.components()
+  }
+
+  fn set_alpha(&mut self, alpha: impl Into<Component>) {
+    self.alpha = alpha.into().clamp(0.0, 1.0);
   }
 
   fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
@@ -812,7 +885,19 @@ where
   S: RgbSpec,
 {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(f, "{}({}, {}, {})", S::NAME, self.red(), self.green(), self.blue())
+    if self.alpha.0 < 1.0 {
+      write!(
+        f,
+        "{}({}, {}, {}, {:.0}%)",
+        S::NAME,
+        self.red(),
+        self.green(),
+        self.blue(),
+        self.opacity()
+      )
+    } else {
+      write!(f, "{}({}, {}, {})", S::NAME, self.red(), self.green(), self.blue())
+    }
   }
 }
 
@@ -828,7 +913,7 @@ where
     let r = (self.r / rhs.r).clamp(0.0, 1.0);
     let g = (self.g / rhs.g).clamp(0.0, 1.0);
     let b = (self.b / rhs.b).clamp(0.0, 1.0);
-    Self::from_normalized(r, g, b)
+    Self::from_normalized(r, g, b).with_alpha(self.alpha)
   }
 }
 
@@ -927,7 +1012,7 @@ where
     let r = (self.r * rhs.r).clamp(0.0, 1.0);
     let g = (self.g * rhs.g).clamp(0.0, 1.0);
     let b = (self.b * rhs.b).clamp(0.0, 1.0);
-    Self::from_normalized(r, g, b)
+    Self::from_normalized(r, g, b).with_alpha(self.alpha)
   }
 }
 
@@ -938,7 +1023,10 @@ where
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
-    self.red() == other.red() && self.green() == other.green() && self.blue() == other.blue()
+    self.alpha == other.alpha
+      && self.red() == other.red()
+      && self.green() == other.green()
+      && self.blue() == other.blue()
   }
 }
 
@@ -954,7 +1042,7 @@ where
     let r = (self.r - rhs.r).clamp(0.0, 1.0);
     let g = (self.g - rhs.g).clamp(0.0, 1.0);
     let b = (self.b - rhs.b).clamp(0.0, 1.0);
-    Self::from_normalized(r, g, b)
+    Self::from_normalized(r, g, b).with_alpha(self.alpha)
   }
 }
 
@@ -1040,6 +1128,15 @@ mod test {
       assert_eq!(result.r(), 1.0);
       assert_eq!(result.g(), 1.0);
       assert_eq!(result.b(), 1.0);
+    }
+
+    #[test]
+    fn it_preserves_alpha_from_lhs() {
+      let a = Rgb::<Srgb>::from_normalized(0.2, 0.3, 0.4).with_alpha(0.5);
+      let b = Rgb::<Srgb>::from_normalized(0.1, 0.2, 0.3);
+      let result = a + b;
+
+      assert!((result.alpha() - 0.5).abs() < 1e-10);
     }
   }
 
@@ -1176,6 +1273,20 @@ mod test {
 
     #[test]
     fn it_formats_with_space_name_and_8bit_values() {
+      let rgb = Rgb::<Srgb>::new(255, 128, 64);
+
+      assert_eq!(format!("{}", rgb), "sRGB(255, 128, 64)");
+    }
+
+    #[test]
+    fn it_includes_opacity_when_alpha_below_one() {
+      let rgb = Rgb::<Srgb>::new(255, 128, 64).with_alpha(0.5);
+
+      assert_eq!(format!("{}", rgb), "sRGB(255, 128, 64, 50%)");
+    }
+
+    #[test]
+    fn it_omits_opacity_when_fully_opaque() {
       let rgb = Rgb::<Srgb>::new(255, 128, 64);
 
       assert_eq!(format!("{}", rgb), "sRGB(255, 128, 64)");
@@ -1341,6 +1452,76 @@ mod test {
     }
   }
 
+  mod flatten_alpha {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_composites_against_black() {
+      let mut rgb = Rgb::<Srgb>::new(255, 0, 0);
+      rgb.set_alpha(0.5);
+      rgb.flatten_alpha();
+
+      assert_eq!(rgb.red(), 128);
+      assert_eq!(rgb.green(), 0);
+      assert_eq!(rgb.blue(), 0);
+      assert!((rgb.alpha() - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_is_noop_for_fully_opaque() {
+      let mut rgb = Rgb::<Srgb>::new(200, 100, 50);
+      rgb.flatten_alpha();
+
+      assert_eq!(rgb.red(), 200);
+      assert_eq!(rgb.green(), 100);
+      assert_eq!(rgb.blue(), 50);
+    }
+
+    #[test]
+    fn it_produces_black_for_fully_transparent() {
+      let mut rgb = Rgb::<Srgb>::new(255, 128, 64);
+      rgb.set_alpha(0.0);
+      rgb.flatten_alpha();
+
+      assert_eq!(rgb.red(), 0);
+      assert_eq!(rgb.green(), 0);
+      assert_eq!(rgb.blue(), 0);
+    }
+  }
+
+  mod flatten_alpha_against {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_composites_against_background() {
+      let mut rgb = Rgb::<Srgb>::new(255, 0, 0);
+      rgb.set_alpha(0.5);
+      let bg = Rgb::<Srgb>::new(0, 0, 255);
+      rgb.flatten_alpha_against(bg);
+
+      assert_eq!(rgb.red(), 128);
+      assert_eq!(rgb.green(), 0);
+      assert_eq!(rgb.blue(), 128);
+      assert!((rgb.alpha() - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_returns_background_for_fully_transparent() {
+      let mut rgb = Rgb::<Srgb>::new(255, 0, 0);
+      rgb.set_alpha(0.0);
+      let bg = Rgb::<Srgb>::new(0, 255, 0);
+      rgb.flatten_alpha_against(bg);
+
+      assert_eq!(rgb.red(), 0);
+      assert_eq!(rgb.green(), 255);
+      assert_eq!(rgb.blue(), 0);
+    }
+  }
+
   mod increment_b {
     use super::*;
 
@@ -1502,6 +1683,14 @@ mod test {
 
       assert_ne!(a, b);
     }
+
+    #[test]
+    fn it_compares_unequal_when_alpha_differs() {
+      let a = Rgb::<Srgb>::new(128, 64, 32).with_alpha(0.5);
+      let b = Rgb::<Srgb>::new(128, 64, 32);
+
+      assert_ne!(a, b);
+    }
   }
 
   mod scale_b {
@@ -1655,6 +1844,14 @@ mod test {
       assert_eq!(back.red(), original.red());
       assert_eq!(back.green(), original.green());
       assert_eq!(back.blue(), original.blue());
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let rgb = Rgb::<Srgb>::new(128, 64, 200).with_alpha(0.3);
+      let linear = rgb.to_linear();
+
+      assert!((linear.alpha() - 0.3).abs() < 1e-10);
     }
   }
 
@@ -1831,6 +2028,14 @@ mod test {
       assert_eq!(back.green(), original.green());
       assert_eq!(back.blue(), original.blue());
     }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let rgb = Rgb::<Srgb>::new(200, 100, 50).with_alpha(0.4);
+      let hsl = rgb.to_hsl();
+
+      assert!((hsl.alpha() - 0.4).abs() < 1e-10);
+    }
   }
 
   mod to_rgb {
@@ -1882,6 +2087,14 @@ mod test {
       assert_eq!(back.green(), original.green());
       assert_eq!(back.blue(), original.blue());
     }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let rgb = Rgb::<Srgb>::new(200, 100, 50).with_alpha(0.7);
+      let xyz = rgb.to_xyz();
+
+      assert!((xyz.alpha() - 0.7).abs() < 1e-10);
+    }
   }
 
   mod try_from_str {
@@ -1918,6 +2131,61 @@ mod test {
       assert_eq!(rgb.red(), 255);
       assert_eq!(rgb.green(), 128);
       assert_eq!(rgb.blue(), 64);
+    }
+  }
+
+  mod with_alpha_flattened {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_alpha_flattened() {
+      let mut rgb = Rgb::<Srgb>::new(255, 0, 0);
+      rgb.set_alpha(0.5);
+      let result = rgb.with_alpha_flattened();
+
+      assert_eq!(result.red(), 128);
+      assert_eq!(result.green(), 0);
+      assert_eq!(result.blue(), 0);
+      assert!((result.alpha() - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let mut rgb = Rgb::<Srgb>::new(255, 0, 0);
+      rgb.set_alpha(0.5);
+      let _ = rgb.with_alpha_flattened();
+
+      assert!((rgb.alpha() - 0.5).abs() < 1e-10);
+    }
+  }
+
+  mod with_alpha_flattened_against {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_rgb_with_alpha_flattened_against_background() {
+      let mut rgb = Rgb::<Srgb>::new(255, 0, 0);
+      rgb.set_alpha(0.5);
+      let bg = Rgb::<Srgb>::new(0, 0, 255);
+      let result = rgb.with_alpha_flattened_against(bg);
+
+      assert_eq!(result.red(), 128);
+      assert_eq!(result.green(), 0);
+      assert_eq!(result.blue(), 128);
+    }
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let mut rgb = Rgb::<Srgb>::new(255, 0, 0);
+      rgb.set_alpha(0.5);
+      let bg = Rgb::<Srgb>::new(0, 0, 255);
+      let _ = rgb.with_alpha_flattened_against(bg);
+
+      assert!((rgb.alpha() - 0.5).abs() < 1e-10);
     }
   }
 

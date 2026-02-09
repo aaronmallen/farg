@@ -14,6 +14,7 @@ pub struct LinearRgb<S>
 where
   S: RgbSpec,
 {
+  alpha: Component,
   b: Component,
   g: Component,
   r: Component,
@@ -27,6 +28,7 @@ where
   /// Creates linear RGB from normalized (0.0-1.0) component values.
   pub fn from_normalized(r: impl Into<Component>, g: impl Into<Component>, b: impl Into<Component>) -> Self {
     Self {
+      alpha: Component::new(1.0),
       b: b.into().clamp(0.0, 1.0),
       g: g.into().clamp(0.0, 1.0),
       r: r.into().clamp(0.0, 1.0),
@@ -37,6 +39,7 @@ where
   /// Creates linear RGB from 8-bit (0-255) component values.
   pub fn from_u8(r: impl Into<Component>, g: impl Into<Component>, b: impl Into<Component>) -> Self {
     Self {
+      alpha: Component::new(1.0),
       b: b.into() / 255.0,
       g: g.into() / 255.0,
       r: r.into() / 255.0,
@@ -52,11 +55,17 @@ where
   /// Creates linear RGB from 8-bit values in a const context.
   pub const fn new_const(r: u8, g: u8, b: u8) -> Self {
     Self {
+      alpha: Component::new_const(1.0),
       b: Component::new_const(b as f64 / 255.0),
       g: Component::new_const(g as f64 / 255.0),
       r: Component::new_const(r as f64 / 255.0),
       _spec: PhantomData,
     }
+  }
+
+  /// Returns the alpha (transparency) value on a 0.0 to 1.0 scale.
+  pub fn alpha(&self) -> f64 {
+    self.alpha.0
   }
 
   /// Returns the normalized blue component (0.0-1.0).
@@ -69,6 +78,7 @@ where
     (self.b.0 * 255.0).round() as u8
   }
 
+  /// Returns the [R, G, B] components as normalized values.
   pub fn components(&self) -> [f64; 3] {
     [self.r.0, self.g.0, self.b.0]
   }
@@ -98,7 +108,15 @@ where
     let r = S::TRANSFER_FUNCTION.encode(self.r);
     let g = S::TRANSFER_FUNCTION.encode(self.g);
     let b = S::TRANSFER_FUNCTION.encode(self.b);
-    Rgb::from_normalized(r, g, b)
+    Rgb::from_normalized(r, g, b).with_alpha(self.alpha)
+  }
+
+  /// Returns a new color with the given alpha value on a 0.0 to 1.0 scale.
+  pub fn with_alpha(&self, alpha: impl Into<Component>) -> Self {
+    Self {
+      alpha: alpha.into().clamp(0.0, 1.0),
+      ..*self
+    }
   }
 }
 
@@ -107,21 +125,33 @@ where
   S: RgbSpec,
 {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(
-      f,
-      "Linear {}({}, {}, {})",
-      S::NAME,
-      self.red(),
-      self.green(),
-      self.blue()
-    )
+    if self.alpha.0 < 1.0 {
+      write!(
+        f,
+        "Linear {}({}, {}, {}, {:.0}%)",
+        S::NAME,
+        self.red(),
+        self.green(),
+        self.blue(),
+        self.alpha.0 * 100.0
+      )
+    } else {
+      write!(
+        f,
+        "Linear {}({}, {}, {})",
+        S::NAME,
+        self.red(),
+        self.green(),
+        self.blue()
+      )
+    }
   }
 }
 
 #[cfg(test)]
 mod test {
   use super::*;
-  use crate::space::Srgb;
+  use crate::space::{ColorSpace, Srgb};
 
   mod display {
     use pretty_assertions::assert_eq;
@@ -130,6 +160,20 @@ mod test {
 
     #[test]
     fn it_formats_with_space_name_and_8bit_values() {
+      let linear = LinearRgb::<Srgb>::new(128, 64, 32);
+
+      assert_eq!(format!("{}", linear), "Linear sRGB(128, 64, 32)");
+    }
+
+    #[test]
+    fn it_includes_opacity_when_alpha_below_one() {
+      let linear = LinearRgb::<Srgb>::new(128, 64, 32).with_alpha(0.5);
+
+      assert_eq!(format!("{}", linear), "Linear sRGB(128, 64, 32, 50%)");
+    }
+
+    #[test]
+    fn it_omits_opacity_when_fully_opaque() {
       let linear = LinearRgb::<Srgb>::new(128, 64, 32);
 
       assert_eq!(format!("{}", linear), "Linear sRGB(128, 64, 32)");
@@ -158,6 +202,14 @@ mod test {
       assert!((back.r() - original.r()).abs() < 1e-10);
       assert!((back.g() - original.g()).abs() < 1e-10);
       assert!((back.b() - original.b()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let linear = LinearRgb::<Srgb>::from_normalized(0.5, 0.5, 0.5).with_alpha(0.3);
+      let encoded = linear.to_encoded();
+
+      assert!((encoded.alpha() - 0.3).abs() < 1e-10);
     }
   }
 }

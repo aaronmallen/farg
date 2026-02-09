@@ -32,6 +32,7 @@ pub struct Cmy<S = Srgb>
 where
   S: RgbSpec,
 {
+  alpha: Component,
   context: ColorimetricContext,
   c: Component,
   m: Component,
@@ -46,6 +47,7 @@ where
   /// Creates a new CMY color from cyan (0-100%), magenta (0-100%), and yellow (0-100%).
   pub fn new(c: impl Into<Component>, m: impl Into<Component>, y: impl Into<Component>) -> Self {
     Self {
+      alpha: Component::new(1.0),
       context: S::CONTEXT,
       c: c.into() / 100.0,
       m: m.into() / 100.0,
@@ -57,6 +59,7 @@ where
   /// Creates a new CMY color in a const context from cyan (0-100%), magenta (0-100%), and yellow (0-100%).
   pub const fn new_const(c: f64, m: f64, y: f64) -> Self {
     Self {
+      alpha: Component::new_const(1.0),
       context: S::CONTEXT,
       c: Component::new_const(c / 100.0),
       m: Component::new_const(m / 100.0),
@@ -234,7 +237,7 @@ where
     let k = nc.min(nm).min(ny);
 
     if (k - 1.0).abs() < f64::EPSILON {
-      return Cmyk::<OS>::new(0.0, 0.0, 0.0, 100.0);
+      return Cmyk::<OS>::new(0.0, 0.0, 0.0, 100.0).with_alpha(self.alpha);
     }
 
     Cmyk::<OS>::new(
@@ -243,6 +246,7 @@ where
       ((ny - k) / (1.0 - k)) * 100.0,
       k * 100.0,
     )
+    .with_alpha(self.alpha)
   }
 
   /// Converts this CMY color to an [`Rgb`] color in the specified output space.
@@ -250,7 +254,9 @@ where
   where
     OS: RgbSpec,
   {
-    Rgb::<S>::from_normalized(1.0 - self.c.0, 1.0 - self.m.0, 1.0 - self.y.0).to_rgb::<OS>()
+    Rgb::<S>::from_normalized(1.0 - self.c.0, 1.0 - self.m.0, 1.0 - self.y.0)
+      .to_rgb::<OS>()
+      .with_alpha(self.alpha)
   }
 
   /// Returns this color with a different viewing context (without adaptation).
@@ -456,8 +462,16 @@ impl<S> ColorSpace<3> for Cmy<S>
 where
   S: RgbSpec,
 {
+  fn alpha(&self) -> f64 {
+    self.alpha.0
+  }
+
   fn components(&self) -> [f64; 3] {
     self.components()
+  }
+
+  fn set_alpha(&mut self, alpha: impl Into<Component>) {
+    self.alpha = alpha.into().clamp(0.0, 1.0);
   }
 
   fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
@@ -474,14 +488,25 @@ where
   S: RgbSpec,
 {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(
-      f,
-      "CMY({:.precision$}%, {:.precision$}%, {:.precision$}%)",
-      self.cyan(),
-      self.magenta(),
-      self.yellow(),
-      precision = f.precision().unwrap_or(2)
-    )
+    let precision = f.precision().unwrap_or(2);
+    if self.alpha.0 < 1.0 {
+      write!(
+        f,
+        "CMY({:.precision$}%, {:.precision$}%, {:.precision$}%, {:.0}%)",
+        self.cyan(),
+        self.magenta(),
+        self.yellow(),
+        self.opacity()
+      )
+    } else {
+      write!(
+        f,
+        "CMY({:.precision$}%, {:.precision$}%, {:.precision$}%)",
+        self.cyan(),
+        self.magenta(),
+        self.yellow()
+      )
+    }
   }
 }
 
@@ -598,7 +623,7 @@ where
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
-    self.c == other.c && self.m == other.m && self.y == other.y
+    self.alpha == other.alpha && self.c == other.c && self.m == other.m && self.y == other.y
   }
 }
 
@@ -722,6 +747,20 @@ mod test {
       let cmy = Cmy::<Srgb>::new(25.6789, 50.1234, 75.4321);
 
       assert_eq!(format!("{:.4}", cmy), "CMY(25.6789%, 50.1234%, 75.4321%)");
+    }
+
+    #[test]
+    fn it_includes_opacity_when_alpha_below_one() {
+      let cmy = Cmy::<Srgb>::new(25.0, 50.0, 75.0).with_alpha(0.5);
+
+      assert_eq!(format!("{}", cmy), "CMY(25.00%, 50.00%, 75.00%, 50%)");
+    }
+
+    #[test]
+    fn it_omits_opacity_when_fully_opaque() {
+      let cmy = Cmy::<Srgb>::new(25.0, 50.0, 75.0);
+
+      assert_eq!(format!("{}", cmy), "CMY(25.00%, 50.00%, 75.00%)");
     }
   }
 
@@ -1032,6 +1071,14 @@ mod test {
 
       assert_ne!(a, b);
     }
+
+    #[test]
+    fn it_compares_unequal_when_alpha_differs() {
+      let a = Cmy::<Srgb>::new(25.0, 50.0, 75.0).with_alpha(0.5);
+      let b = Cmy::<Srgb>::new(25.0, 50.0, 75.0);
+
+      assert_ne!(a, b);
+    }
   }
 
   mod scale_c {
@@ -1204,6 +1251,14 @@ mod test {
       assert!((back.cyan() - original.cyan()).abs() < 1.0);
       assert!((back.magenta() - original.magenta()).abs() < 1.0);
       assert!((back.yellow() - original.yellow()).abs() < 1.0);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let cmy = Cmy::<Srgb>::new(25.0, 50.0, 75.0).with_alpha(0.3);
+      let rgb: Rgb<Srgb> = cmy.to_rgb();
+
+      assert!((rgb.alpha() - 0.3).abs() < 1e-10);
     }
   }
 

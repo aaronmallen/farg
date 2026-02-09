@@ -21,6 +21,9 @@ use crate::{chromaticity::Xy, component::Component};
 /// Provides conversions between spaces, luminance operations, and component access.
 /// All color spaces can convert to [`Xyz`], which serves as the universal hub.
 pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
+  /// Returns the alpha (transparency) of the color on a 0.0 to 1.0 scale.
+  fn alpha(&self) -> f64;
+
   /// Returns a new color with all components scaled by the given factor.
   fn amplified_by(&self, factor: impl Into<Component>) -> Self {
     Self::from(self.to_xyz().amplified_by(factor))
@@ -60,9 +63,46 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_cmyk().cyan()
   }
 
+  /// Decreases alpha in place by the given amount on a 0.0 to 1.0 scale.
+  fn decrement_alpha(&mut self, amount: impl Into<Component>) {
+    self.set_alpha(self.with_alpha_decremented_by(amount).alpha())
+  }
+
   /// Decreases luminance in place by the given amount.
   fn decrement_luminance(&mut self, amount: impl Into<Component>) {
     self.set_components(self.with_luminance_decremented_by(amount).components())
+  }
+
+  /// Decreases opacity in place by the given percentage amount (0-100%).
+  fn decrement_opacity(&mut self, amount: impl Into<Component>) {
+    self.set_alpha(self.with_opacity_decremented_by(amount).alpha())
+  }
+
+  /// Flattens the alpha channel against black, compositing the color.
+  fn flatten_alpha(&mut self) {
+    let rgb = self.to_rgb::<Srgb>().with_alpha(self.alpha()).with_alpha_flattened();
+    self.set_components(Self::from(rgb.to_xyz()).components());
+    self.set_alpha(1.0);
+  }
+
+  /// Flattens the alpha channel against the given background color.
+  fn flatten_alpha_against(&mut self, background: impl Into<Rgb<Srgb>>) {
+    let rgb = self
+      .to_rgb::<Srgb>()
+      .with_alpha(self.alpha())
+      .with_alpha_flattened_against(background);
+    self.set_components(Self::from(rgb.to_xyz()).components());
+    self.set_alpha(1.0);
+  }
+
+  /// Alias for [`Self::flatten_alpha`].
+  fn flatten_opacity(&mut self) {
+    self.flatten_alpha()
+  }
+
+  /// Alias for [`Self::flatten_alpha_against`].
+  fn flatten_opacity_against(&mut self, background: impl Into<Rgb<Srgb>>) {
+    self.flatten_alpha_against(background)
   }
 
   /// Returns the sRGB green channel as a u8 (0-255).
@@ -70,9 +110,19 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_rgb::<Srgb>().green()
   }
 
+  /// Increases alpha in place by the given amount on a 0.0 to 1.0 scale.
+  fn increment_alpha(&mut self, amount: impl Into<Component>) {
+    self.set_alpha(self.with_alpha_incremented_by(amount).alpha())
+  }
+
   /// Increases luminance in place by the given amount.
   fn increment_luminance(&mut self, amount: impl Into<Component>) {
     self.set_components(self.with_luminance_incremented_by(amount).components())
+  }
+
+  /// Increases opacity in place by the given percentage amount (0-100%).
+  fn increment_opacity(&mut self, amount: impl Into<Component>) {
+    self.set_alpha(self.with_opacity_incremented_by(amount).alpha())
   }
 
   /// Returns the relative luminance (CIE Y).
@@ -86,15 +136,33 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_cmyk().magenta()
   }
 
+  /// Returns the opacity as a percentage (0-100%).
+  fn opacity(&self) -> f64 {
+    self.alpha() * 100.0
+  }
+
   /// Returns the sRGB red channel as a u8 (0-255).
   fn red(&self) -> u8 {
     self.to_rgb::<Srgb>().red()
+  }
+
+  /// Scales alpha in place by the given factor.
+  fn scale_alpha(&mut self, factor: impl Into<Component>) {
+    self.set_alpha(self.with_alpha_scaled_by(factor).alpha())
   }
 
   /// Scales luminance in place by the given factor.
   fn scale_luminance(&mut self, factor: impl Into<Component>) {
     self.set_components(self.with_luminance_scaled_by(factor).components())
   }
+
+  /// Scales opacity in place by the given percentage factor (0-100%).
+  fn scale_opacity(&mut self, factor: impl Into<Component>) {
+    self.set_alpha(self.with_opacity_scaled_by(factor).alpha())
+  }
+
+  /// Sets the alpha value in place on a 0.0 to 1.0 scale.
+  fn set_alpha(&mut self, alpha: impl Into<Component>);
 
   /// Sets the color's components from an array.
   fn set_components(&mut self, components: [impl Into<Component> + Clone; N]);
@@ -104,45 +172,50 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.set_components(self.with_luminance(luminance).components())
   }
 
+  /// Sets the opacity to the given percentage value (0-100%) in place.
+  fn set_opacity(&mut self, opacity: impl Into<Component>) {
+    self.set_alpha(opacity.into() / 100.0)
+  }
+
   #[cfg(feature = "space-cmy")]
   /// Converts to the CMY color space with sRGB encoding.
   fn to_cmy(&self) -> Cmy<Srgb> {
-    self.to_rgb::<Srgb>().to_cmy()
+    self.to_rgb::<Srgb>().to_cmy().with_alpha(self.alpha())
   }
 
   #[cfg(feature = "space-cmyk")]
   /// Converts to the CMYK color space with sRGB encoding.
   fn to_cmyk(&self) -> Cmyk<Srgb> {
-    self.to_rgb::<Srgb>().to_cmyk()
+    self.to_rgb::<Srgb>().to_cmyk().with_alpha(self.alpha())
   }
 
   #[cfg(feature = "space-hsv")]
   /// Converts to the HSB color space with sRGB encoding.
   fn to_hsb(&self) -> Hsb<Srgb> {
-    self.to_rgb::<Srgb>().to_hsb()
+    self.to_rgb::<Srgb>().to_hsb().with_alpha(self.alpha())
   }
 
   #[cfg(feature = "space-hsl")]
   /// Converts to the HSL color space with sRGB encoding.
   fn to_hsl(&self) -> Hsl<Srgb> {
-    self.to_rgb::<Srgb>().to_hsl()
+    self.to_rgb::<Srgb>().to_hsl().with_alpha(self.alpha())
   }
 
   #[cfg(feature = "space-hsv")]
   /// Converts to the HSV color space with sRGB encoding.
   fn to_hsv(&self) -> Hsv<Srgb> {
-    self.to_rgb::<Srgb>().to_hsv()
+    self.to_rgb::<Srgb>().to_hsv().with_alpha(self.alpha())
   }
 
   #[cfg(feature = "space-hwb")]
   /// Converts to the HWB color space with sRGB encoding.
   fn to_hwb(&self) -> Hwb<Srgb> {
-    self.to_rgb::<Srgb>().to_hwb()
+    self.to_rgb::<Srgb>().to_hwb().with_alpha(self.alpha())
   }
 
   /// Converts to the LMS cone response space.
   fn to_lms(&self) -> Lms {
-    self.to_xyz().to_lms()
+    self.to_xyz().to_lms().with_alpha(self.alpha())
   }
 
   /// Converts to the specified RGB color space.
@@ -150,11 +223,47 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   where
     S: RgbSpec,
   {
-    self.to_xyz().to_rgb::<S>()
+    self.to_xyz().to_rgb::<S>().with_alpha(self.alpha())
   }
 
   /// Converts to CIE XYZ.
   fn to_xyz(&self) -> Xyz;
+
+  /// Returns a new color with the given alpha value on a 0.0 to 1.0 scale.
+  fn with_alpha(&self, alpha: impl Into<Component>) -> Self {
+    let mut color = *self;
+    color.set_alpha(alpha);
+    color
+  }
+
+  /// Returns a new color with alpha decreased by the given amount.
+  fn with_alpha_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_alpha(Component::new((self.alpha() - amount.into().0).clamp(0.0, 1.0)))
+  }
+
+  /// Returns a new color with the alpha channel flattened against black.
+  fn with_alpha_flattened(&self) -> Self {
+    let mut color = *self;
+    color.flatten_alpha();
+    color
+  }
+
+  /// Returns a new color with the alpha channel flattened against the given background.
+  fn with_alpha_flattened_against(&self, background: impl Into<Rgb<Srgb>>) -> Self {
+    let mut color = *self;
+    color.flatten_alpha_against(background);
+    color
+  }
+
+  /// Returns a new color with alpha increased by the given amount.
+  fn with_alpha_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_alpha(Component::new((self.alpha() + amount.into().0).clamp(0.0, 1.0)))
+  }
+
+  /// Returns a new color with alpha scaled by the given factor.
+  fn with_alpha_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    self.with_alpha(Component::new((self.alpha() * factor.into().0).clamp(0.0, 1.0)))
+  }
 
   /// Returns a new color with the given luminance, preserving chromaticity.
   fn with_luminance(&self, luminance: impl Into<Component>) -> Self {
@@ -174,6 +283,36 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns a new color with luminance scaled by the given factor.
   fn with_luminance_scaled_by(&self, factor: impl Into<Component>) -> Self {
     Self::from(self.to_xyz().with_luminance_scaled_by(factor))
+  }
+
+  /// Returns a new color with the given opacity percentage (0-100%).
+  fn with_opacity(&self, opacity: impl Into<Component>) -> Self {
+    self.with_alpha(opacity.into() / 100.0)
+  }
+
+  /// Returns a new color with opacity decreased by the given percentage amount.
+  fn with_opacity_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_alpha_decremented_by(amount.into() / 100.0)
+  }
+
+  /// Alias for [`Self::with_alpha_flattened`].
+  fn with_opacity_flattened(&self) -> Self {
+    self.with_alpha_flattened()
+  }
+
+  /// Alias for [`Self::with_alpha_flattened_against`].
+  fn with_opacity_flattened_against(&self, background: impl Into<Rgb<Srgb>>) -> Self {
+    self.with_alpha_flattened_against(background)
+  }
+
+  /// Returns a new color with opacity increased by the given percentage amount.
+  fn with_opacity_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_alpha_incremented_by(amount.into() / 100.0)
+  }
+
+  /// Returns a new color with opacity scaled by the given percentage factor.
+  fn with_opacity_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    self.with_alpha_scaled_by(factor.into() / 100.0)
   }
 
   #[cfg(feature = "space-cmyk")]

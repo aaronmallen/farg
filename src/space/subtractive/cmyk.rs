@@ -32,6 +32,7 @@ pub struct Cmyk<S = Srgb>
 where
   S: RgbSpec,
 {
+  alpha: Component,
   context: ColorimetricContext,
   c: Component,
   k: Component,
@@ -52,6 +53,7 @@ where
     k: impl Into<Component>,
   ) -> Self {
     Self {
+      alpha: Component::new(1.0),
       context: S::CONTEXT,
       c: c.into() / 100.0,
       k: k.into() / 100.0,
@@ -64,6 +66,7 @@ where
   /// Creates a new CMYK color in a const context from cyan (0-100%), magenta (0-100%), yellow (0-100%), and key/black (0-100%).
   pub const fn new_const(c: f64, m: f64, y: f64, k: f64) -> Self {
     Self {
+      alpha: Component::new_const(1.0),
       context: S::CONTEXT,
       c: Component::new_const(c / 100.0),
       k: Component::new_const(k / 100.0),
@@ -302,6 +305,7 @@ where
       ((nm * (1.0 - nk)) + nk) * 100.0,
       ((ny * (1.0 - nk)) + nk) * 100.0,
     )
+    .with_alpha(self.alpha)
   }
 
   /// Converts this CMYK color to an [`Rgb`] color in the specified output space.
@@ -320,6 +324,7 @@ where
       (1.0 - ny) * (1.0 - nk),
     )
     .to_rgb::<OS>()
+    .with_alpha(self.alpha)
   }
 
   /// Returns this color with a different viewing context (without adaptation).
@@ -581,8 +586,16 @@ impl<S> ColorSpace<4> for Cmyk<S>
 where
   S: RgbSpec,
 {
+  fn alpha(&self) -> f64 {
+    self.alpha.0
+  }
+
   fn components(&self) -> [f64; 4] {
     self.components()
+  }
+
+  fn set_alpha(&mut self, alpha: impl Into<Component>) {
+    self.alpha = alpha.into().clamp(0.0, 1.0);
   }
 
   fn set_components(&mut self, components: [impl Into<Component> + Clone; 4]) {
@@ -599,15 +612,27 @@ where
   S: RgbSpec,
 {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(
-      f,
-      "CMYK({:.precision$}%, {:.precision$}%, {:.precision$}%, {:.precision$}%)",
-      self.cyan(),
-      self.magenta(),
-      self.yellow(),
-      self.key(),
-      precision = f.precision().unwrap_or(2)
-    )
+    let precision = f.precision().unwrap_or(2);
+    if self.alpha.0 < 1.0 {
+      write!(
+        f,
+        "CMYK({:.precision$}%, {:.precision$}%, {:.precision$}%, {:.precision$}%, {:.0}%)",
+        self.cyan(),
+        self.magenta(),
+        self.yellow(),
+        self.key(),
+        self.opacity()
+      )
+    } else {
+      write!(
+        f,
+        "CMYK({:.precision$}%, {:.precision$}%, {:.precision$}%, {:.precision$}%)",
+        self.cyan(),
+        self.magenta(),
+        self.yellow(),
+        self.key()
+      )
+    }
   }
 }
 
@@ -724,7 +749,7 @@ where
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
-    self.c == other.c && self.m == other.m && self.y == other.y && self.k == other.k
+    self.alpha == other.alpha && self.c == other.c && self.m == other.m && self.y == other.y && self.k == other.k
   }
 }
 
@@ -873,6 +898,20 @@ mod test {
       let cmyk = Cmyk::<Srgb>::new(25.6789, 50.1234, 75.4321, 10.5678);
 
       assert_eq!(format!("{:.4}", cmyk), "CMYK(25.6789%, 50.1234%, 75.4321%, 10.5678%)");
+    }
+
+    #[test]
+    fn it_includes_opacity_when_alpha_below_one() {
+      let cmyk = Cmyk::<Srgb>::new(25.0, 50.0, 75.0, 10.0).with_alpha(0.5);
+
+      assert_eq!(format!("{}", cmyk), "CMYK(25.00%, 50.00%, 75.00%, 10.00%, 50%)");
+    }
+
+    #[test]
+    fn it_omits_opacity_when_fully_opaque() {
+      let cmyk = Cmyk::<Srgb>::new(25.0, 50.0, 75.0, 10.0);
+
+      assert_eq!(format!("{}", cmyk), "CMYK(25.00%, 50.00%, 75.00%, 10.00%)");
     }
   }
 
@@ -1230,6 +1269,14 @@ mod test {
 
       assert_ne!(a, b);
     }
+
+    #[test]
+    fn it_compares_unequal_when_alpha_differs() {
+      let a = Cmyk::<Srgb>::new(25.0, 50.0, 75.0, 10.0).with_alpha(0.5);
+      let b = Cmyk::<Srgb>::new(25.0, 50.0, 75.0, 10.0);
+
+      assert_ne!(a, b);
+    }
   }
 
   mod scale_c {
@@ -1426,6 +1473,14 @@ mod test {
       assert_eq!(rgb.red(), back_rgb.red());
       assert_eq!(rgb.green(), back_rgb.green());
       assert_eq!(rgb.blue(), back_rgb.blue());
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let cmyk = Cmyk::<Srgb>::new(25.0, 50.0, 75.0, 10.0).with_alpha(0.3);
+      let rgb: Rgb<Srgb> = cmyk.to_rgb();
+
+      assert!((rgb.alpha() - 0.3).abs() < 1e-10);
     }
   }
 

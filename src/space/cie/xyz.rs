@@ -26,6 +26,7 @@ use crate::{
 /// Y represents relative luminance, while X and Z carry chromaticity information.
 #[derive(Clone, Copy, Debug)]
 pub struct Xyz {
+  alpha: Component,
   context: ColorimetricContext,
   x: Component,
   y: Component,
@@ -36,6 +37,7 @@ impl Xyz {
   /// Creates a new XYZ color with the default viewing context.
   pub fn new(x: impl Into<Component>, y: impl Into<Component>, z: impl Into<Component>) -> Self {
     Self {
+      alpha: Component::new(1.0),
       context: ColorimetricContext::default(),
       x: x.into(),
       y: y.into(),
@@ -46,6 +48,7 @@ impl Xyz {
   /// Creates a new XYZ color in a const context.
   pub const fn new_const(x: f64, y: f64, z: f64) -> Self {
     Self {
+      alpha: Component::new_const(1.0),
       context: ColorimetricContext::DEFAULT,
       x: Component::new_const(x),
       y: Component::new_const(y),
@@ -225,7 +228,9 @@ impl Xyz {
 
   /// Converts to the LMS cone response space using the context's CAT matrix.
   pub fn to_lms(&self) -> Lms {
-    Lms::from(self.context.cat().matrix() * self.components()).with_context(self.context)
+    Lms::from(self.context.cat().matrix() * self.components())
+      .with_context(self.context)
+      .with_alpha(self.alpha)
   }
 
   /// Converts to the specified RGB color space.
@@ -235,7 +240,9 @@ impl Xyz {
   {
     let adapted = self.adapt_to(S::CONTEXT);
     let [r, g, b] = *S::inversed_xyz_matrix() * adapted.components();
-    LinearRgb::<S>::from_normalized(r, g, b).to_encoded()
+    LinearRgb::<S>::from_normalized(r, g, b)
+      .to_encoded()
+      .with_alpha(self.alpha)
   }
 
   /// Returns this color with a different viewing context (without adaptation).
@@ -403,8 +410,16 @@ where
 }
 
 impl ColorSpace<3> for Xyz {
+  fn alpha(&self) -> f64 {
+    self.alpha.0
+  }
+
   fn components(&self) -> [f64; 3] {
     self.components()
+  }
+
+  fn set_alpha(&mut self, alpha: impl Into<Component>) {
+    self.alpha = alpha.into().clamp(0.0, 1.0)
   }
 
   fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
@@ -418,14 +433,23 @@ impl ColorSpace<3> for Xyz {
 
 impl Display for Xyz {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(
-      f,
-      "XYZ({:.precision$}, {:.precision$}, {:.precision$})",
-      self.x,
-      self.y,
-      self.z,
-      precision = f.precision().unwrap_or(4)
-    )
+    let precision = f.precision().unwrap_or(4);
+    if self.alpha.0 < 1.0 {
+      write!(
+        f,
+        "XYZ({:.precision$}, {:.precision$}, {:.precision$}, {:.0}%)",
+        self.x,
+        self.y,
+        self.z,
+        self.opacity()
+      )
+    } else {
+      write!(
+        f,
+        "XYZ({:.precision$}, {:.precision$}, {:.precision$})",
+        self.x, self.y, self.z
+      )
+    }
   }
 }
 
@@ -531,7 +555,7 @@ where
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
-    self.x == other.x && self.y == other.y && self.z == other.z
+    self.alpha == other.alpha && self.x == other.x && self.y == other.y && self.z == other.z
   }
 }
 
@@ -858,6 +882,20 @@ mod test {
       assert_eq!(format!("{:.2}", xyz), "XYZ(0.12, 0.23, 0.35)");
       assert_eq!(format!("{:.6}", xyz), "XYZ(0.123457, 0.234568, 0.345679)");
     }
+
+    #[test]
+    fn it_includes_opacity_when_alpha_below_one() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5).with_alpha(0.5);
+
+      assert_eq!(format!("{}", xyz), "XYZ(0.5000, 0.5000, 0.5000, 50%)");
+    }
+
+    #[test]
+    fn it_omits_opacity_when_fully_opaque() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5);
+
+      assert_eq!(format!("{}", xyz), "XYZ(0.5000, 0.5000, 0.5000)");
+    }
   }
 
   mod increment_luminance {
@@ -954,6 +992,14 @@ mod test {
       let xyz = Xyz::new(0.1, 0.2, 0.3);
 
       assert_eq!(xyz, [0.1, 0.2, 0.3]);
+    }
+
+    #[test]
+    fn it_compares_unequal_when_alpha_differs() {
+      let a = Xyz::new(0.1, 0.2, 0.3).with_alpha(0.5);
+      let b = Xyz::new(0.1, 0.2, 0.3);
+
+      assert_ne!(a, b);
     }
   }
 
@@ -1285,6 +1331,14 @@ mod test {
 
       assert_eq!(lms.context().cat().name(), "XYZ Scaling");
     }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5).with_alpha(0.3);
+      let lms = xyz.to_lms();
+
+      assert!((lms.alpha() - 0.3).abs() < 1e-10);
+    }
   }
 
   mod to_rgb {
@@ -1321,6 +1375,14 @@ mod test {
       assert_eq!(back.red(), original.red());
       assert_eq!(back.green(), original.green());
       assert_eq!(back.blue(), original.blue());
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5).with_alpha(0.7);
+      let rgb: Rgb<Srgb> = xyz.to_rgb();
+
+      assert!((rgb.alpha() - 0.7).abs() < 1e-10);
     }
   }
 

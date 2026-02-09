@@ -29,6 +29,7 @@ pub struct Hwb<S = Srgb>
 where
   S: RgbSpec,
 {
+  alpha: Component,
   context: ColorimetricContext,
   h: Component,
   w: Component,
@@ -43,6 +44,7 @@ where
   /// Creates a new HWB color from hue (0-360°), whiteness (0-100%), and blackness (0-100%).
   pub fn new(h: impl Into<Component>, w: impl Into<Component>, b: impl Into<Component>) -> Self {
     Self {
+      alpha: Component::new(1.0),
       context: S::CONTEXT,
       h: Component::new((h.into().0 / 360.0).rem_euclid(1.0)),
       w: w.into() / 100.0,
@@ -56,6 +58,7 @@ where
     let r = (h / 360.0) % 1.0;
 
     Self {
+      alpha: Component::new_const(1.0),
       context: S::CONTEXT,
       h: Component::new_const(if r < 0.0 { r + 1.0 } else { r }),
       w: Component::new_const(w / 100.0),
@@ -246,7 +249,7 @@ where
       (v - l) / l.min(1.0 - l)
     };
 
-    Hsl::<S>::new(h * 360.0, sl * 100.0, l * 100.0)
+    Hsl::<S>::new(h * 360.0, sl * 100.0, l * 100.0).with_alpha(self.alpha)
   }
 
   #[cfg(feature = "space-hsv")]
@@ -257,7 +260,7 @@ where
     let v = 1.0 - b;
     let s = if v == 0.0 { 0.0 } else { 1.0 - (w / v) };
 
-    Hsv::<S>::new(h * 360.0, s * 100.0, v * 100.0)
+    Hsv::<S>::new(h * 360.0, s * 100.0, v * 100.0).with_alpha(self.alpha)
   }
 
   /// Converts this HWB color to an [`Rgb`] color in the specified output space.
@@ -272,7 +275,9 @@ where
     // When W + B >= 1, the color is a shade of gray
     if w + b >= 1.0 {
       let gray = w / (w + b);
-      return Rgb::<S>::from_normalized(gray, gray, gray).to_rgb::<OS>();
+      return Rgb::<S>::from_normalized(gray, gray, gray)
+        .to_rgb::<OS>()
+        .with_alpha(self.alpha);
     }
 
     // Compute the pure hue RGB values
@@ -292,7 +297,9 @@ where
 
     // Scale by (1 - W - B) and add W
     let scale = 1.0 - w - b;
-    Rgb::<S>::from_normalized(r1 * scale + w, g1 * scale + w, b1 * scale + w).to_rgb::<OS>()
+    Rgb::<S>::from_normalized(r1 * scale + w, g1 * scale + w, b1 * scale + w)
+      .to_rgb::<OS>()
+      .with_alpha(self.alpha)
   }
 
   /// Returns the normalized whiteness component (0.0-1.0).
@@ -498,8 +505,16 @@ impl<S> ColorSpace<3> for Hwb<S>
 where
   S: RgbSpec,
 {
+  fn alpha(&self) -> f64 {
+    self.alpha.0
+  }
+
   fn components(&self) -> [f64; 3] {
     self.components()
+  }
+
+  fn set_alpha(&mut self, alpha: impl Into<Component>) {
+    self.alpha = alpha.into().clamp(0.0, 1.0);
   }
 
   fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
@@ -516,14 +531,25 @@ where
   S: RgbSpec,
 {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(
-      f,
-      "HWB({:.precision$}°, {:.precision$}%, {:.precision$}%)",
-      self.hue(),
-      self.whiteness(),
-      self.blackness(),
-      precision = f.precision().unwrap_or(2)
-    )
+    let precision = f.precision().unwrap_or(2);
+    if self.alpha.0 < 1.0 {
+      write!(
+        f,
+        "HWB({:.precision$}°, {:.precision$}%, {:.precision$}%, {:.0}%)",
+        self.hue(),
+        self.whiteness(),
+        self.blackness(),
+        self.opacity()
+      )
+    } else {
+      write!(
+        f,
+        "HWB({:.precision$}°, {:.precision$}%, {:.precision$}%)",
+        self.hue(),
+        self.whiteness(),
+        self.blackness()
+      )
+    }
   }
 }
 
@@ -640,7 +666,7 @@ where
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
-    self.h == other.h && self.w == other.w && self.b == other.b
+    self.alpha == other.alpha && self.h == other.h && self.w == other.w && self.b == other.b
   }
 }
 
@@ -782,6 +808,20 @@ mod test {
       let hwb = Hwb::<Srgb>::new(120.12345, 25.6789, 50.4321);
 
       assert_eq!(format!("{:.4}", hwb), "HWB(120.1235°, 25.6789%, 50.4321%)");
+    }
+
+    #[test]
+    fn it_includes_opacity_when_alpha_below_one() {
+      let hwb = Hwb::<Srgb>::new(120.0, 25.0, 50.0).with_alpha(0.5);
+
+      assert_eq!(format!("{}", hwb), "HWB(120.00°, 25.00%, 50.00%, 50%)");
+    }
+
+    #[test]
+    fn it_omits_opacity_when_fully_opaque() {
+      let hwb = Hwb::<Srgb>::new(120.0, 25.0, 50.0);
+
+      assert_eq!(format!("{}", hwb), "HWB(120.00°, 25.00%, 50.00%)");
     }
   }
 
@@ -1097,6 +1137,14 @@ mod test {
 
       assert_ne!(a, b);
     }
+
+    #[test]
+    fn it_compares_unequal_when_alpha_differs() {
+      let a = Hwb::<Srgb>::new(180.0, 25.0, 25.0).with_alpha(0.5);
+      let b = Hwb::<Srgb>::new(180.0, 25.0, 25.0);
+
+      assert_ne!(a, b);
+    }
   }
 
   mod scale_b {
@@ -1245,6 +1293,14 @@ mod test {
       assert!((back.hue() - original.hue()).abs() < 1.0);
       assert!((back.whiteness() - original.whiteness()).abs() < 1.0);
       assert!((back.blackness() - original.blackness()).abs() < 1.0);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let hwb = Hwb::<Srgb>::new(120.0, 25.0, 25.0).with_alpha(0.3);
+      let rgb: Rgb<Srgb> = hwb.to_rgb();
+
+      assert!((rgb.alpha() - 0.3).abs() < 1e-10);
     }
   }
 

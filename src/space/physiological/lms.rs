@@ -25,6 +25,7 @@ use crate::{
 /// Long (L), Medium (M), and Short (S) wavelength-sensitive.
 #[derive(Clone, Copy, Debug)]
 pub struct Lms {
+  alpha: Component,
   context: ColorimetricContext,
   l: Component,
   m: Component,
@@ -35,6 +36,7 @@ impl Lms {
   /// Creates a new LMS color with the default viewing context.
   pub fn new(l: impl Into<Component>, m: impl Into<Component>, s: impl Into<Component>) -> Self {
     Self {
+      alpha: Component::new(1.0),
       context: ColorimetricContext::default(),
       l: l.into(),
       m: m.into(),
@@ -45,6 +47,7 @@ impl Lms {
   /// Creates a new LMS color in a const context.
   pub const fn new_const(l: f64, m: f64, s: f64) -> Self {
     Self {
+      alpha: Component::new_const(1.0),
       context: ColorimetricContext::DEFAULT,
       l: Component::new_const(l),
       m: Component::new_const(m),
@@ -232,7 +235,9 @@ impl Lms {
 
   /// Converts to CIE XYZ using the inverse of the context's CAT matrix.
   pub fn to_xyz(&self) -> Xyz {
-    Xyz::from(self.context.cat().inverse() * self.components()).with_context(self.context)
+    Xyz::from(self.context.cat().inverse() * self.components())
+      .with_context(self.context)
+      .with_alpha(self.alpha)
   }
 
   /// Returns this color with a different viewing context (without adaptation).
@@ -403,8 +408,16 @@ where
 }
 
 impl ColorSpace<3> for Lms {
+  fn alpha(&self) -> f64 {
+    self.alpha.0
+  }
+
   fn components(&self) -> [f64; 3] {
     self.components()
+  }
+
+  fn set_alpha(&mut self, alpha: impl Into<Component>) {
+    self.alpha = alpha.into().clamp(0.0, 1.0);
   }
 
   fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
@@ -422,14 +435,23 @@ impl ColorSpace<3> for Lms {
 
 impl Display for Lms {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(
-      f,
-      "LMS({:.precision$}, {:.precision$}, {:.precision$})",
-      self.l,
-      self.m,
-      self.s,
-      precision = f.precision().unwrap_or(4)
-    )
+    let precision = f.precision().unwrap_or(4);
+    if self.alpha.0 < 1.0 {
+      write!(
+        f,
+        "LMS({:.precision$}, {:.precision$}, {:.precision$}, {:.0}%)",
+        self.l,
+        self.m,
+        self.s,
+        self.opacity()
+      )
+    } else {
+      write!(
+        f,
+        "LMS({:.precision$}, {:.precision$}, {:.precision$})",
+        self.l, self.m, self.s
+      )
+    }
   }
 }
 
@@ -535,7 +557,7 @@ where
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
-    self.l == other.l && self.m == other.m && self.s == other.s
+    self.alpha == other.alpha && self.l == other.l && self.m == other.m && self.s == other.s
   }
 }
 
@@ -718,6 +740,20 @@ mod test {
       assert_eq!(format!("{:.2}", lms), "LMS(0.12, 0.23, 0.35)");
       assert_eq!(format!("{:.6}", lms), "LMS(0.123457, 0.234568, 0.345679)");
     }
+
+    #[test]
+    fn it_includes_opacity_when_alpha_below_one() {
+      let lms = Lms::new(0.5, 0.5, 0.5).with_alpha(0.5);
+
+      assert_eq!(format!("{}", lms), "LMS(0.5000, 0.5000, 0.5000, 50%)");
+    }
+
+    #[test]
+    fn it_omits_opacity_when_fully_opaque() {
+      let lms = Lms::new(0.5, 0.5, 0.5);
+
+      assert_eq!(format!("{}", lms), "LMS(0.5000, 0.5000, 0.5000)");
+    }
   }
 
   #[cfg(feature = "space-cmyk")]
@@ -816,6 +852,14 @@ mod test {
 
       assert_eq!(lms, [0.1, 0.2, 0.3]);
     }
+
+    #[test]
+    fn it_compares_unequal_when_alpha_differs() {
+      let a = Lms::new(0.1, 0.2, 0.3).with_alpha(0.5);
+      let b = Lms::new(0.1, 0.2, 0.3);
+
+      assert_ne!(a, b);
+    }
   }
 
   mod scale_l {
@@ -901,6 +945,14 @@ mod test {
       assert!((back.x() - original.x()).abs() < 1e-10);
       assert!((back.y() - original.y()).abs() < 1e-10);
       assert!((back.z() - original.z()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let lms = Lms::new(0.5, 0.5, 0.5).with_alpha(0.3);
+      let xyz = lms.to_xyz();
+
+      assert!((xyz.alpha() - 0.3).abs() < 1e-10);
     }
   }
 
