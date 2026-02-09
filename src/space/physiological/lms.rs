@@ -13,6 +13,14 @@ use crate::space::Hsl;
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
 use crate::space::Hwb;
+#[cfg(feature = "space-okhsl")]
+use crate::space::Okhsl;
+#[cfg(feature = "space-okhsv")]
+use crate::space::Okhsv;
+#[cfg(feature = "space-oklab")]
+use crate::space::Oklab;
+#[cfg(feature = "space-oklch")]
+use crate::space::Oklch;
 use crate::{
   ColorimetricContext,
   component::Component,
@@ -522,6 +530,34 @@ where
 {
   fn from(hwb: Hwb<S>) -> Self {
     hwb.to_lms()
+  }
+}
+
+#[cfg(feature = "space-okhsl")]
+impl From<Okhsl> for Lms {
+  fn from(okhsl: Okhsl) -> Self {
+    okhsl.to_lms()
+  }
+}
+
+#[cfg(feature = "space-okhsv")]
+impl From<Okhsv> for Lms {
+  fn from(okhsv: Okhsv) -> Self {
+    okhsv.to_lms()
+  }
+}
+
+#[cfg(feature = "space-oklab")]
+impl From<Oklab> for Lms {
+  fn from(oklab: Oklab) -> Self {
+    oklab.to_lms()
+  }
+}
+
+#[cfg(feature = "space-oklch")]
+impl From<Oklch> for Lms {
+  fn from(oklch: Oklch) -> Self {
+    oklch.to_lms()
   }
 }
 

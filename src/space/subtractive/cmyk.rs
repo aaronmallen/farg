@@ -12,6 +12,14 @@ use crate::space::Hsl;
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
 use crate::space::Hwb;
+#[cfg(feature = "space-okhsl")]
+use crate::space::Okhsl;
+#[cfg(feature = "space-okhsv")]
+use crate::space::Okhsv;
+#[cfg(feature = "space-oklab")]
+use crate::space::Oklab;
+#[cfg(feature = "space-oklch")]
+use crate::space::Oklch;
 use crate::{
   ColorimetricContext,
   component::Component,
@@ -708,6 +716,46 @@ where
 {
   fn from(lms: Lms) -> Self {
     lms.to_rgb::<S>().to_cmyk()
+  }
+}
+
+#[cfg(feature = "space-okhsl")]
+impl<S> From<Okhsl> for Cmyk<S>
+where
+  S: RgbSpec,
+{
+  fn from(okhsl: Okhsl) -> Self {
+    okhsl.to_rgb::<S>().to_cmyk()
+  }
+}
+
+#[cfg(feature = "space-okhsv")]
+impl<S> From<Okhsv> for Cmyk<S>
+where
+  S: RgbSpec,
+{
+  fn from(okhsv: Okhsv) -> Self {
+    okhsv.to_rgb::<S>().to_cmyk()
+  }
+}
+
+#[cfg(feature = "space-oklab")]
+impl<S> From<Oklab> for Cmyk<S>
+where
+  S: RgbSpec,
+{
+  fn from(oklab: Oklab) -> Self {
+    oklab.to_rgb::<S>().to_cmyk()
+  }
+}
+
+#[cfg(feature = "space-oklch")]
+impl<S> From<Oklch> for Cmyk<S>
+where
+  S: RgbSpec,
+{
+  fn from(oklch: Oklch) -> Self {
+    oklch.to_rgb::<S>().to_cmyk()
   }
 }
 

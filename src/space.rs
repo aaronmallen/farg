@@ -1,17 +1,18 @@
 mod cie;
-#[cfg(any(feature = "space-hsl", feature = "space-hsv", feature = "space-hwb"))]
 mod cylindrical;
+mod perceptual;
 mod physiological;
 mod rgb;
-#[cfg(any(feature = "space-cmy", feature = "space-cmyk"))]
 mod subtractive;
 
 pub use cie::*;
-#[cfg(any(feature = "space-hsl", feature = "space-hsv", feature = "space-hwb"))]
+#[allow(unused_imports)]
 pub use cylindrical::*;
+#[allow(unused_imports)]
+pub use perceptual::*;
 pub use physiological::*;
 pub use rgb::*;
-#[cfg(any(feature = "space-cmy", feature = "space-cmyk"))]
+#[allow(unused_imports)]
 pub use subtractive::*;
 
 use crate::{chromaticity::Xy, component::Component};
@@ -216,6 +217,30 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Converts to the LMS cone response space.
   fn to_lms(&self) -> Lms {
     self.to_xyz().to_lms().with_alpha(self.alpha())
+  }
+
+  #[cfg(feature = "space-okhsl")]
+  /// Converts to the Okhsl perceptual color space.
+  fn to_okhsl(&self) -> Okhsl {
+    self.to_oklab().to_okhsl().with_alpha(self.alpha())
+  }
+
+  #[cfg(feature = "space-okhsv")]
+  /// Converts to the Okhsv perceptual color space.
+  fn to_okhsv(&self) -> Okhsv {
+    self.to_oklab().to_okhsv().with_alpha(self.alpha())
+  }
+
+  #[cfg(feature = "space-oklab")]
+  /// Converts to the Oklab perceptual color space.
+  fn to_oklab(&self) -> Oklab {
+    self.to_xyz().to_oklab().with_alpha(self.alpha())
+  }
+
+  #[cfg(feature = "space-oklch")]
+  /// Converts to the Oklch perceptual color space.
+  fn to_oklch(&self) -> Oklch {
+    self.to_oklab().to_oklch().with_alpha(self.alpha())
   }
 
   /// Converts to the specified RGB color space.

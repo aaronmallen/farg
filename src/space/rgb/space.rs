@@ -169,6 +169,14 @@ use crate::space::Cmyk;
 use crate::space::Hsl;
 #[cfg(feature = "space-hwb")]
 use crate::space::Hwb;
+#[cfg(feature = "space-okhsl")]
+use crate::space::Okhsl;
+#[cfg(feature = "space-okhsv")]
+use crate::space::Okhsv;
+#[cfg(feature = "space-oklab")]
+use crate::space::Oklab;
+#[cfg(feature = "space-oklch")]
+use crate::space::Oklch;
 #[cfg(feature = "space-hsv")]
 use crate::space::{Hsb, Hsv};
 use crate::{
@@ -624,6 +632,18 @@ where
     }
   }
 
+  #[cfg(feature = "space-oklab")]
+  /// Converts to the Oklab perceptual color space via linear sRGB.
+  pub fn to_oklab(&self) -> Oklab {
+    let linear_srgb = self.to_rgb::<Srgb>().to_linear().components();
+
+    let lms_linear = Oklab::LINEAR_RGB_MATRIX * linear_srgb;
+    let lms_nonlinear = [lms_linear[0].cbrt(), lms_linear[1].cbrt(), lms_linear[2].cbrt()];
+    let [l, a, b] = Oklab::LINEAR_LMS_MATRIX * lms_nonlinear;
+
+    Oklab::new(l, a, b).with_alpha(self.alpha)
+  }
+
   /// Converts to CIE XYZ via linear RGB and the space's RGB-to-XYZ matrix.
   pub fn to_xyz(&self) -> Xyz {
     let linear = self.to_linear();
@@ -988,6 +1008,46 @@ where
 {
   fn from(lms: Lms) -> Self {
     lms.to_rgb::<S>()
+  }
+}
+
+#[cfg(feature = "space-okhsl")]
+impl<S> From<Okhsl> for Rgb<S>
+where
+  S: RgbSpec,
+{
+  fn from(okhsl: Okhsl) -> Self {
+    okhsl.to_rgb::<S>()
+  }
+}
+
+#[cfg(feature = "space-okhsv")]
+impl<S> From<Okhsv> for Rgb<S>
+where
+  S: RgbSpec,
+{
+  fn from(okhsv: Okhsv) -> Self {
+    okhsv.to_rgb::<S>()
+  }
+}
+
+#[cfg(feature = "space-oklab")]
+impl<S> From<Oklab> for Rgb<S>
+where
+  S: RgbSpec,
+{
+  fn from(oklab: Oklab) -> Self {
+    oklab.to_rgb::<S>()
+  }
+}
+
+#[cfg(feature = "space-oklch")]
+impl<S> From<Oklch> for Rgb<S>
+where
+  S: RgbSpec,
+{
+  fn from(oklch: Oklch) -> Self {
+    oklch.to_rgb::<S>()
   }
 }
 
@@ -2035,6 +2095,59 @@ mod test {
       let hsl = rgb.to_hsl();
 
       assert!((hsl.alpha() - 0.4).abs() < 1e-10);
+    }
+  }
+
+  #[cfg(feature = "space-oklab")]
+  mod to_oklab {
+    use super::*;
+
+    #[test]
+    fn it_converts_to_oklab() {
+      let rgb = Rgb::<Srgb>::new(128, 64, 200);
+      let oklab = rgb.to_oklab();
+
+      assert!(oklab.l() > 0.0);
+      assert!(oklab.a().is_finite());
+      assert!(oklab.b().is_finite());
+    }
+
+    #[test]
+    fn it_converts_white() {
+      let rgb = Rgb::<Srgb>::new(255, 255, 255);
+      let oklab = rgb.to_oklab();
+
+      assert!((oklab.l() - 1.0).abs() < 1e-3);
+      assert!(oklab.a().abs() < 1e-3);
+      assert!(oklab.b().abs() < 1e-3);
+    }
+
+    #[test]
+    fn it_converts_black() {
+      let rgb = Rgb::<Srgb>::new(0, 0, 0);
+      let oklab = rgb.to_oklab();
+
+      assert!(oklab.l().abs() < 1e-3);
+      assert!(oklab.a().abs() < 1e-3);
+      assert!(oklab.b().abs() < 1e-3);
+    }
+
+    #[test]
+    fn it_roundtrips_through_oklab() {
+      let original = Rgb::<Srgb>::new(128, 64, 200);
+      let roundtrip = original.to_oklab().to_rgb::<Srgb>();
+
+      assert_eq!(roundtrip.red(), original.red());
+      assert_eq!(roundtrip.green(), original.green());
+      assert_eq!(roundtrip.blue(), original.blue());
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let rgb = Rgb::<Srgb>::new(128, 64, 200).with_alpha(0.5);
+      let oklab = rgb.to_oklab();
+
+      assert!((oklab.alpha() - 0.5).abs() < 1e-10);
     }
   }
 

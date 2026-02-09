@@ -10,6 +10,14 @@ use crate::space::Cmy;
 use crate::space::Cmyk;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
+#[cfg(feature = "space-okhsl")]
+use crate::space::Okhsl;
+#[cfg(feature = "space-okhsv")]
+use crate::space::Okhsv;
+#[cfg(feature = "space-oklab")]
+use crate::space::Oklab;
+#[cfg(feature = "space-oklch")]
+use crate::space::Oklch;
 #[cfg(feature = "space-hsv")]
 use crate::space::{Hsb, Hsv};
 use crate::{
@@ -625,6 +633,46 @@ where
 {
   fn from(lms: Lms) -> Self {
     lms.to_rgb::<S>().to_hwb()
+  }
+}
+
+#[cfg(feature = "space-okhsl")]
+impl<S> From<Okhsl> for Hwb<S>
+where
+  S: RgbSpec,
+{
+  fn from(okhsl: Okhsl) -> Self {
+    okhsl.to_rgb::<S>().to_hwb()
+  }
+}
+
+#[cfg(feature = "space-okhsv")]
+impl<S> From<Okhsv> for Hwb<S>
+where
+  S: RgbSpec,
+{
+  fn from(okhsv: Okhsv) -> Self {
+    okhsv.to_rgb::<S>().to_hwb()
+  }
+}
+
+#[cfg(feature = "space-oklab")]
+impl<S> From<Oklab> for Hwb<S>
+where
+  S: RgbSpec,
+{
+  fn from(oklab: Oklab) -> Self {
+    oklab.to_rgb::<S>().to_hwb()
+  }
+}
+
+#[cfg(feature = "space-oklch")]
+impl<S> From<Oklch> for Hwb<S>
+where
+  S: RgbSpec,
+{
+  fn from(oklch: Oklch) -> Self {
+    oklch.to_rgb::<S>().to_hwb()
   }
 }
 

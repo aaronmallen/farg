@@ -13,6 +13,14 @@ use crate::space::Hsl;
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
 use crate::space::Hwb;
+#[cfg(feature = "space-okhsl")]
+use crate::space::Okhsl;
+#[cfg(feature = "space-okhsv")]
+use crate::space::Okhsv;
+#[cfg(feature = "space-oklab")]
+use crate::space::Oklab;
+#[cfg(feature = "space-oklch")]
+use crate::space::Oklch;
 use crate::{
   ColorimetricContext,
   chromaticity::Xy,
@@ -231,6 +239,17 @@ impl Xyz {
     Lms::from(self.context.cat().matrix() * self.components())
       .with_context(self.context)
       .with_alpha(self.alpha)
+  }
+
+  #[cfg(feature = "space-oklab")]
+  /// Converts to the Oklab perceptual color space.
+  pub fn to_oklab(&self) -> Oklab {
+    let adapted = self.adapt_to(Oklab::DEFAULT_CONTEXT);
+    let linear_lms = Oklab::LINEAR_XYZ_MATRIX * adapted.components();
+    let cube_root_lms = [linear_lms[0].cbrt(), linear_lms[1].cbrt(), linear_lms[2].cbrt()];
+    let [l, a, b] = Oklab::LINEAR_LMS_MATRIX * cube_root_lms;
+
+    Oklab::new(l, a, b).with_alpha(self.alpha)
   }
 
   /// Converts to the specified RGB color space.
@@ -526,6 +545,34 @@ where
 impl From<Lms> for Xyz {
   fn from(lms: Lms) -> Self {
     lms.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-okhsl")]
+impl From<Okhsl> for Xyz {
+  fn from(okhsl: Okhsl) -> Self {
+    okhsl.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-okhsv")]
+impl From<Okhsv> for Xyz {
+  fn from(okhsv: Okhsv) -> Self {
+    okhsv.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-oklab")]
+impl From<Oklab> for Xyz {
+  fn from(oklab: Oklab) -> Self {
+    oklab.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-oklch")]
+impl From<Oklch> for Xyz {
+  fn from(oklch: Oklch) -> Self {
+    oklch.to_xyz()
   }
 }
 
@@ -1338,6 +1385,40 @@ mod test {
       let lms = xyz.to_lms();
 
       assert!((lms.alpha() - 0.3).abs() < 1e-10);
+    }
+  }
+
+  #[cfg(feature = "space-oklab")]
+  mod to_oklab {
+    use super::*;
+
+    #[test]
+    fn it_converts_to_oklab() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5);
+      let oklab = xyz.to_oklab();
+
+      assert!(oklab.l() > 0.0);
+      assert!(oklab.l().is_finite());
+      assert!(oklab.a().is_finite());
+      assert!(oklab.b().is_finite());
+    }
+
+    #[test]
+    fn it_roundtrips_through_oklab() {
+      let original = Xyz::new(0.5, 0.5, 0.5);
+      let roundtrip = original.to_oklab().to_xyz();
+
+      assert!((original.x() - roundtrip.x()).abs() < 1e-10);
+      assert!((original.y() - roundtrip.y()).abs() < 1e-10);
+      assert!((original.z() - roundtrip.z()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5).with_alpha(0.3);
+      let oklab = xyz.to_oklab();
+
+      assert!((oklab.alpha() - 0.3).abs() < 1e-10);
     }
   }
 

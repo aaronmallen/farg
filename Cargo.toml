@@ -90,6 +90,7 @@ all-spaces = [
   "space-hsl",
   "space-hsv",
   "space-hwb",
+  "space-oklab-family",
 ]
 cat-bradford = []
 cat-cat02 = []
@@ -270,6 +271,11 @@ space-hsb = ["space-hsv"]
 space-hsl = []
 space-hsv = []
 space-hwb = []
+space-okhsl = ["space-oklab"]
+space-okhsv = ["space-oklab"]
+space-oklab = []
+space-oklab-family = ["space-okhsl", "space-okhsv", "space-oklab", "space-oklch"]
+space-oklch = ["space-oklab"]
 
 [dev-dependencies]
 pretty_assertions = "1.4"

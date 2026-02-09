@@ -12,9 +12,12 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 - Add alpha/opacity support to all color spaces (`Xyz`, `Lms`, `Rgb`, `LinearRgb`, `Hsl`, `Hsv`, `Hwb`, `Cmy`, `Cmyk`)
   with `alpha()`, `set_alpha()`, `with_alpha()`, `opacity()`, `set_opacity()`, `with_opacity()`, and
   increment/decrement/scale variants on the `ColorSpace` trait
+- Add `Oklab` perceptual color space with full conversion support, feature-gated behind `space-oklab`
+- Add `Oklch` perceptual color space (cylindrical form of Oklab) with full conversion support, feature-gated behind `space-oklch`
+- Add `Okhsl` perceptual color space with full conversion support, feature-gated behind `space-okhsl`
+- Add `Okhsv` perceptual color space with full conversion support, feature-gated behind `space-okhsv`
 - Add alpha compositing on `Rgb` via `flatten_alpha()`, `flatten_alpha_against()`, and their `with_*` builder variants
 - Add `Rgb::BLACK` and `Rgb::WHITE` associated constants
-- Preserve alpha through all color space conversions and chromatic adaptation transforms
 
 ### Changed
 
