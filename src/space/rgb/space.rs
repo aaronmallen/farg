@@ -376,6 +376,36 @@ where
     self.r = (self.r + amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Scales the blue channel by the given factor, clamping to 0.0-1.0.
+  pub fn scale_b(&mut self, factor: impl Into<Component>) {
+    self.b = (self.b * factor.into()).clamp(0.0, 1.0);
+  }
+
+  /// Alias for [`Self::scale_b`].
+  pub fn scale_blue(&mut self, factor: impl Into<Component>) {
+    self.scale_b(factor);
+  }
+
+  /// Scales the green channel by the given factor, clamping to 0.0-1.0.
+  pub fn scale_g(&mut self, factor: impl Into<Component>) {
+    self.g = (self.g * factor.into()).clamp(0.0, 1.0);
+  }
+
+  /// Alias for [`Self::scale_g`].
+  pub fn scale_green(&mut self, factor: impl Into<Component>) {
+    self.scale_g(factor);
+  }
+
+  /// Scales the red channel by the given factor, clamping to 0.0-1.0.
+  pub fn scale_r(&mut self, factor: impl Into<Component>) {
+    self.r = (self.r * factor.into()).clamp(0.0, 1.0);
+  }
+
+  /// Alias for [`Self::scale_r`].
+  pub fn scale_red(&mut self, factor: impl Into<Component>) {
+    self.scale_r(factor);
+  }
+
   /// Sets the blue channel to the given normalized value (0.0-1.0).
   pub fn set_b(&mut self, b: impl Into<Component>) {
     self.b = b.into().clamp(0.0, 1.0);
@@ -411,36 +441,6 @@ where
   /// Sets the red channel to the given value (0-255 scale).
   pub fn set_red(&mut self, red: impl Into<Component>) {
     self.r = (red.into() / 255.0).clamp(0.0, 1.0);
-  }
-
-  /// Scales the blue channel by the given factor, clamping to 0.0-1.0.
-  pub fn scale_b(&mut self, factor: impl Into<Component>) {
-    self.b = (self.b * factor.into()).clamp(0.0, 1.0);
-  }
-
-  /// Alias for [`Self::scale_b`].
-  pub fn scale_blue(&mut self, factor: impl Into<Component>) {
-    self.scale_b(factor);
-  }
-
-  /// Scales the green channel by the given factor, clamping to 0.0-1.0.
-  pub fn scale_g(&mut self, factor: impl Into<Component>) {
-    self.g = (self.g * factor.into()).clamp(0.0, 1.0);
-  }
-
-  /// Alias for [`Self::scale_g`].
-  pub fn scale_green(&mut self, factor: impl Into<Component>) {
-    self.scale_g(factor);
-  }
-
-  /// Scales the red channel by the given factor, clamping to 0.0-1.0.
-  pub fn scale_r(&mut self, factor: impl Into<Component>) {
-    self.r = (self.r * factor.into()).clamp(0.0, 1.0);
-  }
-
-  /// Alias for [`Self::scale_r`].
-  pub fn scale_red(&mut self, factor: impl Into<Component>) {
-    self.scale_r(factor);
   }
 
   #[cfg(feature = "space-cmy")]

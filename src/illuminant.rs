@@ -111,37 +111,6 @@ pub struct Builder {
   spd: Option<&'static [(u32, f64)]>,
 }
 
-/// A standard or custom illuminant (light source) defined by its spectral power distribution.
-#[derive(Clone, Copy, Debug)]
-pub struct Illuminant {
-  kind: IlluminantType,
-  name: &'static str,
-  spd: Spd,
-}
-
-/// The category of an illuminant.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum IlluminantType {
-  /// A Planckian (blackbody) radiator.
-  Blackbody,
-  /// A user-defined illuminant.
-  Custom,
-  /// A CIE daylight illuminant (e.g., D50, D65).
-  Daylight,
-  /// The equal-energy illuminant (E).
-  EqualEnergy,
-  /// A fluorescent lamp illuminant.
-  Fluorescent,
-  /// A gas discharge lamp illuminant.
-  GasDischarge,
-  /// An incandescent lamp illuminant (e.g., Illuminant A).
-  Incandescent,
-  /// An LED illuminant.
-  Led,
-  /// A narrow-band illuminant.
-  NarrowBand,
-}
-
 impl Builder {
   /// Creates a new illuminant builder with the given name.
   pub fn new(name: &'static str) -> Self {
@@ -176,6 +145,14 @@ impl Builder {
   pub fn with_spectral_power_distribution(self, spd: &'static [(u32, f64)]) -> Self {
     self.with_spd(spd)
   }
+}
+
+/// A standard or custom illuminant (light source) defined by its spectral power distribution.
+#[derive(Clone, Copy, Debug)]
+pub struct Illuminant {
+  kind: IlluminantType,
+  name: &'static str,
+  spd: Spd,
 }
 
 impl Display for Illuminant {
@@ -218,6 +195,29 @@ impl Illuminant {
   pub fn spectral_power_distribution(&self) -> Spd {
     self.spd()
   }
+}
+
+/// The category of an illuminant.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum IlluminantType {
+  /// A Planckian (blackbody) radiator.
+  Blackbody,
+  /// A user-defined illuminant.
+  Custom,
+  /// A CIE daylight illuminant (e.g., D50, D65).
+  Daylight,
+  /// The equal-energy illuminant (E).
+  EqualEnergy,
+  /// A fluorescent lamp illuminant.
+  Fluorescent,
+  /// A gas discharge lamp illuminant.
+  GasDischarge,
+  /// An incandescent lamp illuminant (e.g., Illuminant A).
+  Incandescent,
+  /// An LED illuminant.
+  Led,
+  /// A narrow-band illuminant.
+  NarrowBand,
 }
 
 #[cfg(test)]

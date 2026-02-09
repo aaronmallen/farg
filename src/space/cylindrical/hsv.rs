@@ -18,6 +18,9 @@ use crate::{
   space::{ColorSpace, Lms, Rgb, RgbSpec, Srgb, Xyz},
 };
 
+/// Type alias for [`Hsv`] using the HSB (Hue, Saturation, Brightness) naming convention.
+pub type Hsb<S = Srgb> = Hsv<S>;
+
 /// HSV (Hue, Saturation, Value) color space, also known as HSB (Hue, Saturation, Brightness).
 ///
 /// A cylindrical representation of RGB colors, parameterized by an [`RgbSpec`] that
@@ -35,9 +38,6 @@ where
   v: Component,
   _spec: PhantomData<S>,
 }
-
-/// Type alias for [`Hsv`] using the HSB (Hue, Saturation, Brightness) naming convention.
-pub type Hsb<S = Srgb> = Hsv<S>;
 
 impl<S> Hsv<S>
 where

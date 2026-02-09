@@ -45,9 +45,35 @@ Code is linted using `clippy`. All default lints must pass without warnings.
 
 Order items within a module by:
 
-1. **Constants**: All `const` declarations first
-2. **Type definitions**: Structs, enums, type aliases
-3. **Implementations**: `impl` blocks for the types
+1. **Constants**: All `const` and `static` declarations first
+2. **Type groups**: Each type definition (struct, enum, type alias) immediately followed by its `impl` blocks
+3. **Free functions**: Any standalone helper functions after all type groups
+
+Type groups are ordered **alphabetically** by type name. Each group consists of the type definition followed
+by all of its `impl` blocks (inherent impl first, then trait impls).
+
+```rust
+// 1. Constants
+const MAX_VALUE: f64 = 1.0;
+
+// 2. Type groups (alphabetical)
+pub struct Alpha { }
+
+impl Alpha {
+    pub fn new() -> Self { }
+}
+
+impl Display for Alpha { }
+
+pub struct Beta { }
+
+impl Beta {
+    pub fn new() -> Self { }
+}
+
+// 3. Free functions
+fn helper() -> f64 { }
+```
 
 ### Impl Block Ordering
 
