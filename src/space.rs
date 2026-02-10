@@ -50,6 +50,18 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_rgb::<Srgb>().blue()
   }
 
+  #[cfg(feature = "space-oklch")]
+  /// Returns the Oklch chroma channel.
+  fn chroma(&self) -> f64 {
+    self.to_oklch().chroma()
+  }
+
+  #[cfg(all(feature = "space-lch", not(feature = "space-oklch")))]
+  /// Returns the CIE LCh chroma channel.
+  fn chroma(&self) -> f64 {
+    self.to_lch().chroma()
+  }
+
   /// Returns the CIE 1931 xy chromaticity coordinates.
   fn chromaticity(&self) -> Xy {
     self.to_xyz().chromaticity()
@@ -67,6 +79,26 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Decreases alpha in place by the given amount on a 0.0 to 1.0 scale.
   fn decrement_alpha(&mut self, amount: impl Into<Component>) {
     self.set_alpha(self.with_alpha_decremented_by(amount).alpha())
+  }
+
+  #[cfg(any(feature = "space-oklch", feature = "space-lch"))]
+  /// Decreases chroma in place by the given amount.
+  fn decrement_chroma(&mut self, amount: impl Into<Component>) {
+    self.set_components(self.with_chroma_decremented_by(amount).components())
+  }
+
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  /// Decreases hue in place by the given amount in degrees.
+  fn decrement_hue(&mut self, amount: impl Into<Component>) {
+    self.set_components(self.with_hue_decremented_by(amount).components())
   }
 
   /// Decreases luminance in place by the given amount.
@@ -111,9 +143,101 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_rgb::<Srgb>().green()
   }
 
+  #[cfg(feature = "space-oklch")]
+  /// Returns the Oklch hue channel.
+  fn hue(&self) -> f64 {
+    self.to_oklch().hue()
+  }
+
+  #[cfg(all(feature = "space-lch", not(feature = "space-oklch")))]
+  /// Returns the CIE LCh hue channel.
+  fn hue(&self) -> f64 {
+    self.to_lch().hue()
+  }
+
+  #[cfg(all(feature = "space-okhsl", not(any(feature = "space-oklch", feature = "space-lch"))))]
+  /// Returns the Okhsl hue channel.
+  fn hue(&self) -> f64 {
+    self.to_okhsl().hue()
+  }
+
+  #[cfg(all(
+    feature = "space-okhsv",
+    not(any(feature = "space-oklch", feature = "space-lch", feature = "space-okhsl"))
+  ))]
+  /// Returns the Okhsv hue channel.
+  fn hue(&self) -> f64 {
+    self.to_okhsv().hue()
+  }
+
+  #[cfg(all(
+    feature = "space-hsl",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-okhsl",
+      feature = "space-okhsv"
+    ))
+  ))]
+  /// Returns the HSL hue channel.
+  fn hue(&self) -> f64 {
+    self.to_hsl().hue()
+  }
+
+  #[cfg(all(
+    feature = "space-hsv",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-hsl"
+    ))
+  ))]
+  /// Returns the HSV hue channel.
+  fn hue(&self) -> f64 {
+    self.to_hsv().hue()
+  }
+
+  #[cfg(all(
+    feature = "space-hwb",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-hsl",
+      feature = "space-hsv"
+    ))
+  ))]
+  /// Returns the HWB hue channel.
+  fn hue(&self) -> f64 {
+    self.to_hwb().hue()
+  }
+
   /// Increases alpha in place by the given amount on a 0.0 to 1.0 scale.
   fn increment_alpha(&mut self, amount: impl Into<Component>) {
     self.set_alpha(self.with_alpha_incremented_by(amount).alpha())
+  }
+
+  #[cfg(any(feature = "space-oklch", feature = "space-lch"))]
+  /// Increases chroma in place by the given amount.
+  fn increment_chroma(&mut self, amount: impl Into<Component>) {
+    self.set_components(self.with_chroma_incremented_by(amount).components())
+  }
+
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  /// Increases hue in place by the given amount in degrees.
+  fn increment_hue(&mut self, amount: impl Into<Component>) {
+    self.set_components(self.with_hue_incremented_by(amount).components())
   }
 
   /// Increases luminance in place by the given amount.
@@ -152,6 +276,26 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.set_alpha(self.with_alpha_scaled_by(factor).alpha())
   }
 
+  #[cfg(any(feature = "space-oklch", feature = "space-lch"))]
+  /// Scales chroma in place by the given factor.
+  fn scale_chroma(&mut self, factor: impl Into<Component>) {
+    self.set_components(self.with_chroma_scaled_by(factor).components())
+  }
+
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  /// Scales hue in place by the given factor.
+  fn scale_hue(&mut self, factor: impl Into<Component>) {
+    self.set_components(self.with_hue_scaled_by(factor).components())
+  }
+
   /// Scales luminance in place by the given factor.
   fn scale_luminance(&mut self, factor: impl Into<Component>) {
     self.set_components(self.with_luminance_scaled_by(factor).components())
@@ -165,8 +309,28 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Sets the alpha value in place on a 0.0 to 1.0 scale.
   fn set_alpha(&mut self, alpha: impl Into<Component>);
 
+  #[cfg(any(feature = "space-oklch", feature = "space-lch"))]
+  /// Sets the chroma to the given value in place.
+  fn set_chroma(&mut self, chroma: impl Into<Component>) {
+    self.set_components(self.with_chroma(chroma).components())
+  }
+
   /// Sets the color's components from an array.
   fn set_components(&mut self, components: [impl Into<Component> + Clone; N]);
+
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  /// Sets the hue to the given value in degrees in place.
+  fn set_hue(&mut self, hue: impl Into<Component>) {
+    self.set_components(self.with_hue(hue).components())
+  }
 
   /// Sets the luminance to the given value in place.
   fn set_luminance(&mut self, luminance: impl Into<Component>) {
@@ -214,10 +378,16 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_rgb::<Srgb>().to_hwb().with_alpha(self.alpha())
   }
 
-  /// Converts to the CIE L*a*b* color space.
   #[cfg(feature = "space-lab")]
+  /// Converts to the CIE L*a*b* color space.
   fn to_lab(&self) -> Lab {
     Lab::from(self.to_xyz()).with_alpha(self.alpha())
+  }
+
+  #[cfg(feature = "space-lch")]
+  /// Converts to the CIE LCh color space (cylindrical form of L*a*b*).
+  fn to_lch(&self) -> Lch {
+    self.to_lab().to_lch().with_alpha(self.alpha())
   }
 
   /// Converts to the LMS cone response space.
@@ -294,6 +464,150 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns a new color with alpha scaled by the given factor.
   fn with_alpha_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_alpha(Component::new((self.alpha() * factor.into().0).clamp(0.0, 1.0)))
+  }
+
+  #[cfg(feature = "space-oklch")]
+  /// Returns a new color with the given Oklch chroma.
+  fn with_chroma(&self, chroma: impl Into<Component>) -> Self {
+    Self::from(self.to_oklch().with_chroma(chroma).to_xyz())
+  }
+
+  #[cfg(all(feature = "space-lch", not(feature = "space-oklch")))]
+  /// Returns a new color with the given CIE LCh chroma.
+  fn with_chroma(&self, chroma: impl Into<Component>) -> Self {
+    Self::from(self.to_lch().with_chroma(chroma).to_xyz())
+  }
+
+  #[cfg(any(feature = "space-oklch", feature = "space-lch"))]
+  /// Returns a new color with chroma decreased by the given amount.
+  fn with_chroma_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_chroma(self.chroma() - amount.into().0)
+  }
+
+  #[cfg(any(feature = "space-oklch", feature = "space-lch"))]
+  /// Returns a new color with chroma increased by the given amount.
+  fn with_chroma_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_chroma(self.chroma() + amount.into().0)
+  }
+
+  #[cfg(any(feature = "space-oklch", feature = "space-lch"))]
+  /// Returns a new color with chroma scaled by the given factor.
+  fn with_chroma_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    self.with_chroma(self.chroma() * factor.into().0)
+  }
+
+  #[cfg(feature = "space-oklch")]
+  /// Returns a new color with the given Oklch hue in degrees.
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_oklch().with_hue(hue).to_xyz())
+  }
+
+  #[cfg(all(feature = "space-lch", not(feature = "space-oklch")))]
+  /// Returns a new color with the given CIE LCh hue in degrees.
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_lch().with_hue(hue).to_xyz())
+  }
+
+  #[cfg(all(feature = "space-okhsl", not(any(feature = "space-oklch", feature = "space-lch"))))]
+  /// Returns a new color with the given Okhsl hue in degrees.
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_okhsl().with_hue(hue).to_xyz())
+  }
+
+  #[cfg(all(
+    feature = "space-okhsv",
+    not(any(feature = "space-oklch", feature = "space-lch", feature = "space-okhsl"))
+  ))]
+  /// Returns a new color with the given Okhsv hue in degrees.
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_okhsv().with_hue(hue).to_xyz())
+  }
+
+  #[cfg(all(
+    feature = "space-hsl",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-okhsl",
+      feature = "space-okhsv"
+    ))
+  ))]
+  /// Returns a new color with the given HSL hue in degrees.
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_hsl().with_hue(hue).to_xyz())
+  }
+
+  #[cfg(all(
+    feature = "space-hsv",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-hsl"
+    ))
+  ))]
+  /// Returns a new color with the given HSV hue in degrees.
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_hsv().with_hue(hue).to_xyz())
+  }
+
+  #[cfg(all(
+    feature = "space-hwb",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-hsl",
+      feature = "space-hsv"
+    ))
+  ))]
+  /// Returns a new color with the given HWB hue in degrees.
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_hwb().with_hue(hue).to_xyz())
+  }
+
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  /// Returns a new color with hue decreased by the given amount in degrees.
+  fn with_hue_decremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_hue(self.hue() - amount.into().0)
+  }
+
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  /// Returns a new color with hue increased by the given amount in degrees.
+  fn with_hue_incremented_by(&self, amount: impl Into<Component>) -> Self {
+    self.with_hue(self.hue() + amount.into().0)
+  }
+
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  /// Returns a new color with hue scaled by the given factor.
+  fn with_hue_scaled_by(&self, factor: impl Into<Component>) -> Self {
+    self.with_hue(self.hue() * factor.into().0)
   }
 
   /// Returns a new color with the given luminance, preserving chromaticity.

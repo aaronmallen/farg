@@ -15,6 +15,8 @@ use crate::space::Hsv;
 use crate::space::Hwb;
 #[cfg(feature = "space-lab")]
 use crate::space::Lab;
+#[cfg(feature = "space-lch")]
+use crate::space::Lch;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -564,6 +566,13 @@ where
 impl From<Lab> for Xyz {
   fn from(lab: Lab) -> Self {
     lab.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-lch")]
+impl From<Lch> for Xyz {
+  fn from(lch: Lch) -> Self {
+    lch.to_xyz()
   }
 }
 

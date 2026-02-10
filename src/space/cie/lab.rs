@@ -13,6 +13,8 @@ use crate::space::Hsl;
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
 use crate::space::Hwb;
+#[cfg(feature = "space-lch")]
+use crate::space::Lch;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -197,6 +199,16 @@ impl Lab {
     let z = zn * lab_f_inv(fz);
 
     Xyz::new(x, y, z).with_context(self.context).with_alpha(self.alpha)
+  }
+
+  /// Converts to the CIE LCh color space (cylindrical form).
+  #[cfg(feature = "space-lch")]
+  pub fn to_lch(&self) -> Lch {
+    let [l, a, b] = self.components();
+    let c = (a * a + b * b).sqrt();
+    let h = b.atan2(a).to_degrees();
+
+    Lch::new(l, c, h).with_context(self.context).with_alpha(self.alpha)
   }
 
   /// Returns a new color with the given a\* value.
@@ -417,6 +429,13 @@ where
 {
   fn from(hwb: Hwb<S>) -> Self {
     hwb.to_lab()
+  }
+}
+
+#[cfg(feature = "space-lch")]
+impl From<Lch> for Lab {
+  fn from(lch: Lch) -> Self {
+    lch.to_lab()
   }
 }
 

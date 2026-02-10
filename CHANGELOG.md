@@ -13,6 +13,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
   with `alpha()`, `set_alpha()`, `with_alpha()`, `opacity()`, `set_opacity()`, `with_opacity()`, and
   increment/decrement/scale variants on the `ColorSpace` trait
 - Add `Lab` (CIE 1976 L\*a\*b\*) color space with full conversion support, feature-gated behind `space-lab`
+- Add `LCh` (CIE 1976 L\*C\*h\*) color space (cylindrical form of Lab) with full conversion support,
+  feature-gated behind `space-lch`
 - Add `Oklab` perceptual color space with full conversion support, feature-gated behind `space-oklab`
 - Add `Oklch` perceptual color space (cylindrical form of Oklab) with full conversion support,
   feature-gated behind `space-oklch`
@@ -20,6 +22,9 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 - Add `Okhsv` perceptual color space with full conversion support, feature-gated behind `space-okhsv`
 - Add alpha compositing on `Rgb` via `flatten_alpha()`, `flatten_alpha_against()`, and their `with_*` builder variants
 - Add `Rgb::BLACK` and `Rgb::WHITE` associated constants
+- Add `hue()` and `chroma()` accessors to the `ColorSpace` trait with full mutation API
+  (`set_hue`, `set_chroma`, `with_hue`, `with_chroma`, and increment/decrement/scale variants),
+  feature-gated with a priority chain across cylindrical and perceptual color spaces
 
 ### Changed
 
