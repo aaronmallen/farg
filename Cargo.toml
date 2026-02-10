@@ -90,6 +90,7 @@ all-spaces = [
   "space-hsl",
   "space-hsv",
   "space-hwb",
+  "space-lab",
   "space-oklab-family",
 ]
 cat-bradford = []
@@ -271,6 +272,7 @@ space-hsb = ["space-hsv"]
 space-hsl = []
 space-hsv = []
 space-hwb = []
+space-lab = []
 space-okhsl = ["space-oklab"]
 space-okhsv = ["space-oklab"]
 space-oklab = []

@@ -13,6 +13,8 @@ use crate::space::Hsl;
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
 use crate::space::Hwb;
+#[cfg(feature = "space-lab")]
+use crate::space::Lab;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-oklch")]
@@ -570,6 +572,13 @@ where
 {
   fn from(hwb: Hwb<S>) -> Self {
     hwb.to_okhsv()
+  }
+}
+
+#[cfg(feature = "space-lab")]
+impl From<Lab> for Okhsv {
+  fn from(lab: Lab) -> Self {
+    lab.to_okhsv()
   }
 }
 

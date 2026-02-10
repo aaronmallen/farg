@@ -13,6 +13,8 @@ use crate::space::Hsl;
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
 use crate::space::Hwb;
+#[cfg(feature = "space-lab")]
+use crate::space::Lab;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -265,7 +267,7 @@ impl Oklab {
       let v = Self::toe(l);
       return Okhsv::new(h * 360.0, 0.0, v * 100.0).with_alpha(self.alpha);
     }
-    
+
     let tv = l + c * (1.0 - l_cusp) / c_cusp;
     let v = Self::toe(tv);
     let s = if tv > 1e-10 { (c / (tv * c_cusp)).min(1.0) } else { 0.0 };
@@ -545,6 +547,13 @@ where
 {
   fn from(hwb: Hwb<S>) -> Self {
     hwb.to_oklab()
+  }
+}
+
+#[cfg(feature = "space-lab")]
+impl From<Lab> for Oklab {
+  fn from(lab: Lab) -> Self {
+    lab.to_oklab()
   }
 }
 

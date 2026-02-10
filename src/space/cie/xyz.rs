@@ -13,6 +13,8 @@ use crate::space::Hsl;
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
 use crate::space::Hwb;
+#[cfg(feature = "space-lab")]
+use crate::space::Lab;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -232,6 +234,22 @@ impl Xyz {
 
   pub fn set_z(&mut self, z: impl Into<Component>) {
     self.z = z.into();
+  }
+
+  /// Converts to the CIE L*a*b* color space.
+  #[cfg(feature = "space-lab")]
+  pub fn to_lab(&self) -> Lab {
+    use crate::space::cie::lab::lab_f;
+
+    let adapted = self.adapt_to(Lab::DEFAULT_CONTEXT);
+    let [xn, yn, zn] = Lab::DEFAULT_CONTEXT.reference_white().components();
+    let [x, y, z] = adapted.components();
+
+    let l = 116.0 * lab_f(y / yn) - 16.0;
+    let a = 500.0 * (lab_f(x / xn) - lab_f(y / yn));
+    let b = 200.0 * (lab_f(y / yn) - lab_f(z / zn));
+
+    Lab::new(l, a, b).with_alpha(self.alpha)
   }
 
   /// Converts to the LMS cone response space using the context's CAT matrix.
@@ -539,6 +557,13 @@ where
 {
   fn from(hwb: Hwb<S>) -> Self {
     hwb.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-lab")]
+impl From<Lab> for Xyz {
+  fn from(lab: Lab) -> Self {
+    lab.to_xyz()
   }
 }
 
