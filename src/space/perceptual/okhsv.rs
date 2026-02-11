@@ -22,6 +22,8 @@ use crate::space::Lch;
 use crate::space::Luv;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
+#[cfg(feature = "space-okhwb")]
+use crate::space::Okhwb;
 #[cfg(feature = "space-oklch")]
 use crate::space::Oklch;
 use crate::{
@@ -231,6 +233,20 @@ impl Okhsv {
   /// Sets the value from a percentage (0-100%).
   pub fn set_value(&mut self, value: impl Into<Component>) {
     self.v = value.into() / 100.0;
+  }
+
+  #[cfg(feature = "space-okhwb")]
+  /// Converts to the Okhwb perceptual color space.
+  ///
+  /// Uses the standard HSV-to-HWB reparameterization:
+  /// W = (1 - S) * V, B = 1 - V.
+  pub fn to_okhwb(&self) -> Okhwb {
+    let [h, s, v] = self.components();
+
+    let w = (1.0 - s) * v;
+    let b = 1.0 - v;
+
+    Okhwb::new(h * 360.0, w * 100.0, b * 100.0).with_alpha(self.alpha)
   }
 
   /// Converts to the Oklab perceptual color space.
@@ -611,6 +627,13 @@ impl From<Lms> for Okhsv {
 impl From<Okhsl> for Okhsv {
   fn from(okhsl: Okhsl) -> Self {
     okhsl.to_okhsv()
+  }
+}
+
+#[cfg(feature = "space-okhwb")]
+impl From<Okhwb> for Okhsv {
+  fn from(okhwb: Okhwb) -> Self {
+    okhwb.to_okhsv()
   }
 }
 
@@ -1238,6 +1261,57 @@ mod test {
       assert!(result.h().is_finite());
       assert!(result.s().is_finite());
       assert!(result.v().is_finite());
+    }
+  }
+
+  #[cfg(feature = "space-okhwb")]
+  mod to_okhwb {
+    use super::*;
+
+    #[test]
+    fn it_converts_to_okhwb() {
+      let okhsv = Okhsv::new(210.0, 80.0, 60.0);
+      let okhwb = okhsv.to_okhwb();
+
+      assert!((okhwb.hue() - 210.0).abs() < 1e-10);
+      assert!((okhwb.w() - (1.0 - 0.8) * 0.6).abs() < 1e-10);
+      assert!((okhwb.b() - (1.0 - 0.6)).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_black() {
+      let okhsv = Okhsv::new(0.0, 0.0, 0.0);
+      let okhwb = okhsv.to_okhwb();
+
+      assert!((okhwb.blackness() - 100.0).abs() < 1e-10);
+      assert!(okhwb.whiteness().abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_white() {
+      let okhsv = Okhsv::new(0.0, 0.0, 100.0);
+      let okhwb = okhsv.to_okhwb();
+
+      assert!((okhwb.whiteness() - 100.0).abs() < 1e-10);
+      assert!(okhwb.blackness().abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_roundtrips_through_okhwb() {
+      let original = Okhsv::new(210.0, 80.0, 60.0);
+      let roundtrip = Okhsv::from(original.to_okhwb());
+
+      assert!((original.h() - roundtrip.h()).abs() < 1e-10);
+      assert!((original.s() - roundtrip.s()).abs() < 1e-10);
+      assert!((original.v() - roundtrip.v()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let okhsv = Okhsv::new(120.0, 50.0, 50.0).with_alpha(0.3);
+      let okhwb = okhsv.to_okhwb();
+
+      assert!((okhwb.alpha() - 0.3).abs() < 1e-10);
     }
   }
 

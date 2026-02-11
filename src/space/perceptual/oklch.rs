@@ -23,6 +23,8 @@ use crate::space::Luv;
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
 use crate::space::Okhsv;
+#[cfg(feature = "space-okhwb")]
+use crate::space::Okhwb;
 use crate::{
   ColorimetricContext, Illuminant, Observer,
   component::Component,
@@ -548,6 +550,13 @@ impl From<Okhsl> for Oklch {
 impl From<Okhsv> for Oklch {
   fn from(okhsv: Okhsv) -> Self {
     okhsv.to_oklch()
+  }
+}
+
+#[cfg(feature = "space-okhwb")]
+impl From<Okhwb> for Oklch {
+  fn from(okhwb: Okhwb) -> Self {
+    okhwb.to_oklch()
   }
 }
 

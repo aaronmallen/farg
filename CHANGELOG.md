@@ -9,6 +9,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add `Okhwb` perceptual color space (HWB model in the Oklab framework) with full conversion support,
+  feature-gated behind `space-okhwb`
 - Add `Luv` (CIE 1976 L\*u\*v\*) color space with full conversion support, feature-gated behind `space-luv`
 - Add `chromaticity_rg()`, `chromaticity_upvp()`, and `chromaticity_uv()` convenience methods to the `ColorSpace`
   trait, feature-gated behind `chromaticity-rg`, `chromaticity-upvp`, and `chromaticity-uv` respectively

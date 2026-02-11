@@ -23,6 +23,8 @@ use crate::space::Luv;
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
 use crate::space::Okhsv;
+#[cfg(feature = "space-okhwb")]
+use crate::space::Okhwb;
 #[cfg(feature = "space-oklch")]
 use crate::space::Oklch;
 use crate::{
@@ -234,6 +236,12 @@ impl Oklab {
     Okhsv::new(h * 360.0, s * 100.0, v * 100.0).with_alpha(self.alpha)
   }
 
+  #[cfg(feature = "space-okhwb")]
+  /// Converts to the Okhwb perceptual color space (HWB form).
+  pub fn to_okhwb(&self) -> Okhwb {
+    self.to_okhsv().to_okhwb()
+  }
+
   #[cfg(feature = "space-oklch")]
   /// Converts to the Oklch perceptual color space (cylindrical form).
   pub fn to_oklch(&self) -> Oklch {
@@ -412,6 +420,11 @@ impl ColorSpace<3> for Oklab {
     self.to_okhsv()
   }
 
+  #[cfg(feature = "space-okhwb")]
+  fn to_okhwb(&self) -> Okhwb {
+    self.to_okhwb()
+  }
+
   fn to_xyz(&self) -> Xyz {
     self.to_xyz()
   }
@@ -547,6 +560,13 @@ impl From<Okhsl> for Oklab {
 impl From<Okhsv> for Oklab {
   fn from(okhsv: Okhsv) -> Self {
     okhsv.to_oklab()
+  }
+}
+
+#[cfg(feature = "space-okhwb")]
+impl From<Okhwb> for Oklab {
+  fn from(okhwb: Okhwb) -> Self {
+    okhwb.to_oklab()
   }
 }
 
@@ -1131,6 +1151,46 @@ mod test {
       let okhsv = oklab.to_okhsv();
 
       assert!((okhsv.alpha() - 0.3).abs() < 1e-10);
+    }
+  }
+
+  #[cfg(feature = "space-okhwb")]
+  mod to_okhwb {
+    use super::*;
+
+    #[test]
+    fn it_converts_to_okhwb() {
+      let oklab = Oklab::new(0.5, 0.0, 0.0);
+      let okhwb = oklab.to_okhwb();
+
+      assert!(okhwb.h().is_finite());
+      assert!(okhwb.w().is_finite());
+      assert!(okhwb.b().is_finite());
+    }
+
+    #[test]
+    fn it_converts_black() {
+      let oklab = Oklab::new(0.0, 0.0, 0.0);
+      let okhwb = oklab.to_okhwb();
+
+      assert!((okhwb.blackness() - 100.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_converts_white() {
+      let oklab = Oklab::new(1.0, 0.0, 0.0);
+      let okhwb = oklab.to_okhwb();
+
+      assert!((okhwb.whiteness() - 100.0).abs() < 1e-3);
+      assert!(okhwb.blackness().abs() < 1e-3);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let oklab = Oklab::new(0.5, 0.1, -0.1).with_alpha(0.5);
+      let okhwb = oklab.to_okhwb();
+
+      assert!((okhwb.alpha() - 0.5).abs() < 1e-10);
     }
   }
 

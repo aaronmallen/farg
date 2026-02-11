@@ -20,6 +20,8 @@ use crate::space::Luv;
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
 use crate::space::Okhsv;
+#[cfg(feature = "space-okhwb")]
+use crate::space::Okhwb;
 #[cfg(feature = "space-oklab")]
 use crate::space::Oklab;
 #[cfg(feature = "space-oklch")]
@@ -689,6 +691,16 @@ where
 {
   fn from(okhsv: Okhsv) -> Self {
     okhsv.to_rgb::<S>().to_hsl()
+  }
+}
+
+#[cfg(feature = "space-okhwb")]
+impl<S> From<Okhwb> for Hsl<S>
+where
+  S: RgbSpec,
+{
+  fn from(okhwb: Okhwb) -> Self {
+    okhwb.to_rgb::<S>().to_hsl()
   }
 }
 
