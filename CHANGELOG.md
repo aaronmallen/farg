@@ -11,6 +11,13 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 - Add `chromaticity_rg()`, `chromaticity_upvp()`, and `chromaticity_uv()` convenience methods to the `ColorSpace`
   trait, feature-gated behind `chromaticity-rg`, `chromaticity-upvp`, and `chromaticity-uv` respectively
+- Add `FairchildModifier` for deriving new observers with adjusted physiological parameters (age-related lens
+  yellowing, macular pigment density, rod intrusion, S-cone field-size sensitivity) via `Observer::modifier()`
+- Re-export `ObserverBuilder` and `FairchildModifier` from the crate root
+
+### Changed
+
+- `ObserverBuilder` now accepts non-`'static` references, allowing construction from dynamically generated data
 
 ## [v0.3.0] - 2026-02-10
 

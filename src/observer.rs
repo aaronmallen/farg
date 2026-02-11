@@ -9,12 +9,15 @@ mod cie_1964_10d;
 mod cie_2006_10d;
 #[cfg(feature = "observer-cie-2006-2d")]
 mod cie_2006_2d;
+mod fairchild_modifier;
 #[cfg(feature = "observer-stockman-sharpe-10d")]
 mod stockman_sharpe_10d;
 #[cfg(feature = "observer-stockman-sharpe-2d")]
 mod stockman_sharpe_2d;
 
 use std::fmt::{Display, Formatter, Result as FmtResult};
+
+pub use fairchild_modifier::Modifier;
 
 use crate::{
   chromaticity::Xy,
@@ -28,18 +31,18 @@ use crate::{
 /// At minimum, color matching function (CMF) data must be provided. Chromaticity
 /// coordinates and cone fundamentals are automatically derived from the CMF if not
 /// explicitly set.
-pub struct Builder {
+pub struct Builder<'a> {
   age: Option<u8>,
-  chromaticity_coordinates: Option<&'static [(u32, [f64; 2])]>,
-  cmf: Option<&'static [(u32, [f64; 3])]>,
-  cone_fundamentals: Option<&'static [(u32, [f64; 3])]>,
-  name: &'static str,
+  chromaticity_coordinates: Option<&'a [(u32, [f64; 2])]>,
+  cmf: Option<&'a [(u32, [f64; 3])]>,
+  cone_fundamentals: Option<&'a [(u32, [f64; 3])]>,
+  name: &'a str,
   visual_field: f64,
 }
 
-impl Builder {
+impl<'a> Builder<'a> {
   /// Creates a new observer builder with the given name and visual field angle in degrees.
-  pub fn new(name: &'static str, visual_field: impl Into<Component>) -> Self {
+  pub fn new(name: &'a str, visual_field: impl Into<Component>) -> Self {
     Self {
       age: None,
       chromaticity_coordinates: None,
@@ -82,8 +85,10 @@ impl Builder {
       None => ConeFundamentals::from(cmf),
     };
 
+    let name: &'static str = Box::leak(self.name.to_owned().into_boxed_str());
+
     Ok(Observer::new(
-      self.name,
+      name,
       self.visual_field,
       cmf,
       chromaticity_coordinates,
@@ -99,24 +104,24 @@ impl Builder {
   }
 
   /// Sets explicit chromaticity coordinate data, overriding auto-derivation from CMF.
-  pub fn with_chromaticity_coordinates(mut self, data: &'static [(u32, [f64; 2])]) -> Self {
+  pub fn with_chromaticity_coordinates(mut self, data: &'a [(u32, [f64; 2])]) -> Self {
     self.chromaticity_coordinates = Some(data);
     self
   }
 
   /// Sets the color matching function data.
-  pub fn with_cmf(mut self, data: &'static [(u32, [f64; 3])]) -> Self {
+  pub fn with_cmf(mut self, data: &'a [(u32, [f64; 3])]) -> Self {
     self.cmf = Some(data);
     self
   }
 
   /// Alias for [`Self::with_cmf`].
-  pub fn with_color_matching_function(self, data: &'static [(u32, [f64; 3])]) -> Self {
+  pub fn with_color_matching_function(self, data: &'a [(u32, [f64; 3])]) -> Self {
     self.with_cmf(data)
   }
 
   /// Sets explicit cone fundamentals data, overriding auto-derivation from CMF.
-  pub fn with_cone_fundamentals(mut self, data: &'static [(u32, [f64; 3])]) -> Self {
+  pub fn with_cone_fundamentals(mut self, data: &'a [(u32, [f64; 3])]) -> Self {
     self.cone_fundamentals = Some(data);
     self
   }
@@ -132,13 +137,13 @@ pub struct Observer {
   chromaticity_coordinates: ChromaticityCoordinates,
   cmf: Cmf,
   cone_fundamentals: ConeFundamentals,
-  name: &'static str,
+  pub(crate) name: &'static str,
   visual_field: f64,
 }
 
 impl Observer {
   /// Creates a new [`Builder`] for constructing a custom observer.
-  pub fn builder(name: &'static str, visual_field: f64) -> Builder {
+  pub fn builder<'a>(name: &'a str, visual_field: f64) -> Builder<'a> {
     Builder::new(name, visual_field)
   }
 
@@ -184,6 +189,15 @@ impl Observer {
   /// Returns the cone fundamentals (LMS sensitivity data).
   pub fn cone_fundamentals(&self) -> &ConeFundamentals {
     &self.cone_fundamentals
+  }
+
+  /// Creates a [`Modifier`] for deriving a new observer with adjusted physiological parameters.
+  ///
+  /// The modifier applies Fairchild's observer metamerism model to this observer's CMF data.
+  /// Chain `with_*` methods to set target viewing conditions, then call [`Modifier::modify`]
+  /// to produce the adjusted observer.
+  pub fn modifier(&self) -> Modifier {
+    Modifier::new(*self)
   }
 
   /// Returns the formatted observer name (e.g., "CIE 1931 2°").
@@ -312,6 +326,17 @@ mod test {
         let observer = Builder::new("CIE 1931", 2.0).with_cmf(TEST_CMF).build().unwrap();
 
         assert_eq!(format!("{}", observer), "CIE 1931 2°");
+      }
+    }
+
+    mod modifier {
+      use super::*;
+
+      #[test]
+      fn it_returns_modifier_from_observer() {
+        let modified = Observer::CIE_1931_2D.modifier().with_visual_field(10.0).modify();
+
+        assert!(modified.name().contains("(Modified)"));
       }
     }
 
