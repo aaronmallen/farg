@@ -17,6 +17,8 @@ use crate::space::Hwb;
 use crate::space::Lab;
 #[cfg(feature = "space-lch")]
 use crate::space::Lch;
+#[cfg(feature = "space-luv")]
+use crate::space::Luv;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -548,6 +550,13 @@ impl From<Lab> for Lms {
 impl From<Lch> for Lms {
   fn from(lch: Lch) -> Self {
     lch.to_lms()
+  }
+}
+
+#[cfg(feature = "space-luv")]
+impl From<Luv> for Lms {
+  fn from(luv: Luv) -> Self {
+    luv.to_lms()
   }
 }
 

@@ -17,6 +17,8 @@ use crate::space::Hwb;
 use crate::space::Lab;
 #[cfg(feature = "space-lch")]
 use crate::space::Lch;
+#[cfg(feature = "space-luv")]
+use crate::space::Luv;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -252,6 +254,33 @@ impl Xyz {
     let b = 200.0 * (lab_f(y / yn) - lab_f(z / zn));
 
     Lab::new(l, a, b).with_alpha(self.alpha)
+  }
+
+  /// Converts to the CIE L*u*v* color space.
+  #[cfg(feature = "space-luv")]
+  pub fn to_luv(&self) -> Luv {
+    use crate::space::cie::luv::{EPSILON, KAPPA, luv_u_prime, luv_v_prime};
+
+    let adapted = self.adapt_to(Luv::DEFAULT_CONTEXT);
+    let [xn, yn, zn] = Luv::DEFAULT_CONTEXT.reference_white().components();
+    let [x, y, z] = adapted.components();
+
+    let u_prime = luv_u_prime(x, y, z);
+    let v_prime = luv_v_prime(x, y, z);
+    let u_prime_n = luv_u_prime(xn, yn, zn);
+    let v_prime_n = luv_v_prime(xn, yn, zn);
+
+    let yr = y / yn;
+    let l = if yr > EPSILON {
+      116.0 * yr.cbrt() - 16.0
+    } else {
+      KAPPA * yr
+    };
+
+    let u = 13.0 * l * (u_prime - u_prime_n);
+    let v = 13.0 * l * (v_prime - v_prime_n);
+
+    Luv::new(l, u, v).with_alpha(self.alpha)
   }
 
   /// Converts to the LMS cone response space using the context's CAT matrix.
@@ -573,6 +602,13 @@ impl From<Lab> for Xyz {
 impl From<Lch> for Xyz {
   fn from(lch: Lch) -> Self {
     lch.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-luv")]
+impl From<Luv> for Xyz {
+  fn from(luv: Luv) -> Self {
+    luv.to_xyz()
   }
 }
 

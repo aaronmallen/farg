@@ -408,6 +408,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     Lab::from(self.to_xyz()).with_alpha(self.alpha())
   }
 
+  #[cfg(feature = "space-luv")]
+  /// Converts to the CIE L*u*v* color space.
+  fn to_luv(&self) -> Luv {
+    Luv::from(self.to_xyz()).with_alpha(self.alpha())
+  }
+
   #[cfg(feature = "space-lch")]
   /// Converts to the CIE LCh color space (cylindrical form of L*a*b*).
   fn to_lch(&self) -> Lch {

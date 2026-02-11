@@ -16,6 +16,8 @@ use crate::space::Hwb;
 use crate::space::Lab;
 #[cfg(feature = "space-lch")]
 use crate::space::Lch;
+#[cfg(feature = "space-luv")]
+use crate::space::Luv;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -605,6 +607,16 @@ where
 {
   fn from(lch: Lch) -> Self {
     lch.to_rgb::<S>().to_cmy()
+  }
+}
+
+#[cfg(feature = "space-luv")]
+impl<S> From<Luv> for Cmy<S>
+where
+  S: RgbSpec,
+{
+  fn from(luv: Luv) -> Self {
+    luv.to_rgb::<S>().to_cmy()
   }
 }
 

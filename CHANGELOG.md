@@ -9,6 +9,7 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add `Luv` (CIE 1976 L\*u\*v\*) color space with full conversion support, feature-gated behind `space-luv`
 - Add `chromaticity_rg()`, `chromaticity_upvp()`, and `chromaticity_uv()` convenience methods to the `ColorSpace`
   trait, feature-gated behind `chromaticity-rg`, `chromaticity-upvp`, and `chromaticity-uv` respectively
 - Add `FairchildModifier` for deriving new observers with adjusted physiological parameters (age-related lens
