@@ -105,44 +105,46 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 use crate::{error::Error, spectral::Spd};
 
 /// Builder for constructing custom [`Illuminant`] instances.
-pub struct Builder {
-  kind: Option<IlluminantType>,
-  name: &'static str,
-  spd: Option<&'static [(u32, f64)]>,
+pub struct Builder<'a> {
+  kind: IlluminantType,
+  name: &'a str,
+  spd: Option<&'a [(u32, f64)]>,
 }
 
-impl Builder {
-  /// Creates a new illuminant builder with the given name.
-  pub fn new(name: &'static str) -> Self {
+impl<'a> Builder<'a> {
+  /// Creates a new illuminant builder with the given name and type.
+  pub fn new(name: &'a str, kind: IlluminantType) -> Self {
     Self {
-      kind: None,
+      kind,
       name,
       spd: None,
     }
   }
 
-  /// Builds the illuminant, returning an error if the type or SPD is missing.
+  /// Builds the illuminant, returning an error if the SPD is missing.
   pub fn build(&self) -> Result<Illuminant, Error> {
-    let spd_data = self.spd.ok_or(Error::MissingSpectralPowerDistribution)?;
-    let kind = self.kind.ok_or(Error::MissingIlluminantType)?;
+    let spd_data: Box<[(u32, f64)]> = self
+      .spd
+      .ok_or(Error::MissingSpectralPowerDistribution)?
+      .iter()
+      .copied()
+      .collect();
 
-    Ok(Illuminant::new(self.name, kind, Spd::new(spd_data)))
-  }
-
-  /// Sets the illuminant type.
-  pub fn with_kind(mut self, kind: IlluminantType) -> Self {
-    self.kind = Some(kind);
-    self
+    Ok(Illuminant::new(
+      Box::leak(Box::from(self.name)),
+      self.kind,
+      Spd::new(Box::leak(spd_data)),
+    ))
   }
 
   /// Sets the spectral power distribution data.
-  pub fn with_spd(mut self, spd: &'static [(u32, f64)]) -> Self {
+  pub fn with_spd(mut self, spd: &'a [(u32, f64)]) -> Self {
     self.spd = Some(spd);
     self
   }
 
   /// Alias for [`Self::with_spd`].
-  pub fn with_spectral_power_distribution(self, spd: &'static [(u32, f64)]) -> Self {
+  pub fn with_spectral_power_distribution(self, spd: &'a [(u32, f64)]) -> Self {
     self.with_spd(spd)
   }
 }
@@ -155,16 +157,10 @@ pub struct Illuminant {
   spd: Spd,
 }
 
-impl Display for Illuminant {
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(f, "{}", self.name)
-  }
-}
-
 impl Illuminant {
   /// Creates a new [`Builder`] for constructing a custom illuminant.
-  pub fn builder(name: &'static str) -> Builder {
-    Builder::new(name)
+  pub fn builder<'a>(name: &'a str, kind: IlluminantType) -> Builder<'a> {
+    Builder::new(name, kind)
   }
 
   /// Creates a new illuminant from a name, type, and spectral power distribution.
@@ -194,6 +190,12 @@ impl Illuminant {
   /// Alias for [`Self::spd`].
   pub fn spectral_power_distribution(&self) -> Spd {
     self.spd()
+  }
+}
+
+impl Display for Illuminant {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    write!(f, "{}", self.name)
   }
 }
 
@@ -237,8 +239,7 @@ mod test {
 
       #[test]
       fn it_builds_illuminant_with_kind_and_spd() {
-        let illuminant = Builder::new("Test")
-          .with_kind(IlluminantType::Daylight)
+        let illuminant = Builder::new("Test", IlluminantType::Daylight)
           .with_spd(TEST_SPD)
           .build()
           .unwrap();
@@ -250,8 +251,7 @@ mod test {
 
       #[test]
       fn it_accepts_spectral_power_distribution_alias() {
-        let illuminant = Builder::new("Test")
-          .with_kind(IlluminantType::Fluorescent)
+        let illuminant = Builder::new("Test", IlluminantType::Fluorescent)
           .with_spectral_power_distribution(TEST_SPD)
           .build()
           .unwrap();
@@ -263,18 +263,9 @@ mod test {
       fn it_returns_error_without_spd() {
         use crate::error::Error;
 
-        let result = Builder::new("Test").with_kind(IlluminantType::Daylight).build();
+        let result = Builder::new("Test", IlluminantType::Daylight).build();
 
         assert_eq!(result.unwrap_err(), Error::MissingSpectralPowerDistribution);
-      }
-
-      #[test]
-      fn it_returns_error_without_kind() {
-        use crate::error::Error;
-
-        let result = Builder::new("Test").with_spd(TEST_SPD).build();
-
-        assert_eq!(result.unwrap_err(), Error::MissingIlluminantType);
       }
     }
   }

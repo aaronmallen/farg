@@ -12,8 +12,6 @@ pub enum Error {
   InvalidHexLength { input: String, length: usize },
   /// An observer builder was missing required color matching function data.
   MissingColorMatchingFunction,
-  /// An illuminant builder was missing the required illuminant type.
-  MissingIlluminantType,
   /// An illuminant builder was missing required spectral power distribution data.
   MissingSpectralPowerDistribution,
 }
@@ -31,7 +29,6 @@ impl Display for Error {
         write!(f, "invalid hex length {length} for '{input}', expected 3 or 6")
       }
       Self::MissingColorMatchingFunction => write!(f, "color matching function is required"),
-      Self::MissingIlluminantType => write!(f, "illuminant type is required"),
       Self::MissingSpectralPowerDistribution => write!(f, "spectral power distribution is required"),
     }
   }

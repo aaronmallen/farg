@@ -13,11 +13,18 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
   trait, feature-gated behind `chromaticity-rg`, `chromaticity-upvp`, and `chromaticity-uv` respectively
 - Add `FairchildModifier` for deriving new observers with adjusted physiological parameters (age-related lens
   yellowing, macular pigment density, rod intrusion, S-cone field-size sensitivity) via `Observer::modifier()`
-- Re-export `ObserverBuilder` and `FairchildModifier` from the crate root
+- Re-export `ObserverBuilder`, `IlluminantBuilder`, and `FairchildModifier` from the crate root
 
 ### Changed
 
+- **BREAKING:** `IlluminantBuilder::new` now requires `name` and `IlluminantType` at construction time;
+- `IlluminantBuilder` now accepts non-`'static` references, allowing construction from dynamically generated data
 - `ObserverBuilder` now accepts non-`'static` references, allowing construction from dynamically generated data
+
+### Removed
+
+- **BREAKING:** Remove `Error::MissingIlluminantType` variant (illuminant type is now required at builder construction)
+- **BREAKING:** Remove `with_kind()` from `IlluminantBuilder`
 
 ## [v0.3.0] - 2026-02-10
 

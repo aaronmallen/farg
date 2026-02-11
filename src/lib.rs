@@ -126,7 +126,7 @@ mod spectral;
 pub use chromatic_adaptation_transform::{Cat, ChromaticAdaptationTransform};
 pub use context::ColorimetricContext;
 pub use error::Error;
-pub use illuminant::{Illuminant, IlluminantType};
+pub use illuminant::{Builder as IlluminantBuilder, Illuminant, IlluminantType};
 pub use observer::{Builder as ObserverBuilder, Modifier as FairchildModifier, Observer};
 pub use spectral::{
   ChromaticityCoordinates, Cmf, ColorMatchingFunction, ConeFundamentals, ConeResponse, Spd, SpectralPowerDistribution,
