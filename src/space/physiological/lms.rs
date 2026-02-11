@@ -247,7 +247,7 @@ impl Lms {
 
   /// Converts to CIE XYZ using the inverse of the context's CAT matrix.
   pub fn to_xyz(&self) -> Xyz {
-    Xyz::from(self.context.cat().inverse() * self.components())
+    Xyz::from(self.context.cat().inverse() * *self)
       .with_context(self.context)
       .with_alpha(self.alpha)
   }

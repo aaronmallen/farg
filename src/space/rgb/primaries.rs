@@ -45,7 +45,7 @@ impl RgbPrimaries {
       [r_xyz.z(), g_xyz.z(), b_xyz.z()],
     ]);
 
-    let scaling_vector = primary.inverse() * reference_white.components();
+    let scaling_vector = primary.inverse() * reference_white;
     let scaling = Matrix3::new([
       [scaling_vector[0], 0.0, 0.0],
       [0.0, scaling_vector[1], 0.0],

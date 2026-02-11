@@ -49,7 +49,7 @@ impl Xy {
     S: RgbSpec,
   {
     let xyz = self.to_xyz(1.0);
-    let [r, g, b] = *S::inversed_xyz_matrix() * xyz.components();
+    let [r, g, b] = *S::inversed_xyz_matrix() * xyz;
     let sum = r + g + b;
 
     if sum == 0.0 {
@@ -248,7 +248,7 @@ mod test {
       let xy = Xy::new(0.31271, 0.32902);
       let rg: Rg<Srgb> = xy.to_rg();
       let xyz = xy.to_xyz(1.0);
-      let [r, g, b] = *Srgb::inversed_xyz_matrix() * xyz.components();
+      let [r, g, b] = *Srgb::inversed_xyz_matrix() * xyz;
       let sum = r + g + b;
 
       assert!((rg.r() - r / sum).abs() < 1e-10);

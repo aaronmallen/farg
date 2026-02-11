@@ -3,6 +3,8 @@ use std::{
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
+use crate::space::ColorSpace;
+
 /// A 3x3 matrix for linear algebra operations.
 ///
 /// Used internally for RGB-to-XYZ conversions, chromatic adaptation transforms,
@@ -192,6 +194,17 @@ impl Mul<Matrix3> for [f64; 3] {
       x * m[0][1] + y * m[1][1] + z * m[2][1],
       x * m[0][2] + y * m[1][2] + z * m[2][2],
     ]
+  }
+}
+
+impl<C> Mul<C> for Matrix3
+where
+  C: ColorSpace<3>,
+{
+  type Output = [f64; 3];
+
+  fn mul(self, rhs: C) -> Self::Output {
+    self * rhs.components()
   }
 }
 

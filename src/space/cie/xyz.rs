@@ -256,7 +256,7 @@ impl Xyz {
 
   /// Converts to the LMS cone response space using the context's CAT matrix.
   pub fn to_lms(&self) -> Lms {
-    Lms::from(self.context.cat().matrix() * self.components())
+    Lms::from(self.context.cat().matrix() * *self)
       .with_context(self.context)
       .with_alpha(self.alpha)
   }
@@ -265,7 +265,7 @@ impl Xyz {
   /// Converts to the Oklab perceptual color space.
   pub fn to_oklab(&self) -> Oklab {
     let adapted = self.adapt_to(Oklab::DEFAULT_CONTEXT);
-    let linear_lms = Oklab::LINEAR_XYZ_MATRIX * adapted.components();
+    let linear_lms = Oklab::LINEAR_XYZ_MATRIX * adapted;
     let cube_root_lms = [linear_lms[0].cbrt(), linear_lms[1].cbrt(), linear_lms[2].cbrt()];
     let [l, a, b] = Oklab::LINEAR_LMS_MATRIX * cube_root_lms;
 
@@ -278,7 +278,7 @@ impl Xyz {
     S: RgbSpec,
   {
     let adapted = self.adapt_to(S::CONTEXT);
-    let [r, g, b] = *S::inversed_xyz_matrix() * adapted.components();
+    let [r, g, b] = *S::inversed_xyz_matrix() * adapted;
     LinearRgb::<S>::from_normalized(r, g, b)
       .to_encoded()
       .with_alpha(self.alpha)
