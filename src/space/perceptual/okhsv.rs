@@ -3,6 +3,7 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+use super::oklab::{cusp_for_hue, toe_inv};
 #[cfg(feature = "space-cmy")]
 use crate::space::Cmy;
 #[cfg(feature = "space-cmyk")]
@@ -236,10 +237,10 @@ impl Okhsv {
   /// and V=1, S=0 maps to white. Reducing V scales toward black.
   pub fn to_oklab(&self) -> Oklab {
     let [h, s, v] = self.components();
-    let cusp = Oklab::cusp_for_hue(h);
+    let cusp = cusp_for_hue(h);
     let (l_cusp, c_cusp) = cusp;
 
-    let tv = Oklab::toe_inv(v);
+    let tv = toe_inv(v);
     let lab_l = tv * (1.0 - s * (1.0 - l_cusp));
     let c = tv * s * c_cusp;
 
@@ -683,6 +684,7 @@ impl TryFrom<String> for Okhsv {
 #[cfg(test)]
 mod test {
   use super::*;
+  use crate::space::perceptual::oklab::toe;
 
   mod add {
     use super::*;
@@ -865,7 +867,7 @@ mod test {
       let oklab = Oklab::new(0.5, 0.0, 0.0);
       let okhsv = Okhsv::from(oklab);
 
-      assert!((okhsv.v() - Oklab::toe(0.5)).abs() < 1e-10);
+      assert!((okhsv.v() - toe(0.5)).abs() < 1e-10);
       assert!(okhsv.s() < 1e-3);
     }
 
@@ -1238,7 +1240,7 @@ mod test {
       let okhsv = Okhsv::new(0.0, 0.0, 50.0);
       let oklab = okhsv.to_oklab();
 
-      assert!((oklab.l() - Oklab::toe_inv(0.5)).abs() < 1e-10);
+      assert!((oklab.l() - toe_inv(0.5)).abs() < 1e-10);
       assert!(oklab.a().abs() < 1e-10);
       assert!(oklab.b().abs() < 1e-10);
     }

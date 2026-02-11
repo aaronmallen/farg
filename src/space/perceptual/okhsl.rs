@@ -3,6 +3,7 @@ use std::{
   ops::{Add, Div, Mul, Sub},
 };
 
+use super::oklab::{cusp_for_hue, max_chroma_at_lightness, toe_inv};
 #[cfg(feature = "space-cmy")]
 use crate::space::Cmy;
 #[cfg(feature = "space-cmyk")]
@@ -243,9 +244,9 @@ impl Okhsl {
   /// Converts to the Oklab perceptual color space.
   pub fn to_oklab(&self) -> Oklab {
     let [h, s, l] = self.components();
-    let lab_l = Oklab::toe_inv(l);
-    let cusp = Oklab::cusp_for_hue(h);
-    let max_c = Oklab::max_chroma_at_lightness(cusp, lab_l);
+    let lab_l = toe_inv(l);
+    let cusp = cusp_for_hue(h);
+    let max_c = max_chroma_at_lightness(cusp, lab_l);
     let c = s * max_c;
 
     let h_rad = h * 2.0 * std::f64::consts::PI;
@@ -678,6 +679,7 @@ impl TryFrom<String> for Okhsl {
 #[cfg(test)]
 mod test {
   use super::*;
+  use crate::space::perceptual::oklab::toe;
 
   mod add {
     use super::*;
@@ -860,7 +862,7 @@ mod test {
       let oklab = Oklab::new(0.5, 0.0, 0.0);
       let okhsl = Okhsl::from(oklab);
 
-      assert!((okhsl.l() - Oklab::toe(0.5)).abs() < 1e-10);
+      assert!((okhsl.l() - toe(0.5)).abs() < 1e-10);
       assert!(okhsl.s() < 1e-3);
     }
 
@@ -1255,7 +1257,7 @@ mod test {
       let okhsl = Okhsl::new(0.0, 0.0, 50.0);
       let oklab = okhsl.to_oklab();
 
-      assert!((oklab.l() - Oklab::toe_inv(0.5)).abs() < 1e-10);
+      assert!((oklab.l() - toe_inv(0.5)).abs() < 1e-10);
       assert!(oklab.a().abs() < 1e-10);
       assert!(oklab.b().abs() < 1e-10);
     }

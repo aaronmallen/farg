@@ -95,51 +95,6 @@ impl Oklab {
     }
   }
 
-  /// Finds the cusp (L, C) for a given normalized hue (0.0-1.0).
-  ///
-  /// The cusp is the point of maximum chroma on the sRGB gamut boundary
-  /// for the given hue.
-  pub(crate) fn cusp_for_hue(h: f64) -> (f64, f64) {
-    let h_rad = h * 2.0 * std::f64::consts::PI;
-    let a = h_rad.cos();
-    let b = h_rad.sin();
-
-    let s_cusp = compute_max_saturation(a, b);
-    let rgb = oklab_to_linear_srgb(1.0, s_cusp * a, s_cusp * b);
-    let l_cusp = (1.0 / rgb[0].max(rgb[1]).max(rgb[2])).cbrt();
-    let c_cusp = l_cusp * s_cusp;
-
-    (l_cusp, c_cusp)
-  }
-
-  /// Maximum chroma at a given lightness for a cusp (L_cusp, C_cusp).
-  ///
-  /// Returns the maximum chroma achievable at the given lightness within
-  /// the sRGB gamut for the hue defined by the cusp.
-  pub(crate) fn max_chroma_at_lightness(cusp: (f64, f64), l: f64) -> f64 {
-    let (l_cusp, c_cusp) = cusp;
-
-    if l <= l_cusp {
-      if l_cusp <= 0.0 { 0.0 } else { c_cusp * l / l_cusp }
-    } else if l_cusp >= 1.0 {
-      0.0
-    } else {
-      c_cusp * (1.0 - l) / (1.0 - l_cusp)
-    }
-  }
-
-  /// Maps Oklab lightness to Ok* perceived lightness via the toe function.
-  ///
-  /// Improves perceptual uniformity at the dark end of the lightness range.
-  pub(crate) fn toe(x: f64) -> f64 {
-    0.5 * ((K3 * x) - K1 + ((K3 * x - K1).powi(2) + 4.0 * K2 * K3 * x).sqrt())
-  }
-
-  /// Inverse toe function: maps Ok* perceived lightness to Oklab lightness.
-  pub(crate) fn toe_inv(x: f64) -> f64 {
-    (x * x + K1 * x) / (K3 * (x + K2))
-  }
-
   /// Returns the a (green-red) component.
   pub fn a(&self) -> f64 {
     self.a.0
@@ -239,12 +194,12 @@ impl Oklab {
     let h_rad = b.atan2(a);
     let h = (h_rad / (2.0 * std::f64::consts::PI)).rem_euclid(1.0);
     let c = (a * a + b * b).sqrt();
-    let okhsl_l = Self::toe(l);
+    let okhsl_l = toe(l);
     let s = if c < 1e-4 {
       0.0
     } else {
-      let cusp = Self::cusp_for_hue(h);
-      let max_c = Self::max_chroma_at_lightness(cusp, l);
+      let cusp = cusp_for_hue(h);
+      let max_c = max_chroma_at_lightness(cusp, l);
       if max_c < 1e-10 { 0.0 } else { (c / max_c).min(1.0) }
     };
 
@@ -262,16 +217,16 @@ impl Oklab {
     let h = (h_rad / (2.0 * std::f64::consts::PI)).rem_euclid(1.0);
     let c = (a * a + b * b).sqrt();
 
-    let cusp = Self::cusp_for_hue(h);
+    let cusp = cusp_for_hue(h);
     let (l_cusp, c_cusp) = cusp;
 
     if c_cusp < 1e-10 || l < 1e-10 {
-      let v = Self::toe(l);
+      let v = toe(l);
       return Okhsv::new(h * 360.0, 0.0, v * 100.0).with_alpha(self.alpha);
     }
 
     let tv = l + c * (1.0 - l_cusp) / c_cusp;
-    let v = Self::toe(tv);
+    let v = toe(tv);
     let s = if tv > 1e-10 { (c / (tv * c_cusp)).min(1.0) } else { 0.0 };
 
     Okhsv::new(h * 360.0, s * 100.0, v * 100.0).with_alpha(self.alpha)
@@ -654,6 +609,51 @@ impl TryFrom<String> for Oklab {
   fn try_from(value: String) -> Result<Self, Self::Error> {
     Ok(Self::from(Rgb::<Srgb>::try_from(value)?.to_xyz()))
   }
+}
+
+/// Finds the cusp (L, C) for a given normalized hue (0.0-1.0).
+///
+/// The cusp is the point of maximum chroma on the sRGB gamut boundary
+/// for the given hue.
+pub(crate) fn cusp_for_hue(h: f64) -> (f64, f64) {
+  let h_rad = h * 2.0 * std::f64::consts::PI;
+  let a = h_rad.cos();
+  let b = h_rad.sin();
+
+  let s_cusp = compute_max_saturation(a, b);
+  let rgb = oklab_to_linear_srgb(1.0, s_cusp * a, s_cusp * b);
+  let l_cusp = (1.0 / rgb[0].max(rgb[1]).max(rgb[2])).cbrt();
+  let c_cusp = l_cusp * s_cusp;
+
+  (l_cusp, c_cusp)
+}
+
+/// Maximum chroma at a given lightness for a cusp (L_cusp, C_cusp).
+///
+/// Returns the maximum chroma achievable at the given lightness within
+/// the sRGB gamut for the hue defined by the cusp.
+pub(crate) fn max_chroma_at_lightness(cusp: (f64, f64), l: f64) -> f64 {
+  let (l_cusp, c_cusp) = cusp;
+
+  if l <= l_cusp {
+    if l_cusp <= 0.0 { 0.0 } else { c_cusp * l / l_cusp }
+  } else if l_cusp >= 1.0 {
+    0.0
+  } else {
+    c_cusp * (1.0 - l) / (1.0 - l_cusp)
+  }
+}
+
+/// Maps Oklab lightness to Ok* perceived lightness via the toe function.
+///
+/// Improves perceptual uniformity at the dark end of the lightness range.
+pub(crate) fn toe(x: f64) -> f64 {
+  0.5 * ((K3 * x) - K1 + ((K3 * x - K1).powi(2) + 4.0 * K2 * K3 * x).sqrt())
+}
+
+/// Inverse toe function: maps Ok* perceived lightness to Oklab lightness.
+pub(crate) fn toe_inv(x: f64) -> f64 {
+  (x * x + K1 * x) / (K3 * (x + K2))
 }
 
 /// Computes the maximum saturation for a given hue direction (a_, b_) in Oklab.
