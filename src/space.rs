@@ -15,6 +15,12 @@ pub use rgb::*;
 #[allow(unused_imports)]
 pub use subtractive::*;
 
+#[cfg(feature = "chromaticity-rg")]
+use crate::chromaticity::Rg;
+#[cfg(feature = "chromaticity-upvp")]
+use crate::chromaticity::Upvp;
+#[cfg(feature = "chromaticity-uv")]
+use crate::chromaticity::Uv;
 use crate::{chromaticity::Xy, component::Component};
 
 /// Common interface for all color spaces.
@@ -65,6 +71,24 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns the CIE 1931 xy chromaticity coordinates.
   fn chromaticity(&self) -> Xy {
     self.to_xyz().chromaticity()
+  }
+
+  #[cfg(feature = "chromaticity-rg")]
+  /// Returns the RGB-relative chromaticity coordinates (r, g).
+  fn chromaticity_rg(&self) -> Rg {
+    self.chromaticity().to_rg()
+  }
+
+  #[cfg(feature = "chromaticity-upvp")]
+  /// Returns the CIE 1976 UCS chromaticity coordinates (u', v').
+  fn chromaticity_upvp(&self) -> Upvp {
+    self.chromaticity().to_upvp()
+  }
+
+  #[cfg(feature = "chromaticity-uv")]
+  /// Returns the CIE 1960 UCS chromaticity coordinates (u, v).
+  fn chromaticity_uv(&self) -> Uv {
+    self.chromaticity().to_uv()
   }
 
   /// Returns the color's components as an array.

@@ -7,6 +7,11 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+### Added
+
+- Add `chromaticity_rg()`, `chromaticity_upvp()`, and `chromaticity_uv()` convenience methods to the `ColorSpace`
+  trait, feature-gated behind `chromaticity-rg`, `chromaticity-upvp`, and `chromaticity-uv` respectively
+
 ## [v0.3.0] - 2026-02-10
 
 ### Added
