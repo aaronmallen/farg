@@ -6,252 +6,188 @@ Farg provides context-aware color conversions with f64 precision, spectral data 
 It's designed to serve web developers with sensible defaults while giving colorimetrists full control over illuminants,
 observers, and adaptation transforms.
 
-## Features
-
-- **50+ color spaces** — sRGB, Display P3, Adobe RGB, Rec. 2020, ACES, Oklab, CIE L\*a\*b\*, and many more
-- **Perceptual color spaces** — Oklab, Oklch, Okhsl, Okhsv for perceptually uniform manipulation
-- **CIE color spaces** — CIE L\*a\*b\*, CIE LCh for device-independent color
-- **Cylindrical color spaces** — HSL, HSV/HSB, HWB
-- **Subtractive color spaces** — CMY, CMYK
-- **CIE XYZ and LMS** — Device-independent color spaces as conversion hubs
-- **Alpha channel** — Full transparency support across all color spaces
-- **Luminance control** — Get, set, scale, increment, and decrement luminance on any color
-- **Hue and chroma control** — Manipulate hue and chroma through perceptual color models
-- **Chromatic adaptation** — Bradford, CAT02, CAT16, Von Kries, and other transforms
-- **Spectral data** — SPD and color matching function support with wavelength-level access
-- **Standard illuminants** — D65, D50, A, E, fluorescent, LED, and others
-- **Standard observers** — CIE 1931 2°, CIE 1964 10°, CIE 2006, Stockman-Sharpe
-- **Chromaticity coordinates** — CIE xy, uv, u'v', and rg systems
-- **Feature-gated** — Include only what you need for minimal binary size
-- **f64 precision** — All internal calculations use 64-bit floating point
-
-## Installation
-
-Add to your `Cargo.toml`:
-
-```toml
-[dependencies]
-farg = "0.3"
-```
-
-By default, farg includes the Bradford chromatic adaptation transform and the D65 illuminant with CIE 1931 2° observer.
-Enable additional features as needed:
-
-```toml
-[dependencies]
-farg = { version = "0.3", features = ["all-rgb-spaces", "all-illuminants"] }
-```
-
-Or enable everything:
-
-```toml
-[dependencies]
-farg = { version = "0.3", features = ["full"] }
-```
-
 ## Quick Start
 
-### Create and convert colors
+```toml
+[dependencies]
+farg = "0.4"
+```
 
 ```rust
-use farg::space::{Rgb, Srgb, Xyz};
+use farg::space::{ColorSpace, Rgb, Srgb, Xyz};
 
-// Create an sRGB color from 8-bit values
-let color = Rgb::<Srgb>::new(255, 87, 51);
+// Create an sRGB color from 8-bit values or hex
+let coral = Rgb::<Srgb>::new(255, 87, 51);
+let coral = Rgb::<Srgb>::try_from("#FF5733").unwrap();
 
-// Convert to CIE XYZ
-let xyz: Xyz = color.to_xyz();
-
-// Access components
+// Convert to CIE XYZ and read components
+let xyz: Xyz = coral.to_xyz();
 let [x, y, z] = xyz.components();
+
+// Adjust luminance while preserving chromaticity
+let brighter = xyz.with_luminance_scaled_by(1.2);
+
+// Convert back to sRGB
+let result: Rgb<Srgb> = brighter.to_rgb();
 ```
 
-### Parse hex codes
+## Color Spaces
 
-```rust
-use farg::space::Srgb;
+Farg supports 50+ color spaces organized by family. `Xyz`, `Lms`, and `Rgb<Srgb>` are always available; all others
+are enabled through [feature flags](#feature-flags).
 
-let color = Srgb::from_hexcode("#ff5733").unwrap();
-let also_red = Srgb::from_hexcode("f00").unwrap();
-```
+| Family                 | Spaces                            | Feature Flags                                                             |
+|------------------------|-----------------------------------|---------------------------------------------------------------------------|
+| **CIE**                | XYZ, Lab, LCh, Luv                | `space-lab`, `space-lch`, `space-luv`                                     |
+| **Perceptual (Oklab)** | Oklab, Oklch, Okhsl, Okhsv, Okhwb | `space-oklab`, `space-oklch`, `space-okhsl`, `space-okhsv`, `space-okhwb` |
+| **Cylindrical**        | HSL, HSV/HSB, HWB                 | `space-hsl`, `space-hsv`, `space-hwb`                                     |
+| **Subtractive**        | CMY, CMYK                         | `space-cmy`, `space-cmyk`                                                 |
+| **Physiological**      | LMS                               | *(always available)*                                                      |
+| **RGB**                | sRGB + 37 additional spaces       | `all-rgb-spaces` or individual `rgb-*` flags                              |
 
-### Convert between RGB spaces
+RGB spaces include Display P3, Adobe RGB, Rec. 2020, Rec. 2100, ACES, ARRI Wide Gamut, and many more for display,
+broadcast, cinema, and legacy workflows.
 
-```rust
-use farg::space::{Rgb, Srgb, DisplayP3};
+## Context-Aware Conversions
 
-let srgb = Rgb::<Srgb>::new(255, 87, 51);
-
-// Convert to Display P3
-let p3 = srgb.to_rgb::<DisplayP3>();
-```
-
-### Work with perceptual color spaces
-
-```rust
-use farg::space::{Oklab, Oklch, Okhsl, Okhsv, Rgb, Srgb};
-
-let color = Rgb::<Srgb>::new(255, 87, 51);
-
-// Convert to Oklab family
-let oklab: Oklab = color.to_oklab();
-let oklch: Oklch = color.to_oklch();
-let okhsl: Okhsl = color.to_okhsl();
-let okhsv: Okhsv = color.to_okhsv();
-```
-
-### Work with CIE L\*a\*b\* and LCh
-
-```rust
-use farg::space::{Lab, Lch, Rgb, Srgb};
-
-let color = Rgb::<Srgb>::new(255, 87, 51);
-
-// Convert to CIE L*a*b* and LCh
-let lab: Lab = color.to_lab();
-let lch: Lch = color.to_lch();
-```
-
-### Convert to cylindrical and subtractive spaces
-
-```rust
-use farg::space::{Hsl, Hsv, Hwb, Cmy, Cmyk, Rgb, Srgb};
-
-let color = Rgb::<Srgb>::new(255, 87, 51);
-
-// Cylindrical spaces
-let hsl: Hsl<Srgb> = color.to_hsl();
-let hsv: Hsv<Srgb> = color.to_hsv();
-let hwb: Hwb<Srgb> = color.to_hwb();
-
-// Subtractive spaces
-let cmy: Cmy<Srgb> = color.to_cmy();
-let cmyk: Cmyk<Srgb> = color.to_cmyk();
-```
-
-### Alpha channel
-
-```rust
-use farg::space::{Rgb, Srgb, Xyz};
-
-// Create a color with alpha
-let color = Rgb::<Srgb>::new(255, 87, 51).with_alpha(0.5);
-assert_eq!(color.alpha(), 0.5);
-
-// Alpha is preserved through conversions
-let xyz: Xyz = color.to_xyz();
-assert_eq!(xyz.alpha(), 0.5);
-
-// Flatten alpha against a background
-let flattened = color.flatten_alpha(); // against black
-```
-
-### Manipulate luminance
-
-```rust
-use farg::space::{Rgb, Srgb};
-
-let color = Rgb::<Srgb>::new(255, 87, 51);
-
-// Get relative luminance
-let lum = color.luminance();
-
-// Adjust luminance
-let brighter = color.with_luminance_scaled_by(1.2);
-let darker = color.with_luminance_decremented_by(0.05);
-let fixed = color.with_luminance(0.5);
-```
-
-### Manipulate hue and chroma
-
-```rust
-use farg::space::{Rgb, Srgb};
-
-let color = Rgb::<Srgb>::new(255, 87, 51);
-
-// Get and set hue (via Oklch)
-let hue = color.hue();
-let shifted = color.with_hue_incremented_by(30.0);
-
-// Get and set chroma (via Oklch)
-let chroma = color.chroma();
-let muted = color.with_chroma_scaled_by(0.5);
-```
-
-### Chromatic adaptation
+Colors exist within a viewing context: an illuminant, observer, and chromatic adaptation transform. The default
+context (D65, CIE 1931 2°, Bradford) matches the standard sRGB environment.
 
 ```rust
 use farg::{Cat, ColorimetricContext, Illuminant};
 use farg::space::Xyz;
 
-// Adapt a color from D65 to D50 illuminant
-let d50_context = ColorimetricContext::new()
+// Adapt a D65 color to D50 (e.g., for print workflows)
+let d50 = ColorimetricContext::new()
     .with_illuminant(Illuminant::D50)
     .with_cat(Cat::BRADFORD);
 
 let color = Xyz::new(0.95047, 1.0, 1.08883);
-let adapted = color.adapt_to(d50_context);
+let adapted = color.adapt_to(d50);
 ```
 
-### Work with chromaticity
+## Universal Property Access
+
+Every color space implements the `ColorSpace` trait, providing access to any color property through automatic
+conversion:
 
 ```rust
-use farg::chromaticity::Xy;
-use farg::space::Xyz;
+use farg::space::{ColorSpace, Rgb, Srgb};
 
-// Extract chromaticity from a color
-let xyz = Xyz::new(0.95047, 1.0, 1.08883);
-let xy: Xy = xyz.chromaticity();
+let color = Rgb::<Srgb>::new(255, 87, 51);
 
-// Reconstruct XYZ from chromaticity + luminance
-let reconstructed = xy.to_xyz(1.0);
+// Access properties from any color model
+let luminance = color.luminance();           // CIE Y
+let chromaticity = color.chromaticity();     // CIE xy
+let hue = color.hue();                       // perceptual hue
+let chroma = color.chroma();                 // perceptual chroma
+
+// Mutate through any property
+let shifted = color.with_hue(180.0);
+let desaturated = color.with_chroma_scaled_by(0.5);
 ```
 
-### Spectral data
+## Alpha & Compositing
+
+All color spaces support an alpha channel with a full mutation API:
 
 ```rust
-use farg::{Illuminant, Observer};
-use farg::spectral::Table;
+use farg::space::{ColorSpace, Rgb, Srgb};
 
-// Access illuminant spectral power distribution
+let overlay = Rgb::<Srgb>::new(255, 0, 0).with_alpha(0.5);
+let background = Rgb::<Srgb>::new(0, 0, 255);
+
+// Flatten against a background
+let composited = overlay.flatten_alpha_against(&background);
+```
+
+## Gamut Mapping
+
+Four strategies for mapping out-of-gamut colors back into a target RGB gamut:
+
+```rust
+use farg::space::{ColorSpace, Rgb, Srgb, Xyz};
+
+let wide = Xyz::new(0.2, 0.5, 0.1);
+
+let clipped: Rgb<Srgb> = wide.clip_to_gamut();           // clamp to [0, 1]
+let scaled: Rgb<Srgb> = wide.scale_to_gamut();           // linear scaling
+let perceptual: Rgb<Srgb> = wide.perceptually_map_to_gamut(); // LMS scaling
+```
+
+## Contrast
+
+Six algorithms for evaluating perceptual contrast between colors:
+
+```rust
+use farg::space::{ColorSpace, Rgb, Srgb};
+
+let white = Rgb::<Srgb>::new(255, 255, 255);
+let text = Rgb::<Srgb>::new(51, 51, 51);
+
+// WCAG 2.x contrast ratio with threshold checking
+let ratio = white.contrast_ratio(&text);
+
+// APCA lightness contrast
+let lc = white.lightness_contrast(&text);
+```
+
+Additional algorithms (Michelson, Weber, RMS, AERT) are available behind `contrast-*` feature flags.
+
+## Spectral Data
+
+Full spectral power distribution and color matching function data for all standard illuminants and observers:
+
+```rust
+use farg::{Illuminant, Observer, SpectralTable};
+
 let d65 = Illuminant::D65;
 let spd = d65.spd();
 let power_at_550nm = spd.at(550);
 
-// Use observer color matching functions
 let observer = Observer::CIE_1931_2D;
 let cmf = observer.cmf();
-let xyz = cmf.spectral_power_distribution_to_xyz(spd);
+let xyz = cmf.spectral_power_distribution_to_xyz(&spd);
+```
+
+Build custom illuminants and observers from your own spectral data:
+
+```rust
+use farg::{IlluminantBuilder, IlluminantType, ObserverBuilder};
 ```
 
 ## Feature Flags
 
-Farg uses granular feature flags so you only compile what you need.
+Farg uses granular feature flags so you only compile what you need. The `default` feature enables Bradford CAT,
+WCAG contrast, and APCA contrast. D65, CIE 1931 2°, sRGB, XYZ, and LMS are always available.
 
-### Meta Features
+| Feature            | Contents                                                                             |
+|--------------------|--------------------------------------------------------------------------------------|
+| `full`             | Everything below                                                                     |
+| `all-cats`         | All 9 chromatic adaptation transforms                                                |
+| `all-chromaticity` | All chromaticity coordinate systems (Rg, Uv, u'v')                                   |
+| `all-contrast`     | All 6 contrast algorithms                                                            |
+| `all-illuminants`  | All standard illuminants (44 total across daylight, fluorescent, LED, and more)      |
+| `all-observers`    | All 7 additional observers (CIE 1964 10°, CIE 2006, Stockman-Sharpe, Judd, Judd-Vos) |
+| `all-rgb-spaces`   | All 37 additional RGB color spaces                                                   |
+| `all-spaces`       | All color spaces (CIE, cylindrical, perceptual, subtractive, and all RGB)            |
 
-| Feature            | Contents                                                          |
-|--------------------|-------------------------------------------------------------------|
-| `full`             | Everything below                                                  |
-| `all-cats`         | All chromatic adaptation transforms                               |
-| `all-chromaticity` | All chromaticity coordinate systems                               |
-| `all-illuminants`  | All standard illuminants                                          |
-| `all-observers`    | All standard observers                                            |
-| `all-spaces`       | All color spaces (RGB, cylindrical, subtractive, perceptual, CIE) |
-| `all-rgb-spaces`   | All RGB color spaces                                              |
+Individual features follow the pattern `{category}-{name}`, e.g., `space-oklab`, `cat-bradford`, `illuminant-d50`,
+`rgb-display-p3`.
 
-### Individual Features
+Enable everything:
 
-| Prefix           | Examples                                                            |
-|------------------|---------------------------------------------------------------------|
-| `cat-*`          | `cat-bradford` (default), `cat-cat02`, `cat-cat16`, `cat-von-kries` |
-| `chromaticity-*` | `chromaticity-rg`, `chromaticity-uv`, `chromaticity-upvp`           |
-| `illuminant-*`   | `illuminant-d50`, `illuminant-daylight`, `illuminant-led`           |
-| `observer-*`     | `observer-cie-1964-10d`, `observer-cie-2006-2d`                     |
-| `rgb-*`          | `rgb-display-p3`, `rgb-adobe-rgb`, `rgb-rec-2020`, `rgb-aces-cg`    |
-| `space-*`        | `space-hsl`, `space-lab`, `space-oklab`, `space-oklch`, and more    |
+```toml
+[dependencies]
+farg = { version = "0.4", features = ["full"] }
+```
 
-The D65 illuminant, CIE 1931 2° observer, sRGB, and XYZ/LMS spaces are always available.
+Or pick what you need:
+
+```toml
+[dependencies]
+farg = { version = "0.4", features = ["space-oklab", "space-lab", "all-illuminants"] }
+```
 
 ## Documentation
 

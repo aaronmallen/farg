@@ -7,6 +7,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+## [v0.4.0] - 2026-02-12
+
 ### Added
 
 - Add gamut mapping with four strategies on `Rgb` and the `ColorSpace` trait: `clip_to_gamut()` (clamp),
@@ -110,7 +112,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 Initial release
 
-[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.3.0...main
+[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.0...main
 [v0.1.1]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.0..0.1.1
 [v0.2.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.1..0.2.0
 [v0.3.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.2.0..0.3.0
+[v0.4.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.3.0..0.4.0
