@@ -94,6 +94,19 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns the color's components as an array.
   fn components(&self) -> [f64; N];
 
+  #[cfg(feature = "contrast-wcag")]
+  /// Returns the WCAG 2.x contrast ratio between this color and another.
+  ///
+  /// The result is always >= 1.0 and is order-independent. Use
+  /// [`ContrastRatio::meets_aa`], [`ContrastRatio::meets_aaa`], etc. to check
+  /// against WCAG conformance levels.
+  ///
+  /// [`ContrastRatio::meets_aa`]: crate::contrast::wcag::ContrastRatio::meets_aa
+  /// [`ContrastRatio::meets_aaa`]: crate::contrast::wcag::ContrastRatio::meets_aaa
+  fn contrast_ratio(&self, other: impl Into<Xyz>) -> crate::contrast::wcag::ContrastRatio {
+    crate::contrast::wcag::contrast_ratio(self.to_xyz(), other)
+  }
+
   #[cfg(feature = "space-cmyk")]
   /// Returns the sRGB cyan component as a percentage (0-100%).
   fn cyan(&self) -> f64 {
@@ -291,6 +304,22 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Increases opacity in place by the given percentage amount (0-100%).
   fn increment_opacity(&mut self, amount: impl Into<Component>) {
     self.set_alpha(self.with_opacity_incremented_by(amount).alpha())
+  }
+
+  #[cfg(feature = "contrast-apca")]
+  /// Returns the APCA lightness contrast (Lc) between this color and the given background.
+  ///
+  /// Positive values indicate dark-on-light (normal polarity), negative values indicate
+  /// light-on-dark (reverse polarity). Use [`LightnessContrast::meets_body_text_threshold`],
+  /// [`LightnessContrast::meets_large_text_threshold`], or
+  /// [`LightnessContrast::meets_very_large_text_threshold`] to check against APCA
+  /// accessibility recommendations.
+  ///
+  /// [`LightnessContrast::meets_body_text_threshold`]: crate::contrast::apca::LightnessContrast::meets_body_text_threshold
+  /// [`LightnessContrast::meets_large_text_threshold`]: crate::contrast::apca::LightnessContrast::meets_large_text_threshold
+  /// [`LightnessContrast::meets_very_large_text_threshold`]: crate::contrast::apca::LightnessContrast::meets_very_large_text_threshold
+  fn lightness_contrast(&self, background: impl Into<Xyz>) -> crate::contrast::apca::LightnessContrast {
+    crate::contrast::apca::calculate(self.to_xyz(), background)
   }
 
   /// Returns the relative luminance (CIE Y).

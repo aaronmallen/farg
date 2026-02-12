@@ -1,0 +1,12 @@
+#[cfg(feature = "contrast-aert")]
+pub mod aert;
+#[cfg(feature = "contrast-apca")]
+pub mod apca;
+#[cfg(feature = "contrast-michelson")]
+pub mod michelson;
+#[cfg(feature = "contrast-rms")]
+pub mod rms;
+#[cfg(feature = "contrast-wcag")]
+pub mod wcag;
+#[cfg(feature = "contrast-weber")]
+pub mod weber;

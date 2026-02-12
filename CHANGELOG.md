@@ -9,6 +9,13 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add `contrast` module with six perceptual contrast algorithms: AERT brightness difference, APCA lightness
+  contrast, Michelson, RMS, WCAG 2.x contrast ratio, and Weber contrast — each feature-gated behind `contrast-*`
+  flags and bundled under `all-contrast`
+- Add `ContrastRatio` and `LightnessContrast` wrapper types with threshold-checking methods for WCAG and APCA
+  conformance levels
+- Add `contrast_ratio()` and `lightness_contrast()` convenience methods to the `ColorSpace` trait, feature-gated
+  behind `contrast-wcag` and `contrast-apca` respectively
 - Add `Okhwb` perceptual color space (HWB model in the Oklab framework) with full conversion support,
   feature-gated behind `space-okhwb`
 - Add `Luv` (CIE 1976 L\*u\*v\*) color space with full conversion support, feature-gated behind `space-luv`

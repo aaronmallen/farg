@@ -116,6 +116,7 @@ mod chromatic_adaptation_transform;
 pub mod chromaticity;
 mod component;
 mod context;
+pub mod contrast;
 mod error;
 mod illuminant;
 mod matrix;

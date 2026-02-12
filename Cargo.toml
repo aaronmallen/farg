@@ -26,6 +26,14 @@ all-cats = [
   "cat-von-kries",
 ]
 all-chromaticity = ["chromaticity-rg", "chromaticity-upvp", "chromaticity-uv"]
+all-contrast = [
+  "contrast-aert",
+  "contrast-apca",
+  "contrast-michelson",
+  "contrast-rms",
+  "contrast-wcag",
+  "contrast-weber",
+]
 all-illuminants = [
   "illuminant-daylight",
   "illuminant-fluorescent",
@@ -108,10 +116,17 @@ cat-von-kries = []
 chromaticity-rg = []
 chromaticity-upvp = []
 chromaticity-uv = []
-default = ["cat-bradford"]
+contrast-aert = []
+contrast-apca = []
+contrast-michelson = []
+contrast-rms = []
+contrast-wcag = []
+contrast-weber = []
+default = ["cat-bradford", "contrast-apca", "contrast-wcag"]
 full = [
   "all-cats",
   "all-chromaticity",
+  "all-contrast",
   "all-illuminants",
   "all-observers",
   "all-spaces",
