@@ -191,8 +191,8 @@ impl Oklab {
     self.l = l.into();
   }
 
-  #[cfg(feature = "space-okhsl")]
   /// Converts to the Okhsl perceptual color space.
+  #[cfg(feature = "space-okhsl")]
   pub fn to_okhsl(&self) -> Okhsl {
     let [l, a, b] = self.components();
     let h_rad = b.atan2(a);
@@ -210,11 +210,11 @@ impl Oklab {
     Okhsl::new(h * 360.0, s * 100.0, okhsl_l * 100.0).with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-okhsv")]
   /// Converts to the Okhsv perceptual color space (HSV form).
   ///
   /// Uses an HSV cone model where V=1, S=1 is the cusp (maximum chroma)
   /// and V=1, S=0 is white. The inverse of `Okhsv::to_oklab`.
+  #[cfg(feature = "space-okhsv")]
   pub fn to_okhsv(&self) -> Okhsv {
     let [l, a, b] = self.components();
     let h_rad = b.atan2(a);
@@ -236,14 +236,14 @@ impl Oklab {
     Okhsv::new(h * 360.0, s * 100.0, v * 100.0).with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-okhwb")]
   /// Converts to the Okhwb perceptual color space (HWB form).
+  #[cfg(feature = "space-okhwb")]
   pub fn to_okhwb(&self) -> Okhwb {
     self.to_okhsv().to_okhwb()
   }
 
-  #[cfg(feature = "space-oklch")]
   /// Converts to the Oklch perceptual color space (cylindrical form).
+  #[cfg(feature = "space-oklch")]
   pub fn to_oklch(&self) -> Oklch {
     let [l, a, b] = self.components();
     let c = (a * a + b * b).sqrt();

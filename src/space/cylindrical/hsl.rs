@@ -250,14 +250,14 @@ where
     self.s = saturation.into() / 100.0;
   }
 
-  #[cfg(feature = "space-hsv")]
   /// Converts this HSL color in the [`Hsb`] color space.
+  #[cfg(feature = "space-hsv")]
   pub fn to_hsb(&self) -> Hsb<S> {
     self.to_hsv()
   }
 
-  #[cfg(feature = "space-hsv")]
   /// Converts this HSL color in the [`Hsv`] color space.
+  #[cfg(feature = "space-hsv")]
   pub fn to_hsv(&self) -> Hsv<S> {
     let [h, s, l] = self.components();
 
@@ -267,8 +267,8 @@ where
     Hsv::<S>::new(h, ns, v).with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-hwb")]
   /// Converts this HSL color to an [`Hwb`] color in the specified RGB color space.
+  #[cfg(feature = "space-hwb")]
   pub fn to_hwb(&self) -> Hwb<S> {
     let [h, s, l] = self.components();
 

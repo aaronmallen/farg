@@ -292,8 +292,8 @@ impl Xyz {
       .with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-oklab")]
   /// Converts to the Oklab perceptual color space.
+  #[cfg(feature = "space-oklab")]
   pub fn to_oklab(&self) -> Oklab {
     let adapted = self.adapt_to(Oklab::DEFAULT_CONTEXT);
     let linear_lms = Oklab::LINEAR_XYZ_MATRIX * adapted;

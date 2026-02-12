@@ -495,8 +495,8 @@ where
     self.r = (red.into() / 255.0).clamp(0.0, 1.0);
   }
 
-  #[cfg(feature = "space-cmy")]
   /// Converts to CMY in this color space.
+  #[cfg(feature = "space-cmy")]
   pub fn to_cmy(&self) -> Cmy<S> {
     Cmy::new(
       (1.0 - self.r.0) * 100.0,
@@ -506,8 +506,8 @@ where
     .with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-cmyk")]
   /// Converts to CMYK in this color space.
+  #[cfg(feature = "space-cmyk")]
   pub fn to_cmyk(&self) -> Cmyk<S> {
     let r = self.r.0;
     let g = self.g.0;
@@ -527,14 +527,14 @@ where
     .with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-hsv")]
   /// Converts to HSB in this color space. Alias for [`Self::to_hsv`].
+  #[cfg(feature = "space-hsv")]
   pub fn to_hsb(&self) -> Hsb<S> {
     self.to_hsv()
   }
 
-  #[cfg(feature = "space-hsl")]
   /// Converts to HSL in this color space.
+  #[cfg(feature = "space-hsl")]
   pub fn to_hsl(&self) -> Hsl<S> {
     let r = self.r.0;
     let g = self.g.0;
@@ -566,8 +566,8 @@ where
     Hsl::new(h * 360.0, s * 100.0, l * 100.0).with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-hsv")]
   /// Converts to HSV in this color space.
+  #[cfg(feature = "space-hsv")]
   pub fn to_hsv(&self) -> Hsv<S> {
     let r = self.r.0;
     let g = self.g.0;
@@ -594,8 +594,8 @@ where
     Hsv::new(h * 360.0, s * 100.0, max * 100.0).with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-hwb")]
   /// Converts to HWB in this color space.
+  #[cfg(feature = "space-hwb")]
   pub fn to_hwb(&self) -> Hwb<S> {
     let r = self.r.0;
     let g = self.g.0;
@@ -640,8 +640,8 @@ where
     }
   }
 
-  #[cfg(feature = "space-oklab")]
   /// Converts to the Oklab perceptual color space via linear sRGB.
+  #[cfg(feature = "space-oklab")]
   pub fn to_oklab(&self) -> Oklab {
     let linear_srgb = self.to_rgb::<Srgb>().to_linear().components();
 

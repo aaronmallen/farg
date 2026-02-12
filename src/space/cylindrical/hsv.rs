@@ -303,8 +303,8 @@ where
     self.set_value(brightness)
   }
 
-  #[cfg(feature = "space-hsl")]
   /// Converts this HSV color to an [`Hsl`] color in the specified RGB color space.
+  #[cfg(feature = "space-hsl")]
   pub fn to_hsl(&self) -> Hsl<S> {
     let [h, s, v] = self.components();
 
@@ -318,8 +318,8 @@ where
     Hsl::<S>::new(h, ns, nl).with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-hwb")]
   /// Converts this HSV color to an [`Hwb`] color in the specified RGB color space.
+  #[cfg(feature = "space-hwb")]
   pub fn to_hwb(&self) -> Hwb<S> {
     let [h, s, v] = self.components();
 

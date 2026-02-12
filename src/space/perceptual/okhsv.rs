@@ -235,11 +235,11 @@ impl Okhsv {
     self.v = value.into() / 100.0;
   }
 
-  #[cfg(feature = "space-okhwb")]
   /// Converts to the Okhwb perceptual color space.
   ///
   /// Uses the standard HSV-to-HWB reparameterization:
   /// W = (1 - S) * V, B = 1 - V.
+  #[cfg(feature = "space-okhwb")]
   pub fn to_okhwb(&self) -> Okhwb {
     let [h, s, v] = self.components();
 

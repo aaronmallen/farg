@@ -305,8 +305,8 @@ where
     self.y = yellow.into() / 100.0;
   }
 
-  #[cfg(feature = "space-cmy")]
   /// Converts this CMYK color to a [`Cmy`] color in the specified output space.
+  #[cfg(feature = "space-cmy")]
   pub fn to_cmy<OS>(&self) -> Cmy<OS>
   where
     OS: RgbSpec,

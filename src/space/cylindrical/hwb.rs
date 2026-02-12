@@ -240,14 +240,14 @@ where
     self.w = whiteness.into() / 100.0;
   }
 
-  #[cfg(feature = "space-hsv")]
   /// Converts this HWB color to an [`Hsb`] color in the specified RGB color space. Alias for [`Self::to_hsv`].
+  #[cfg(feature = "space-hsv")]
   pub fn to_hsb(&self) -> Hsb<S> {
     self.to_hsv()
   }
 
-  #[cfg(feature = "space-hsl")]
   /// Converts this HWB color to an [`Hsl`] color in the specified RGB color space.
+  #[cfg(feature = "space-hsl")]
   pub fn to_hsl(&self) -> Hsl<S> {
     let [h, w, b] = self.components();
 
@@ -268,8 +268,8 @@ where
     Hsl::<S>::new(h * 360.0, sl * 100.0, l * 100.0).with_alpha(self.alpha)
   }
 
-  #[cfg(feature = "space-hsv")]
   /// Converts this HWB color to an [`Hsv`] color in the specified RGB color space.
+  #[cfg(feature = "space-hsv")]
   pub fn to_hsv(&self) -> Hsv<S> {
     let [h, w, b] = self.components();
 
