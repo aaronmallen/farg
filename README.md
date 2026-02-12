@@ -173,7 +173,8 @@ WCAG contrast, and APCA contrast. D65, CIE 1931 2°, sRGB, XYZ, and LMS are alwa
 | `all-spaces`       | All color spaces (CIE, cylindrical, perceptual, subtractive, and all RGB)            |
 
 Individual features follow the pattern `{category}-{name}`, e.g., `space-oklab`, `cat-bradford`, `illuminant-d50`,
-`rgb-display-p3`.
+`rgb-display-p3`. See the [Feature Flags Reference](docs/usage/features.md) for every flag with descriptions
+and dependencies.
 
 Enable everything:
 
@@ -192,6 +193,13 @@ farg = { version = "0.4", features = ["space-oklab", "space-lab", "all-illuminan
 ## Documentation
 
 - [API Documentation](https://docs.rs/farg)
+- [Usage Guide](docs/usage/README.md)
+  - [Chromatic Adaptation](docs/usage/cats.md) -- CATs for adapting colors between illuminants
+  - [Color Conversions](docs/usage/conversions.md) -- Converting between color spaces
+  - [Contrast](docs/usage/contrast.md) -- Measuring contrast between colors
+  - [Illuminants](docs/usage/illuminants.md) -- Standard, custom, and contextual illuminants
+  - [Observers](docs/usage/observers.md) -- Standard, custom, and modified observers
+  - [Feature Flags](docs/usage/features.md) -- All feature flags, dependencies, and defaults
 - [Project Plan](docs/PLAN.md)
 - [Contributing Guide](docs/CONTRIBUTING.md)
 

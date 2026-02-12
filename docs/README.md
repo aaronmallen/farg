@@ -15,3 +15,4 @@ New contributors should start with the [Contributing Guide](CONTRIBUTING.md).
 | [Development Guide](development/README.md)            | Tasks, code style, and testing       |
 | [Architecture Decision Records](design/README.md)     | Design decisions and rationale       |
 | [Process](process/README.md)                          | Project processes and workflows      |
+| [Usage Guide](usage/README.md)                        | Feature flags and usage reference    |
