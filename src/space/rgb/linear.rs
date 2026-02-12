@@ -25,13 +25,15 @@ impl<S> LinearRgb<S>
 where
   S: RgbSpec,
 {
-  /// Creates linear RGB from normalized (0.0-1.0) component values.
+  /// Creates linear RGB from normalized component values.
+  ///
+  /// Values outside 0.0-1.0 are preserved to retain out-of-gamut information.
   pub fn from_normalized(r: impl Into<Component>, g: impl Into<Component>, b: impl Into<Component>) -> Self {
     Self {
       alpha: Component::new(1.0),
-      b: b.into().clamp(0.0, 1.0),
-      g: g.into().clamp(0.0, 1.0),
-      r: r.into().clamp(0.0, 1.0),
+      b: b.into(),
+      g: g.into(),
+      r: r.into(),
       _spec: PhantomData,
     }
   }
@@ -152,6 +154,19 @@ where
 mod test {
   use super::*;
   use crate::space::{ColorSpace, Srgb};
+
+  mod from_normalized {
+    use super::*;
+
+    #[test]
+    fn it_preserves_out_of_range_values() {
+      let linear = LinearRgb::<Srgb>::from_normalized(1.5, -0.5, 0.5);
+
+      assert!((linear.r() - 1.5).abs() < 1e-10);
+      assert!((linear.g() - -0.5).abs() < 1e-10);
+      assert!((linear.b() - 0.5).abs() < 1e-10);
+    }
+  }
 
   mod display {
     use pretty_assertions::assert_eq;

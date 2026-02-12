@@ -261,14 +261,16 @@ where
     Ok(Self::new(r, g, b))
   }
 
-  /// Creates an RGB color from normalized (0.0-1.0) component values.
+  /// Creates an RGB color from normalized component values.
+  ///
+  /// Values outside 0.0-1.0 are preserved to retain out-of-gamut information.
   pub fn from_normalized(r: impl Into<Component>, g: impl Into<Component>, b: impl Into<Component>) -> Self {
     Self {
       alpha: Component::new(1.0),
-      b: b.into().clamp(0.0, 1.0),
+      b: b.into(),
       context: S::CONTEXT,
-      g: g.into().clamp(0.0, 1.0),
-      r: r.into().clamp(0.0, 1.0),
+      g: g.into(),
+      r: r.into(),
       _spec: PhantomData,
     }
   }
@@ -311,9 +313,53 @@ where
     (self.b.0 * 255.0).round() as u8
   }
 
+  /// Clamps all components to the 0.0-1.0 range.
+  pub fn clip_to_gamut(&mut self) {
+    if self.is_in_gamut() {
+      return;
+    }
+
+    self.r = self.r.clamp(0.0, 1.0);
+    self.g = self.g.clamp(0.0, 1.0);
+    self.b = self.b.clamp(0.0, 1.0);
+  }
+
   /// Returns the [R, G, B] components as normalized values.
   pub fn components(&self) -> [f64; 3] {
     [self.r.0, self.g.0, self.b.0]
+  }
+
+  /// Reduces chroma in CIELAB space until the color fits the gamut.
+  #[cfg(feature = "space-lab")]
+  pub fn compress_to_gamut(&mut self) {
+    if self.is_in_gamut() {
+      return;
+    }
+
+    let lab = self.to_xyz().to_lab();
+    let [l, a, b] = lab.components();
+    let chroma = (a * a + b * b).sqrt();
+
+    if chroma < 1e-10 {
+      return self.clip_to_gamut();
+    }
+
+    let mut min_scale = 0.0_f64;
+    let mut max_scale = 1.0_f64;
+
+    for _ in 0..10 {
+      let mid = (min_scale + max_scale) / 2.0;
+      let test = Lab::new(l, a * mid, b * mid).to_xyz().to_rgb::<S>();
+      if test.is_in_gamut() {
+        min_scale = mid;
+      } else {
+        max_scale = mid;
+      }
+    }
+
+    let mut result = Lab::new(l, a * min_scale, b * min_scale).to_xyz().to_rgb::<S>();
+    result.clip_to_gamut();
+    self.set_components(result.components())
   }
 
   /// Returns the viewing context for this color space.
@@ -418,6 +464,39 @@ where
     self.r = (self.r + amount.into() / 255.0).clamp(0.0, 1.0);
   }
 
+  /// Returns `true` if all components are within the 0.0-1.0 range.
+  pub fn is_in_gamut(&self) -> bool {
+    (0.0..=1.0).contains(&self.r.0) && (0.0..=1.0).contains(&self.g.0) && (0.0..=1.0).contains(&self.b.0)
+  }
+
+  /// Maps to gamut by scaling LMS components relative to the reference white.
+  pub fn perceptually_map_to_gamut(&mut self) {
+    let lms = self.to_xyz().to_lms();
+    let [l, m, s] = lms.components();
+
+    let white_lms = self.context.reference_white().to_lms();
+    let [wl, wm, ws] = white_lms.components();
+
+    let nl = if wl.abs() > 1e-10 { l / wl } else { 0.0 };
+    let nm = if wm.abs() > 1e-10 { m / wm } else { 0.0 };
+    let ns = if ws.abs() > 1e-10 { s / ws } else { 0.0 };
+
+    let max_normalized = nl.max(nm).max(ns);
+
+    if max_normalized <= 1.0 {
+      return;
+    }
+
+    let scale = 1.0 / max_normalized;
+    let mut scaled = Lms::new(l * scale, m * scale, s * scale)
+      .with_context(*lms.context())
+      .to_xyz()
+      .to_rgb::<S>();
+    scaled.clip_to_gamut();
+
+    self.set_components(scaled.components())
+  }
+
   /// Returns the normalized red component (0.0-1.0).
   pub fn r(&self) -> f64 {
     self.r.0
@@ -456,6 +535,23 @@ where
   /// Alias for [`Self::scale_r`].
   pub fn scale_red(&mut self, factor: impl Into<Component>) {
     self.scale_r(factor);
+  }
+
+  /// Scales linear RGB components to fit within the gamut.
+  pub fn scale_to_gamut(&mut self) {
+    if self.is_in_gamut() {
+      return;
+    }
+
+    let linear = self.to_linear();
+    let [r, g, b] = linear.components();
+
+    let max_value = r.abs().max(g.abs()).max(b.abs());
+    let scale = if max_value > 1.0 { 1.0 / max_value } else { 1.0 };
+
+    let mut result = LinearRgb::<S>::from_normalized(r * scale, g * scale, b * scale).to_encoded();
+    result.clip_to_gamut();
+    self.set_components(result.components())
   }
 
   /// Sets the blue channel to the given normalized value (0.0-1.0).
@@ -735,6 +831,35 @@ where
   /// Alias for [`Self::with_b_scaled_by`].
   pub fn with_blue_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_b_scaled_by(factor)
+  }
+
+  /// Returns a new color with all components clamped to the 0.0-1.0 range.
+  pub fn with_gamut_clipped(&self) -> Self {
+    let mut rgb = *self;
+    rgb.clip_to_gamut();
+    rgb
+  }
+
+  /// Returns a new color with chroma reduced in CIELAB space until the color fits the gamut.
+  #[cfg(feature = "space-lab")]
+  pub fn with_gamut_compressed(&self) -> Self {
+    let mut rgb = *self;
+    rgb.compress_to_gamut();
+    rgb
+  }
+
+  /// Returns a new color mapped to gamut by scaling LMS components relative to the reference white.
+  pub fn with_gamut_perceptually_mapped(&self) -> Self {
+    let mut rgb = *self;
+    rgb.perceptually_map_to_gamut();
+    rgb
+  }
+
+  /// Returns a new color with linear RGB components scaled to fit within the gamut.
+  pub fn with_gamut_scaled(&self) -> Self {
+    let mut rgb = *self;
+    rgb.scale_to_gamut();
+    rgb
   }
 
   /// Returns a new color with the given normalized green channel value (0.0-1.0).
@@ -1248,6 +1373,79 @@ mod test {
     }
   }
 
+  mod clip_to_gamut {
+    use super::*;
+
+    #[test]
+    fn it_clamps_components_to_gamut() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(1.5, -0.2, 0.5);
+      rgb.clip_to_gamut();
+
+      assert!((rgb.r() - 1.0).abs() < 1e-10);
+      assert!((rgb.g() - 0.0).abs() < 1e-10);
+      assert!((rgb.b() - 0.5).abs() < 1e-10);
+      assert!(rgb.is_in_gamut());
+    }
+
+    #[test]
+    fn it_returns_unchanged_when_in_gamut() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.3, 0.8);
+      rgb.clip_to_gamut();
+
+      assert!((rgb.r() - 0.5).abs() < 1e-10);
+      assert!((rgb.g() - 0.3).abs() < 1e-10);
+      assert!((rgb.b() - 0.8).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, 0.5).with_alpha(0.7);
+      rgb.clip_to_gamut();
+
+      assert!((rgb.alpha() - 0.7).abs() < 1e-10);
+    }
+  }
+
+  #[cfg(feature = "space-lab")]
+  mod compress_to_gamut {
+    use super::*;
+
+    #[test]
+    fn it_brings_out_of_gamut_color_into_gamut() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(1.5, -0.2, 0.5);
+      rgb.compress_to_gamut();
+
+      assert!(rgb.is_in_gamut());
+    }
+
+    #[test]
+    fn it_returns_unchanged_when_in_gamut() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.3, 0.8);
+      let orig = rgb;
+      rgb.compress_to_gamut();
+
+      assert!((rgb.r() - orig.r()).abs() < 1e-10);
+      assert!((rgb.g() - orig.g()).abs() < 1e-10);
+      assert!((rgb.b() - orig.b()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_handles_achromatic_colors() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(1.5, 1.5, 1.5);
+      rgb.compress_to_gamut();
+
+      assert!(rgb.is_in_gamut());
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, -0.1).with_alpha(0.4);
+      rgb.compress_to_gamut();
+
+      assert!((rgb.alpha() - 0.4).abs() < 1e-10);
+    }
+  }
+
   mod decrement_b {
     use super::*;
 
@@ -1511,11 +1709,11 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_clamps_values_to_0_1_range() {
+    fn it_preserves_out_of_range_values() {
       let rgb = Rgb::<Srgb>::from_normalized(1.5, -0.5, 0.5);
 
-      assert_eq!(rgb.r(), 1.0);
-      assert_eq!(rgb.g(), 0.0);
+      assert_eq!(rgb.r(), 1.5);
+      assert_eq!(rgb.g(), -0.5);
       assert_eq!(rgb.b(), 0.5);
     }
   }
@@ -1756,6 +1954,38 @@ mod test {
     }
   }
 
+  mod is_in_gamut {
+    use super::*;
+
+    #[test]
+    fn it_returns_true_when_all_components_in_range() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
+
+      assert!(rgb.is_in_gamut());
+    }
+
+    #[test]
+    fn it_returns_true_at_boundary_values() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.0, 1.0, 0.0);
+
+      assert!(rgb.is_in_gamut());
+    }
+
+    #[test]
+    fn it_returns_false_when_component_exceeds_one() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, 0.5);
+
+      assert!(!rgb.is_in_gamut());
+    }
+
+    #[test]
+    fn it_returns_false_when_component_below_zero() {
+      let rgb = Rgb::<Srgb>::from_normalized(0.5, -0.1, 0.5);
+
+      assert!(!rgb.is_in_gamut());
+    }
+  }
+
   mod mul {
     use super::*;
 
@@ -1798,6 +2028,37 @@ mod test {
       let b = Rgb::<Srgb>::new(128, 64, 32);
 
       assert_ne!(a, b);
+    }
+  }
+
+  mod perceptually_map_to_gamut {
+    use super::*;
+
+    #[test]
+    fn it_brings_out_of_gamut_color_into_gamut() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(1.5, -0.2, 0.5);
+      rgb.perceptually_map_to_gamut();
+
+      assert!(rgb.is_in_gamut());
+    }
+
+    #[test]
+    fn it_returns_unchanged_when_in_gamut() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.3, 0.8);
+      let orig = rgb;
+      rgb.perceptually_map_to_gamut();
+
+      assert!((rgb.r() - orig.r()).abs() < 1e-10);
+      assert!((rgb.g() - orig.g()).abs() < 1e-10);
+      assert!((rgb.b() - orig.b()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, 0.5).with_alpha(0.6);
+      rgb.perceptually_map_to_gamut();
+
+      assert!((rgb.alpha() - 0.6).abs() < 1e-10);
     }
   }
 
@@ -1848,6 +2109,37 @@ mod test {
       rgb.scale_r(0.5);
 
       assert_eq!(rgb.red(), 64);
+    }
+  }
+
+  mod scale_to_gamut {
+    use super::*;
+
+    #[test]
+    fn it_scales_to_bring_into_gamut() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, 0.5);
+      rgb.scale_to_gamut();
+
+      assert!(rgb.is_in_gamut());
+    }
+
+    #[test]
+    fn it_returns_unchanged_when_in_gamut() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(0.5, 0.3, 0.8);
+      let orig = rgb;
+      rgb.scale_to_gamut();
+
+      assert!((rgb.r() - orig.r()).abs() < 1e-10);
+      assert!((rgb.g() - orig.g()).abs() < 1e-10);
+      assert!((rgb.b() - orig.b()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let mut rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, 0.5).with_alpha(0.5);
+      rgb.scale_to_gamut();
+
+      assert!((rgb.alpha() - 0.5).abs() < 1e-10);
     }
   }
 
@@ -2445,6 +2737,92 @@ mod test {
       let result = rgb.with_blue_incremented_by(64);
 
       assert_eq!(result.blue(), 128);
+    }
+  }
+
+  mod with_gamut_clipped {
+    use super::*;
+
+    #[test]
+    fn it_returns_clipped_color() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.5, -0.2, 0.5);
+      let result = rgb.with_gamut_clipped();
+
+      assert!(result.is_in_gamut());
+      assert!((result.r() - 1.0).abs() < 1e-10);
+      assert!((result.g() - 0.0).abs() < 1e-10);
+      assert!((result.b() - 0.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.5, -0.2, 0.5);
+      let _ = rgb.with_gamut_clipped();
+
+      assert!((rgb.r() - 1.5).abs() < 1e-10);
+      assert!((rgb.g() - -0.2).abs() < 1e-10);
+    }
+  }
+
+  #[cfg(feature = "space-lab")]
+  mod with_gamut_compressed {
+    use super::*;
+
+    #[test]
+    fn it_returns_compressed_color() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.5, -0.2, 0.5);
+      let result = rgb.with_gamut_compressed();
+
+      assert!(result.is_in_gamut());
+    }
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.5, -0.2, 0.5);
+      let _ = rgb.with_gamut_compressed();
+
+      assert!((rgb.r() - 1.5).abs() < 1e-10);
+      assert!((rgb.g() - -0.2).abs() < 1e-10);
+    }
+  }
+
+  mod with_gamut_perceptually_mapped {
+    use super::*;
+
+    #[test]
+    fn it_returns_perceptually_mapped_color() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, 0.5);
+      let result = rgb.with_gamut_perceptually_mapped();
+
+      assert!(result.is_in_gamut());
+    }
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, 0.5);
+      let _ = rgb.with_gamut_perceptually_mapped();
+
+      assert!((rgb.r() - 1.5).abs() < 1e-10);
+    }
+  }
+
+  mod with_gamut_scaled {
+    use super::*;
+
+    #[test]
+    fn it_returns_scaled_color() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, 0.5);
+      let result = rgb.with_gamut_scaled();
+
+      assert!(result.is_in_gamut());
+    }
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let rgb = Rgb::<Srgb>::from_normalized(1.5, 0.5, 0.5);
+      let _ = rgb.with_gamut_scaled();
+
+      assert!((rgb.r() - 1.5).abs() < 1e-10);
     }
   }
 

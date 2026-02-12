@@ -91,8 +91,29 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.chromaticity().to_uv()
   }
 
+  /// Clamps all components into the gamut of the specified RGB space.
+  fn clip_to_gamut<S>(&mut self)
+  where
+    S: RgbSpec,
+  {
+    let mut rgb = self.to_rgb::<S>();
+    rgb.clip_to_gamut();
+    self.set_components(Self::from(rgb.to_xyz()).components())
+  }
+
   /// Returns the color's components as an array.
   fn components(&self) -> [f64; N];
+
+  /// Reduces chroma in CIELAB space until the color fits the specified RGB gamut.
+  #[cfg(feature = "space-lab")]
+  fn compress_to_gamut<S>(&mut self)
+  where
+    S: RgbSpec,
+  {
+    let mut rgb = self.to_rgb::<S>();
+    rgb.compress_to_gamut();
+    self.set_components(Self::from(rgb.to_xyz()).components())
+  }
 
   /// Returns the WCAG 2.x contrast ratio between this color and another.
   ///
@@ -306,6 +327,19 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.set_alpha(self.with_opacity_incremented_by(amount).alpha())
   }
 
+  /// Returns `true` if this color is within the gamut of the specified RGB space.
+  fn is_in_gamut<S>(&self) -> bool
+  where
+    S: RgbSpec,
+  {
+    self.to_rgb::<S>().is_in_gamut()
+  }
+
+  /// Returns `true` if this color is physically realizable under the default observer.
+  fn is_realizable(&self) -> bool {
+    self.to_xyz().is_realizable()
+  }
+
   /// Returns the APCA lightness contrast (Lc) between this color and the given background.
   ///
   /// Positive values indicate dark-on-light (normal polarity), negative values indicate
@@ -336,6 +370,16 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns the opacity as a percentage (0-100%).
   fn opacity(&self) -> f64 {
     self.alpha() * 100.0
+  }
+
+  /// Maps to gamut by scaling LMS components relative to the reference white.
+  fn perceptually_map_to_gamut<S>(&mut self)
+  where
+    S: RgbSpec,
+  {
+    let mut rgb = self.to_rgb::<S>();
+    rgb.perceptually_map_to_gamut();
+    self.set_components(Self::from(rgb.to_xyz()).components())
   }
 
   /// Returns the sRGB red channel as a u8 (0-255).
@@ -377,6 +421,16 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Scales opacity in place by the given percentage factor (0-100%).
   fn scale_opacity(&mut self, factor: impl Into<Component>) {
     self.set_alpha(self.with_opacity_scaled_by(factor).alpha())
+  }
+
+  /// Scales linear RGB components to fit within the specified RGB gamut.
+  fn scale_to_gamut<S>(&mut self)
+  where
+    S: RgbSpec,
+  {
+    let mut rgb = self.to_rgb::<S>();
+    rgb.scale_to_gamut();
+    self.set_components(Self::from(rgb.to_xyz()).components())
   }
 
   /// Sets the alpha value in place on a 0.0 to 1.0 scale.
@@ -580,6 +634,47 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(feature = "space-oklch", feature = "space-lch"))]
   fn with_chroma_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_chroma(self.chroma() * factor.into().0)
+  }
+
+  /// Returns a new color with all components clamped into the specified RGB gamut.
+  fn with_gamut_clipped<S>(&self) -> Self
+  where
+    S: RgbSpec,
+  {
+    let mut color = *self;
+    color.clip_to_gamut::<S>();
+    color
+  }
+
+  /// Returns a new color with chroma reduced in CIELAB space until the color fits the specified RGB gamut.
+  #[cfg(feature = "space-lab")]
+  fn with_gamut_compressed<S>(&self) -> Self
+  where
+    S: RgbSpec,
+  {
+    let mut color = *self;
+    color.compress_to_gamut::<S>();
+    color
+  }
+
+  /// Returns a new color mapped to the specified RGB gamut by scaling LMS components relative to the reference white.
+  fn with_gamut_perceptually_mapped<S>(&self) -> Self
+  where
+    S: RgbSpec,
+  {
+    let mut color = *self;
+    color.perceptually_map_to_gamut::<S>();
+    color
+  }
+
+  /// Returns a new color with linear RGB components scaled to fit within the specified RGB gamut.
+  fn with_gamut_scaled<S>(&self) -> Self
+  where
+    S: RgbSpec,
+  {
+    let mut color = *self;
+    color.scale_to_gamut::<S>();
+    color
   }
 
   /// Returns a new color with the given Oklch hue in degrees.

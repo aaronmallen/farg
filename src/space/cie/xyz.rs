@@ -195,6 +195,27 @@ impl Xyz {
     self.z += amount.into();
   }
 
+  /// Returns `true` if this color is physically realizable under the current observer.
+  ///
+  /// A color is realizable when all components are non-negative and its chromaticity
+  /// falls within the spectral locus of the context's observer. The origin (0, 0, 0)
+  /// is considered realizable as the absence of light.
+  pub fn is_realizable(&self) -> bool {
+    let [x, y, z] = self.components();
+
+    if x < 0.0 || y < 0.0 || z < 0.0 {
+      false
+    } else if y == 0.0 {
+      x == 0.0 && z == 0.0
+    } else {
+      self
+        .context()
+        .observer()
+        .chromaticity_coordinates()
+        .contains_chromaticity(self.chromaticity())
+    }
+  }
+
   /// Returns the relative luminance (Y component).
   pub fn luminance(&self) -> f64 {
     self.y()
@@ -1089,6 +1110,59 @@ mod test {
       xyz.increment_z(0.1);
 
       assert_eq!(xyz.z(), 0.30000000000000004);
+    }
+  }
+
+  mod is_realizable {
+    use super::*;
+
+    #[test]
+    fn it_returns_true_for_origin() {
+      let xyz = Xyz::new(0.0, 0.0, 0.0);
+
+      assert!(xyz.is_realizable());
+    }
+
+    #[test]
+    fn it_returns_true_for_d65_white_point() {
+      let xyz = Xyz::new(0.95047, 1.0, 1.08883);
+
+      assert!(xyz.is_realizable());
+    }
+
+    #[test]
+    fn it_returns_false_when_x_is_negative() {
+      let xyz = Xyz::new(-0.1, 0.5, 0.5);
+
+      assert!(!xyz.is_realizable());
+    }
+
+    #[test]
+    fn it_returns_false_when_y_is_negative() {
+      let xyz = Xyz::new(0.5, -0.1, 0.5);
+
+      assert!(!xyz.is_realizable());
+    }
+
+    #[test]
+    fn it_returns_false_when_z_is_negative() {
+      let xyz = Xyz::new(0.5, 0.5, -0.1);
+
+      assert!(!xyz.is_realizable());
+    }
+
+    #[test]
+    fn it_returns_false_when_y_is_zero_but_x_is_nonzero() {
+      let xyz = Xyz::new(0.1, 0.0, 0.0);
+
+      assert!(!xyz.is_realizable());
+    }
+
+    #[test]
+    fn it_returns_false_when_y_is_zero_but_z_is_nonzero() {
+      let xyz = Xyz::new(0.0, 0.0, 0.1);
+
+      assert!(!xyz.is_realizable());
     }
   }
 

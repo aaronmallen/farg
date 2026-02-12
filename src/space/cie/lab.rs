@@ -725,6 +725,54 @@ mod test {
     }
   }
 
+  mod clip_to_gamut {
+    use super::*;
+
+    #[test]
+    fn it_moves_out_of_gamut_lab_closer_to_srgb_gamut() {
+      let mut lab = Lab::new(50.0, 100.0, 100.0);
+      lab.clip_to_gamut::<Srgb>();
+      let rgb = lab.to_rgb::<Srgb>();
+
+      assert!(rgb.r() >= -1e-6 && rgb.r() <= 1.0 + 1e-6);
+      assert!(rgb.g() >= -1e-6 && rgb.g() <= 1.0 + 1e-6);
+      assert!(rgb.b() >= -1e-6 && rgb.b() <= 1.0 + 1e-6);
+    }
+
+    #[test]
+    fn it_leaves_in_gamut_color_approximately_unchanged() {
+      let mut lab = Lab::new(50.0, 0.0, 0.0);
+      let orig = lab;
+      lab.clip_to_gamut::<Srgb>();
+
+      assert!((lab.l() - orig.l()).abs() < 0.5);
+    }
+  }
+
+  mod compress_to_gamut {
+    use super::*;
+
+    #[test]
+    fn it_moves_out_of_gamut_lab_closer_to_srgb_gamut() {
+      let mut lab = Lab::new(50.0, 100.0, 100.0);
+      lab.compress_to_gamut::<Srgb>();
+      let rgb = lab.to_rgb::<Srgb>();
+
+      assert!(rgb.r() >= -1e-6 && rgb.r() <= 1.0 + 1e-6);
+      assert!(rgb.g() >= -1e-6 && rgb.g() <= 1.0 + 1e-6);
+      assert!(rgb.b() >= -1e-6 && rgb.b() <= 1.0 + 1e-6);
+    }
+
+    #[test]
+    fn it_leaves_in_gamut_color_approximately_unchanged() {
+      let mut lab = Lab::new(50.0, 0.0, 0.0);
+      let orig = lab;
+      lab.compress_to_gamut::<Srgb>();
+
+      assert!((lab.l() - orig.l()).abs() < 0.5);
+    }
+  }
+
   mod decrement_a {
     use super::*;
 
@@ -916,6 +964,42 @@ mod test {
     }
   }
 
+  mod is_in_gamut {
+    use super::*;
+
+    #[test]
+    fn it_returns_true_for_neutral_gray() {
+      let lab = Lab::new(50.0, 0.0, 0.0);
+
+      assert!(lab.is_in_gamut::<Srgb>());
+    }
+
+    #[test]
+    fn it_returns_false_for_highly_saturated_color() {
+      let lab = Lab::new(50.0, 100.0, 100.0);
+
+      assert!(!lab.is_in_gamut::<Srgb>());
+    }
+  }
+
+  mod is_realizable {
+    use super::*;
+
+    #[test]
+    fn it_returns_true_for_neutral_gray() {
+      let lab = Lab::new(50.0, 0.0, 0.0);
+
+      assert!(lab.is_realizable());
+    }
+
+    #[test]
+    fn it_returns_true_for_black() {
+      let lab = Lab::new(0.0, 0.0, 0.0);
+
+      assert!(lab.is_realizable());
+    }
+  }
+
   mod l {
     use super::*;
 
@@ -962,6 +1046,19 @@ mod test {
       let b = Lab::new(60.0, 20.0, -30.0);
 
       assert!(a != b);
+    }
+  }
+
+  mod perceptually_map_to_gamut {
+    use super::*;
+
+    #[test]
+    fn it_leaves_in_gamut_color_approximately_unchanged() {
+      let mut lab = Lab::new(50.0, 0.0, 0.0);
+      let orig = lab;
+      lab.perceptually_map_to_gamut::<Srgb>();
+
+      assert!((lab.l() - orig.l()).abs() < 0.5);
     }
   }
 
@@ -1032,6 +1129,30 @@ mod test {
       lab.scale_l(2.0);
 
       assert!((lab.l() - 100.0).abs() < 1e-10);
+    }
+  }
+
+  mod scale_to_gamut {
+    use super::*;
+
+    #[test]
+    fn it_moves_out_of_gamut_lab_closer_to_srgb_gamut() {
+      let mut lab = Lab::new(50.0, 100.0, 100.0);
+      lab.scale_to_gamut::<Srgb>();
+      let rgb = lab.to_rgb::<Srgb>();
+
+      assert!(rgb.r() >= -1e-6 && rgb.r() <= 1.0 + 1e-6);
+      assert!(rgb.g() >= -1e-6 && rgb.g() <= 1.0 + 1e-6);
+      assert!(rgb.b() >= -1e-6 && rgb.b() <= 1.0 + 1e-6);
+    }
+
+    #[test]
+    fn it_leaves_in_gamut_color_approximately_unchanged() {
+      let mut lab = Lab::new(50.0, 0.0, 0.0);
+      let orig = lab;
+      lab.scale_to_gamut::<Srgb>();
+
+      assert!((lab.l() - orig.l()).abs() < 0.5);
     }
   }
 
@@ -1226,6 +1347,87 @@ mod test {
       let result = lab.with_context(context);
 
       assert!((result.l() - 50.0).abs() < 1e-10);
+    }
+  }
+
+  mod with_gamut_clipped {
+    use super::*;
+
+    #[test]
+    fn it_returns_approximately_in_gamut_color() {
+      let lab = Lab::new(50.0, 100.0, 100.0);
+      let result = lab.with_gamut_clipped::<Srgb>();
+      let rgb = result.to_rgb::<Srgb>();
+
+      assert!(rgb.r() >= -1e-6 && rgb.r() <= 1.0 + 1e-6);
+      assert!(rgb.g() >= -1e-6 && rgb.g() <= 1.0 + 1e-6);
+      assert!(rgb.b() >= -1e-6 && rgb.b() <= 1.0 + 1e-6);
+    }
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let lab = Lab::new(50.0, 100.0, 100.0);
+      let _ = lab.with_gamut_clipped::<Srgb>();
+
+      assert!((lab.a() - 100.0).abs() < 1e-10);
+    }
+  }
+
+  mod with_gamut_compressed {
+    use super::*;
+
+    #[test]
+    fn it_returns_approximately_in_gamut_color() {
+      let lab = Lab::new(50.0, 100.0, 100.0);
+      let result = lab.with_gamut_compressed::<Srgb>();
+      let rgb = result.to_rgb::<Srgb>();
+
+      assert!(rgb.r() >= -1e-6 && rgb.r() <= 1.0 + 1e-6);
+      assert!(rgb.g() >= -1e-6 && rgb.g() <= 1.0 + 1e-6);
+      assert!(rgb.b() >= -1e-6 && rgb.b() <= 1.0 + 1e-6);
+    }
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let lab = Lab::new(50.0, 100.0, 100.0);
+      let _ = lab.with_gamut_compressed::<Srgb>();
+
+      assert!((lab.a() - 100.0).abs() < 1e-10);
+    }
+  }
+
+  mod with_gamut_perceptually_mapped {
+    use super::*;
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let lab = Lab::new(50.0, 100.0, 100.0);
+      let _ = lab.with_gamut_perceptually_mapped::<Srgb>();
+
+      assert!((lab.a() - 100.0).abs() < 1e-10);
+    }
+  }
+
+  mod with_gamut_scaled {
+    use super::*;
+
+    #[test]
+    fn it_returns_approximately_in_gamut_color() {
+      let lab = Lab::new(50.0, 100.0, 100.0);
+      let result = lab.with_gamut_scaled::<Srgb>();
+      let rgb = result.to_rgb::<Srgb>();
+
+      assert!(rgb.r() >= -1e-6 && rgb.r() <= 1.0 + 1e-6);
+      assert!(rgb.g() >= -1e-6 && rgb.g() <= 1.0 + 1e-6);
+      assert!(rgb.b() >= -1e-6 && rgb.b() <= 1.0 + 1e-6);
+    }
+
+    #[test]
+    fn it_does_not_mutate_original() {
+      let lab = Lab::new(50.0, 100.0, 100.0);
+      let _ = lab.with_gamut_scaled::<Srgb>();
+
+      assert!((lab.a() - 100.0).abs() < 1e-10);
     }
   }
 

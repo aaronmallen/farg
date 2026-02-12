@@ -9,6 +9,13 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add gamut mapping with four strategies on `Rgb` and the `ColorSpace` trait: `clip_to_gamut()` (clamp),
+  `scale_to_gamut()` (linear RGB scaling), `compress_to_gamut()` (CIELAB chroma reduction, feature-gated behind
+  `space-lab`), and `perceptually_map_to_gamut()` (LMS scaling relative to reference white) — each with
+  `with_gamut_*` builder variants
+- Add `is_in_gamut()` on `Rgb` and the `ColorSpace` trait for checking whether a color falls within an RGB gamut
+- Add `is_realizable()` on `Xyz` and the `ColorSpace` trait for checking physical realizability against the
+  observer's spectral locus
 - Add `contrast` module with six perceptual contrast algorithms: AERT brightness difference, APCA lightness
   contrast, Michelson, RMS, WCAG 2.x contrast ratio, and Weber contrast — each feature-gated behind `contrast-*`
   flags and bundled under `all-contrast`
@@ -27,6 +34,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Changed
 
+- **BREAKING:** `Rgb::from_normalized` and `LinearRgb::from_normalized` no longer clamp values to 0.0-1.0,
+  preserving out-of-gamut information for gamut mapping workflows
 - **BREAKING:** `IlluminantBuilder::new` now requires `name` and `IlluminantType` at construction time;
 - `IlluminantBuilder` now accepts non-`'static` references, allowing construction from dynamically generated data
 - `ObserverBuilder` now accepts non-`'static` references, allowing construction from dynamically generated data
