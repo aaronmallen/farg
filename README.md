@@ -158,6 +158,22 @@ let lc = white.lightness_contrast(&text);
 
 Additional algorithms (Michelson, Weber, RMS, AERT) are available behind `contrast-*` feature flags.
 
+## Correlated Color Temperature
+
+Four algorithms for estimating the color temperature of a light source:
+
+```rust
+use farg::correlated_color_temperature::ohno;
+use farg::space::Xyz;
+
+// D65 white point (~6504 K)
+let d65 = Xyz::new(0.95047, 1.0, 1.08883);
+let cct = ohno::calculate(d65);
+println!("CCT: {:.0} K", cct.value());
+```
+
+Additional algorithms (Robertson, Hernandez-Andres, McCamy) are available behind `cct-*` feature flags.
+
 ## Spectral Data
 
 Full spectral power distribution and color matching function data for all standard illuminants and observers:
@@ -190,6 +206,7 @@ available.
 |--------------------|--------------------------------------------------------------------------------------|
 | `full`             | Everything below                                                                     |
 | `all-cats`         | All 9 chromatic adaptation transforms                                                |
+| `all-cct`          | All 4 correlated color temperature algorithms                                        |
 | `all-chromaticity` | All chromaticity coordinate systems (Rg, Uv, u'v')                                   |
 | `all-contrast`     | All 6 contrast algorithms                                                            |
 | `all-distance`     | All 6 color distance algorithms                                                      |
@@ -224,6 +241,7 @@ farg = { version = "0.4", features = ["space-oklab", "space-lab", "all-illuminan
   - [Color Conversions](docs/usage/conversions.md) -- Converting between color spaces
   - [Color Distance](docs/usage/distance.md) -- Measuring distance between colors
   - [Contrast](docs/usage/contrast.md) -- Measuring contrast between colors
+  - [Correlated Color Temperature](docs/usage/cct.md) -- Estimating CCT
   - [Illuminants](docs/usage/illuminants.md) -- Standard, custom, and contextual illuminants
   - [Observers](docs/usage/observers.md) -- Standard, custom, and modified observers
   - [Feature Flags](docs/usage/features.md) -- All feature flags, dependencies, and defaults

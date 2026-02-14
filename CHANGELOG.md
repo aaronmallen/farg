@@ -9,6 +9,11 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add `correlated_color_temperature` module with four CCT estimation algorithms: McCamy (1992), Hernandez-Andres
+  (1999), Robertson (1968), and Ohno (2014) — each feature-gated behind `cct-*` flags and bundled under `all-cct`
+- Add `ColorTemperature` type with `value()` (Kelvin) and `mrd()` (micro reciprocal degrees) representations
+- Add `cct()` and `correlated_color_temperature()` convenience methods to the `ColorSpace` trait with a priority
+  chain (Ohno > Robertson > Hernandez-Andres > McCamy)
 - Add `distance` module with six color distance algorithms: CIE76 (ΔE\*76), CIE94 (ΔE\*94), CMC l:c, CIEDE2000
   (ΔE\*00), Euclidean, and Manhattan — each feature-gated behind `distance-*` flags and bundled under `all-distance`
 - Add `closest_match()`, `is_perceptually_equivalent()`, and `is_distinguishable_from()` convenience methods to the

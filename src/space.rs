@@ -68,6 +68,17 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_lch().chroma()
   }
 
+  /// Alias for [`Self::correlated_color_temperature`].
+  #[cfg(any(
+    feature = "cct-ohno",
+    feature = "cct-robertson",
+    feature = "cct-hernandez-andres",
+    feature = "cct-mccamy"
+  ))]
+  fn cct(&self) -> crate::correlated_color_temperature::ColorTemperature {
+    self.correlated_color_temperature()
+  }
+
   /// Returns the CIE 1931 xy chromaticity coordinates.
   fn chromaticity(&self) -> Xy {
     self.to_xyz().chromaticity()
@@ -146,6 +157,39 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(feature = "contrast-wcag")]
   fn contrast_ratio(&self, other: impl Into<Xyz>) -> crate::contrast::wcag::ContrastRatio {
     crate::contrast::wcag::contrast_ratio(self.to_xyz(), other)
+  }
+
+  /// Returns the estimated correlated color temperature (CCT) in Kelvin.
+  ///
+  /// Uses the highest-precision available algorithm based on enabled features:
+  /// Ohno > Robertson > Hernandez-Andres > McCamy.
+  #[cfg(feature = "cct-ohno")]
+  fn correlated_color_temperature(&self) -> crate::correlated_color_temperature::ColorTemperature {
+    crate::correlated_color_temperature::ohno::calculate(self.to_xyz())
+  }
+
+  /// Returns the estimated correlated color temperature (CCT) in Kelvin.
+  #[cfg(all(feature = "cct-robertson", not(feature = "cct-ohno")))]
+  fn correlated_color_temperature(&self) -> crate::correlated_color_temperature::ColorTemperature {
+    crate::correlated_color_temperature::robertson::calculate(self.to_xyz())
+  }
+
+  /// Returns the estimated correlated color temperature (CCT) in Kelvin.
+  #[cfg(all(
+    feature = "cct-hernandez-andres",
+    not(any(feature = "cct-ohno", feature = "cct-robertson"))
+  ))]
+  fn correlated_color_temperature(&self) -> crate::correlated_color_temperature::ColorTemperature {
+    crate::correlated_color_temperature::hernandez_andres::calculate(self.to_xyz())
+  }
+
+  /// Returns the estimated correlated color temperature (CCT) in Kelvin.
+  #[cfg(all(
+    feature = "cct-mccamy",
+    not(any(feature = "cct-ohno", feature = "cct-robertson", feature = "cct-hernandez-andres"))
+  ))]
+  fn correlated_color_temperature(&self) -> crate::correlated_color_temperature::ColorTemperature {
+    crate::correlated_color_temperature::mccamy::calculate(self.to_xyz())
   }
 
   /// Returns the sRGB cyan component as a percentage (0-100%).

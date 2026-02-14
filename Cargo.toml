@@ -14,6 +14,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
+all-cct = ["cct-hernandez-andres", "cct-mccamy", "cct-ohno", "cct-robertson"]
 all-cats = [
   "cat-bradford",
   "cat-cat02",
@@ -111,6 +112,10 @@ all-spaces = [
   "space-luv",
   "space-oklab-family",
 ]
+cct-hernandez-andres = []
+cct-mccamy = []
+cct-ohno = ["chromaticity-uv"]
+cct-robertson = ["chromaticity-uv"]
 cat-bradford = []
 cat-cat02 = []
 cat-cat16 = []
@@ -139,6 +144,7 @@ distance-euclidean = []
 distance-manhattan = []
 full = [
   "all-cats",
+  "all-cct",
   "all-chromaticity",
   "all-contrast",
   "all-distance",

@@ -117,6 +117,7 @@ pub mod chromaticity;
 mod component;
 mod context;
 pub mod contrast;
+pub mod correlated_color_temperature;
 pub mod distance;
 mod error;
 mod illuminant;
