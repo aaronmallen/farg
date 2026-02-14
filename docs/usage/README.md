@@ -8,6 +8,7 @@ Reference documentation for using Farg in your projects.
 |-------------------------------------|-----------------------------------------------|
 | [Chromatic Adaptation](cats.md)     | CATs for adapting colors between illuminants  |
 | [Color Conversions](conversions.md) | Converting between color spaces               |
+| [Color Distance](distance.md)       | Measuring distance between colors             |
 | [Contrast](contrast.md)             | Measuring contrast between colors             |
 | [Illuminants](illuminants.md)       | Standard, custom, and contextual illuminants  |
 | [Observers](observers.md)           | Standard, custom, and modified observers      |

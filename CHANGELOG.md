@@ -7,6 +7,13 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+### Added
+
+- Add `distance` module with six color distance algorithms: CIE76 (ΔE\*76), CIE94 (ΔE\*94), CMC l:c, CIEDE2000
+  (ΔE\*00), Euclidean, and Manhattan — each feature-gated behind `distance-*` flags and bundled under `all-distance`
+- Add `closest_match()`, `is_perceptually_equivalent()`, and `is_distinguishable_from()` convenience methods to the
+  `ColorSpace` trait, feature-gated behind `distance-ciede2000`
+
 ## [v0.4.0] - 2026-02-12
 
 ### Added

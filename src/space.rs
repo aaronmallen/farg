@@ -101,6 +101,26 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.set_components(Self::from(rgb.to_xyz()).components())
   }
 
+  /// Returns the closest matching color from the given slice, or `None` if empty.
+  ///
+  /// Uses the CIEDE2000 color difference formula for perceptually accurate matching.
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(feature = "distance-ciede2000")]
+  fn closest_match<C>(&self, colors: &[C]) -> Option<C>
+  where
+    C: Into<Xyz> + Copy,
+  {
+    let self_xyz = self.to_xyz();
+    colors
+      .iter()
+      .min_by(|a, b| {
+        let da = crate::distance::ciede2000::calculate(self_xyz, **a);
+        let db = crate::distance::ciede2000::calculate(self_xyz, **b);
+        da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
+      })
+      .copied()
+  }
+
   /// Returns the color's components as an array.
   fn components(&self) -> [f64; N];
 
@@ -333,6 +353,26 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     S: RgbSpec,
   {
     self.to_rgb::<S>().is_in_gamut()
+  }
+
+  /// Returns `true` if this color is perceptually distinguishable from another color.
+  ///
+  /// Uses the CIEDE2000 color difference formula with a Just Noticeable Difference (JND)
+  /// threshold of 1.0. Two colors with ΔE\*00 >= 1.0 are generally considered
+  /// distinguishable to the human eye.
+  #[cfg(feature = "distance-ciede2000")]
+  fn is_distinguishable_from(&self, other: impl Into<Xyz>) -> bool {
+    !self.is_perceptually_equivalent(other)
+  }
+
+  /// Returns `true` if this color is perceptually equivalent to another color.
+  ///
+  /// Uses the CIEDE2000 color difference formula with a Just Noticeable Difference (JND)
+  /// threshold of 1.0. Two colors with ΔE\*00 < 1.0 are generally considered
+  /// indistinguishable to the human eye.
+  #[cfg(feature = "distance-ciede2000")]
+  fn is_perceptually_equivalent(&self, other: impl Into<Xyz>) -> bool {
+    crate::distance::ciede2000::calculate(self.to_xyz(), other) < crate::distance::ciede2000::JND
   }
 
   /// Returns `true` if this color is physically realizable under the default observer.

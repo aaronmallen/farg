@@ -34,6 +34,14 @@ all-contrast = [
   "contrast-wcag",
   "contrast-weber",
 ]
+all-distance = [
+  "distance-cie76",
+  "distance-cie94",
+  "distance-ciecmc",
+  "distance-ciede2000",
+  "distance-euclidean",
+  "distance-manhattan",
+]
 all-illuminants = [
   "illuminant-daylight",
   "illuminant-fluorescent",
@@ -122,11 +130,18 @@ contrast-michelson = []
 contrast-rms = []
 contrast-wcag = []
 contrast-weber = []
-default = ["cat-bradford", "contrast-apca", "contrast-wcag"]
+default = ["cat-bradford", "contrast-apca", "contrast-wcag", "distance-ciede2000"]
+distance-cie76 = ["space-lab"]
+distance-cie94 = ["space-lab"]
+distance-ciecmc = ["space-lch"]
+distance-ciede2000 = ["space-lab"]
+distance-euclidean = []
+distance-manhattan = []
 full = [
   "all-cats",
   "all-chromaticity",
   "all-contrast",
+  "all-distance",
   "all-illuminants",
   "all-observers",
   "all-spaces",

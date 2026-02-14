@@ -117,6 +117,7 @@ pub mod chromaticity;
 mod component;
 mod context;
 pub mod contrast;
+pub mod distance;
 mod error;
 mod illuminant;
 mod matrix;

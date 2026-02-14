@@ -21,11 +21,12 @@ The following are included with no feature flags enabled:
 
 Enabled by `default`:
 
-| Feature         | Provides                                |
-|-----------------|-----------------------------------------|
-| `cat-bradford`  | Bradford chromatic adaptation transform |
-| `contrast-wcag` | WCAG 2.x contrast ratio                 |
-| `contrast-apca` | APCA lightness contrast                 |
+| Feature              | Provides                                |
+|----------------------|-----------------------------------------|
+| `cat-bradford`       | Bradford chromatic adaptation transform |
+| `contrast-wcag`      | WCAG 2.x contrast ratio                 |
+| `contrast-apca`      | APCA lightness contrast                 |
+| `distance-ciede2000` | CIEDE2000 color difference              |
 
 ```toml
 [dependencies]
@@ -42,6 +43,7 @@ Group features that enable entire categories at once.
 | `all-cats`         | All 9 chromatic adaptation transforms                                     |
 | `all-chromaticity` | All 3 chromaticity coordinate systems                                     |
 | `all-contrast`     | All 6 contrast algorithms                                                 |
+| `all-distance`     | All 6 color distance algorithms                                           |
 | `all-illuminants`  | All illuminant sub-groups (standard, daylight, fluorescent, FL3, HP, LED) |
 | `all-observers`    | All 7 additional observers                                                |
 | `all-rgb-spaces`   | All 37 additional RGB color spaces                                        |
@@ -92,6 +94,19 @@ Six contrast algorithms available behind individual `contrast-*` flags.
 | `contrast-rms`       | RMS       | Root mean square luminance contrast                  |
 | `contrast-wcag`      | WCAG      | WCAG 2.x contrast ratio (1:1 to 21:1)                |
 | `contrast-weber`     | Weber     | Weber contrast for target-on-background visibility   |
+
+## Color Distance Algorithms
+
+Six color distance algorithms available behind individual `distance-*` flags.
+
+| Feature              | Algorithm | Description                                          | Dependencies |
+|----------------------|-----------|------------------------------------------------------|--------------|
+| `distance-ciede2000` | CIEDE2000 | Most perceptually uniform CIE metric (default)       | `space-lab`  |
+| `distance-cie76`     | CIE76     | Euclidean distance in CIELAB space                   | `space-lab`  |
+| `distance-cie94`     | CIE94     | Weighted CIELAB difference (graphic arts / textiles) | `space-lab`  |
+| `distance-ciecmc`    | CMC l:c   | LCh-based difference for textile industry            | `space-lch`  |
+| `distance-euclidean` | Euclidean | Straight-line distance in XYZ space                  | -            |
+| `distance-manhattan` | Manhattan | Taxicab distance in XYZ space                        | -            |
 
 ## Illuminants
 

@@ -115,6 +115,30 @@ let scaled: Rgb<Srgb> = wide.scale_to_gamut();           // linear scaling
 let perceptual: Rgb<Srgb> = wide.perceptually_map_to_gamut(); // LMS scaling
 ```
 
+## Color Distance
+
+Six algorithms for measuring perceptual or geometric distance between colors:
+
+```rust
+use farg::distance::ciede2000;
+use farg::space::{ColorSpace, Rgb, Srgb};
+
+let coral = Rgb::<Srgb>::new(255, 87, 51);
+let teal = Rgb::<Srgb>::new(0, 128, 128);
+
+// CIEDE2000 color difference (ΔE*00)
+let delta_e = ciede2000::calculate(coral, teal);
+
+// Perceptual equivalence check (ΔE*00 < 1.0)
+let same = coral.is_perceptually_equivalent(teal);
+
+// Find the closest match from a palette
+let palette = [teal, Rgb::<Srgb>::new(255, 0, 0)];
+let closest = coral.closest_match(&palette);
+```
+
+Additional algorithms (CIE76, CIE94, CMC l:c, Euclidean, Manhattan) are available behind `distance-*` feature flags.
+
 ## Contrast
 
 Six algorithms for evaluating perceptual contrast between colors:
@@ -159,7 +183,8 @@ use farg::{IlluminantBuilder, IlluminantType, ObserverBuilder};
 ## Feature Flags
 
 Farg uses granular feature flags so you only compile what you need. The `default` feature enables Bradford CAT,
-WCAG contrast, and APCA contrast. D65, CIE 1931 2°, sRGB, XYZ, and LMS are always available.
+WCAG contrast, APCA contrast, and CIEDE2000 color distance. D65, CIE 1931 2°, sRGB, XYZ, and LMS are always
+available.
 
 | Feature            | Contents                                                                             |
 |--------------------|--------------------------------------------------------------------------------------|
@@ -167,6 +192,7 @@ WCAG contrast, and APCA contrast. D65, CIE 1931 2°, sRGB, XYZ, and LMS are alwa
 | `all-cats`         | All 9 chromatic adaptation transforms                                                |
 | `all-chromaticity` | All chromaticity coordinate systems (Rg, Uv, u'v')                                   |
 | `all-contrast`     | All 6 contrast algorithms                                                            |
+| `all-distance`     | All 6 color distance algorithms                                                      |
 | `all-illuminants`  | All standard illuminants (44 total across daylight, fluorescent, LED, and more)      |
 | `all-observers`    | All 7 additional observers (CIE 1964 10°, CIE 2006, Stockman-Sharpe, Judd, Judd-Vos) |
 | `all-rgb-spaces`   | All 37 additional RGB color spaces                                                   |
@@ -196,6 +222,7 @@ farg = { version = "0.4", features = ["space-oklab", "space-lab", "all-illuminan
 - [Usage Guide](docs/usage/README.md)
   - [Chromatic Adaptation](docs/usage/cats.md) -- CATs for adapting colors between illuminants
   - [Color Conversions](docs/usage/conversions.md) -- Converting between color spaces
+  - [Color Distance](docs/usage/distance.md) -- Measuring distance between colors
   - [Contrast](docs/usage/contrast.md) -- Measuring contrast between colors
   - [Illuminants](docs/usage/illuminants.md) -- Standard, custom, and contextual illuminants
   - [Observers](docs/usage/observers.md) -- Standard, custom, and modified observers

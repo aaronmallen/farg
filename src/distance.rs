@@ -1,0 +1,12 @@
+#[cfg(feature = "distance-cie76")]
+pub mod cie76;
+#[cfg(feature = "distance-cie94")]
+pub mod cie94;
+#[cfg(feature = "distance-ciecmc")]
+pub mod ciecmc;
+#[cfg(feature = "distance-ciede2000")]
+pub mod ciede2000;
+#[cfg(feature = "distance-euclidean")]
+pub mod euclidean;
+#[cfg(feature = "distance-manhattan")]
+pub mod manhattan;
