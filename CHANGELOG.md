@@ -7,6 +7,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+## [v0.4.1] - 2026-02-14
+
 ### Added
 
 - Add `correlated_color_temperature` module with four CCT estimation algorithms: McCamy (1992), Hernandez-Andres
@@ -124,8 +126,9 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 Initial release
 
-[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.0...main
+[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.1...main
 [v0.1.1]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.0..0.1.1
 [v0.2.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.1..0.2.0
 [v0.3.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.2.0..0.3.0
 [v0.4.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.3.0..0.4.0
+[v0.4.1]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.0..0.4.1
