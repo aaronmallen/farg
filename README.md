@@ -263,6 +263,7 @@ farg = { version = "0.4", features = ["space-oklab", "space-lab", "all-illuminan
   - [Color Conversions](docs/usage/conversions.md) -- Converting between color spaces
   - [Color Distance](docs/usage/distance.md) -- Measuring distance between colors
   - [Color Harmonies](docs/usage/harmonies.md) -- Generating harmonious color palettes
+  - [Color Mixing](docs/usage/mixing.md) -- Interpolating colors and generating gradients
   - [Contrast](docs/usage/contrast.md) -- Measuring contrast between colors
   - [Correlated Color Temperature](docs/usage/cct.md) -- Estimating CCT
   - [Illuminants](docs/usage/illuminants.md) -- Standard, custom, and contextual illuminants

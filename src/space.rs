@@ -302,6 +302,91 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_rgb::<Srgb>().green()
   }
 
+  /// Generates a sequence of evenly-spaced colors between `self` and `other`.
+  ///
+  /// Returns `steps` colors including both endpoints, interpolated in the Oklch (or LCh)
+  /// color space for perceptually uniform results. When `steps` is 0 the result is empty.
+  /// When `steps` is 1 the result contains only `self`.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(feature = "space-oklch")]
+  fn gradient(&self, other: impl Into<Xyz>, steps: usize) -> Vec<Self> {
+    self
+      .to_oklch()
+      .gradient(other, steps)
+      .into_iter()
+      .map(|oklch| Self::from(oklch.to_xyz()).with_alpha(oklch.alpha()))
+      .collect()
+  }
+
+  /// Generates a sequence of evenly-spaced colors between `self` and `other`.
+  ///
+  /// Returns `steps` colors including both endpoints, interpolated in the LCh color space.
+  /// When `steps` is 0 the result is empty. When `steps` is 1 the result contains only `self`.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(all(feature = "space-lch", not(feature = "space-oklch")))]
+  fn gradient(&self, other: impl Into<Xyz>, steps: usize) -> Vec<Self> {
+    self
+      .to_lch()
+      .gradient(other, steps)
+      .into_iter()
+      .map(|lch| Self::from(lch.to_xyz()).with_alpha(lch.alpha()))
+      .collect()
+  }
+
+  /// Generates a sequence of evenly-spaced colors between `self` and `other` in linear-light sRGB.
+  ///
+  /// Returns `steps` colors including both endpoints, interpolated in linearized sRGB
+  /// for physically correct additive light mixing. When `steps` is 0 the result is empty.
+  /// When `steps` is 1 the result contains only `self`.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  fn gradient_linear(&self, other: impl Into<Xyz>, steps: usize) -> Vec<Self> {
+    self
+      .to_rgb::<Srgb>()
+      .gradient_linear(other, steps)
+      .into_iter()
+      .map(|rgb| Self::from(rgb.to_xyz()).with_alpha(rgb.alpha()))
+      .collect()
+  }
+
+  /// Generates a sequence of evenly-spaced colors between `self` and `other` in rectangular
+  /// Oklab (or L\*a\*b\*) coordinates.
+  ///
+  /// Returns `steps` colors including both endpoints, interpolated directly in rectangular
+  /// coordinates. When `steps` is 0 the result is empty. When `steps` is 1 the result
+  /// contains only `self`.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(feature = "space-oklab")]
+  fn gradient_rectangular(&self, other: impl Into<Xyz>, steps: usize) -> Vec<Self> {
+    self
+      .to_oklab()
+      .gradient(other, steps)
+      .into_iter()
+      .map(|oklab| Self::from(oklab.to_xyz()).with_alpha(oklab.alpha()))
+      .collect()
+  }
+
+  /// Generates a sequence of evenly-spaced colors between `self` and `other` in rectangular
+  /// L\*a\*b\* coordinates.
+  ///
+  /// Returns `steps` colors including both endpoints, interpolated directly in rectangular
+  /// coordinates. When `steps` is 0 the result is empty. When `steps` is 1 the result
+  /// contains only `self`.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(all(feature = "space-lab", not(feature = "space-oklab")))]
+  fn gradient_rectangular(&self, other: impl Into<Xyz>, steps: usize) -> Vec<Self> {
+    self
+      .to_lab()
+      .gradient(other, steps)
+      .into_iter()
+      .map(|lab| Self::from(lab.to_xyz()).with_alpha(lab.alpha()))
+      .collect()
+  }
+
   /// Returns the Oklch hue channel.
   #[cfg(feature = "space-oklch")]
   fn hue(&self) -> f64 {
@@ -485,6 +570,128 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(feature = "space-cmyk")]
   fn magenta(&self) -> f64 {
     self.to_cmyk().magenta()
+  }
+
+  /// Interpolates between `self` and `other` at parameter `t`, returning a new color.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
+  /// performed in the Oklch (or LCh) color space with shortest-arc hue and achromatic
+  /// handling per the CSS Color Level 4 specification.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(feature = "space-oklch")]
+  fn mix(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let result = self.to_oklch().mix(other, t);
+    Self::from(result.to_xyz()).with_alpha(result.alpha())
+  }
+
+  /// Interpolates between `self` and `other` at parameter `t`, returning a new color.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
+  /// performed in the LCh color space with shortest-arc hue and achromatic handling
+  /// per the CSS Color Level 4 specification.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(all(feature = "space-lch", not(feature = "space-oklch")))]
+  fn mix(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let result = self.to_lch().mix(other, t);
+    Self::from(result.to_xyz()).with_alpha(result.alpha())
+  }
+
+  /// Interpolates `self` toward `other` at parameter `t`, mutating in place.
+  ///
+  /// See [`mix`](Self::mix) for details on the interpolation behavior.
+  #[cfg(feature = "space-oklch")]
+  fn mixed_with(&mut self, other: impl Into<Xyz>, t: f64) {
+    let result = self.mix(other, t);
+    self.set_components(result.components());
+    self.set_alpha(result.alpha());
+  }
+
+  /// Interpolates `self` toward `other` at parameter `t`, mutating in place.
+  ///
+  /// See [`mix`](Self::mix) for details on the interpolation behavior.
+  #[cfg(all(feature = "space-lch", not(feature = "space-oklch")))]
+  fn mixed_with(&mut self, other: impl Into<Xyz>, t: f64) {
+    let result = self.mix(other, t);
+    self.set_components(result.components());
+    self.set_alpha(result.alpha());
+  }
+
+  /// Interpolates `self` toward `other` at parameter `t` in linear-light sRGB, mutating in place.
+  ///
+  /// See [`mix_linear`](Self::mix_linear) for details on the interpolation behavior.
+  fn mixed_with_linear(&mut self, other: impl Into<Xyz>, t: f64) {
+    let result = self.mix_linear(other, t);
+    self.set_components(result.components());
+    self.set_alpha(result.alpha());
+  }
+
+  /// Interpolates `self` toward `other` at parameter `t` in rectangular Oklab (or L\*a\*b\*),
+  /// mutating in place.
+  ///
+  /// See [`mix_rectangular`](Self::mix_rectangular) for details on the interpolation behavior.
+  #[cfg(feature = "space-oklab")]
+  fn mixed_with_rectangular(&mut self, other: impl Into<Xyz>, t: f64) {
+    let result = self.mix_rectangular(other, t);
+    self.set_components(result.components());
+    self.set_alpha(result.alpha());
+  }
+
+  /// Interpolates `self` toward `other` at parameter `t` in rectangular L\*a\*b\*,
+  /// mutating in place.
+  ///
+  /// See [`mix_rectangular`](Self::mix_rectangular) for details on the interpolation behavior.
+  #[cfg(all(feature = "space-lab", not(feature = "space-oklab")))]
+  fn mixed_with_rectangular(&mut self, other: impl Into<Xyz>, t: f64) {
+    let result = self.mix_rectangular(other, t);
+    self.set_components(result.components());
+    self.set_alpha(result.alpha());
+  }
+
+  /// Interpolates between `self` and `other` at parameter `t` in linear-light sRGB.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Both colors are
+  /// converted to linear sRGB before interpolation and converted back afterward,
+  /// producing physically correct additive light mixing.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  fn mix_linear(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let result = self.to_rgb::<Srgb>().mix_linear(other, t);
+    Self::from(result.to_xyz()).with_alpha(result.alpha())
+  }
+
+  /// Interpolates between `self` and `other` at parameter `t` in rectangular Oklab
+  /// (or L\*a\*b\*) coordinates.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
+  /// performed directly in rectangular coordinates, which avoids hue-interpolation
+  /// desaturation and handles neutrals naturally.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(feature = "space-oklab")]
+  fn mix_rectangular(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let result = self.to_oklab().mix(other, t);
+    Self::from(result.to_xyz()).with_alpha(result.alpha())
+  }
+
+  /// Interpolates between `self` and `other` at parameter `t` in rectangular L\*a\*b\*
+  /// coordinates.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
+  /// performed directly in rectangular coordinates, which avoids hue-interpolation
+  /// desaturation and handles neutrals naturally.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(all(feature = "space-lab", not(feature = "space-oklab")))]
+  fn mix_rectangular(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let result = self.to_lab().mix(other, t);
+    Self::from(result.to_xyz()).with_alpha(result.alpha())
   }
 
   /// Returns four monochromatic variations (two darker, two lighter).

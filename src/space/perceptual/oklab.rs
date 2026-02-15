@@ -134,6 +134,25 @@ impl Oklab {
     self.l -= amount.into();
   }
 
+  /// Generates a sequence of evenly-spaced colors between `self` and `other` in rectangular Oklab.
+  ///
+  /// Returns `steps` colors including both endpoints, interpolated directly in L/a/b
+  /// coordinates. When `steps` is 0 the result is empty. When `steps` is 1 the result
+  /// contains only `self`.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  pub fn gradient(&self, other: impl Into<Xyz>, steps: usize) -> Vec<Self> {
+    if steps == 0 {
+      return Vec::new();
+    }
+    let other = other.into();
+    if steps == 1 {
+      return vec![self.mix(other, 0.0)];
+    }
+    let divisor = (steps - 1) as f64;
+    (0..steps).map(|i| self.mix(other, i as f64 / divisor)).collect()
+  }
+
   /// Increases the a component by the given amount.
   pub fn increment_a(&mut self, amount: impl Into<Component>) {
     self.a += amount.into();
@@ -154,6 +173,36 @@ impl Oklab {
     self.l.0
   }
 
+  /// Interpolates between `self` and `other` at parameter `t` in rectangular Oklab.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
+  /// performed directly in L/a/b rectangular coordinates, which avoids hue-interpolation
+  /// desaturation and handles neutrals naturally.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  pub fn mix(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let other = Self::from(other.into());
+
+    let l = Component::new(self.l()).lerp(other.l(), t);
+    let a = Component::new(self.a()).lerp(other.a(), t);
+    let b = Component::new(self.b()).lerp(other.b(), t);
+    let alpha = Component::new(self.alpha()).lerp(other.alpha(), t);
+
+    Self::new(l, a, b).with_alpha(alpha)
+  }
+
+  /// Interpolates `self` toward `other` at parameter `t` in rectangular Oklab, mutating in place.
+  ///
+  /// See [`mix`](Self::mix) for details on the interpolation behavior.
+  pub fn mixed_with(&mut self, other: impl Into<Xyz>, t: f64) {
+    let result = self.mix(other, t);
+    self.l = result.l;
+    self.a = result.a;
+    self.b = result.b;
+    self.alpha = result.alpha;
+  }
+
   /// Scales the a component by the given factor.
   pub fn scale_a(&mut self, factor: impl Into<Component>) {
     self.a *= factor.into();
@@ -169,13 +218,6 @@ impl Oklab {
     self.l *= factor.into();
   }
 
-  /// Sets the [L, a, b] components from an array.
-  pub fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
-    self.set_l(components[0].clone());
-    self.set_a(components[1].clone());
-    self.set_b(components[2].clone());
-  }
-
   /// Sets the a component.
   pub fn set_a(&mut self, a: impl Into<Component>) {
     self.a = a.into();
@@ -184,6 +226,13 @@ impl Oklab {
   /// Sets the b component.
   pub fn set_b(&mut self, b: impl Into<Component>) {
     self.b = b.into();
+  }
+
+  /// Sets the [L, a, b] components from an array.
+  pub fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
+    self.set_l(components[0].clone());
+    self.set_a(components[1].clone());
+    self.set_b(components[2].clone());
   }
 
   /// Sets the L component.
@@ -957,6 +1006,57 @@ mod test {
     }
   }
 
+  mod gradient {
+    use super::*;
+
+    #[test]
+    fn zero_steps_is_empty() {
+      let c1 = Oklab::new(0.5, 0.1, -0.1);
+      let c2 = Oklab::new(0.8, -0.05, 0.1);
+      assert!(c1.gradient(c2.to_xyz(), 0).is_empty());
+    }
+
+    #[test]
+    fn one_step_returns_self() {
+      let c1 = Oklab::new(0.5, 0.1, -0.1);
+      let c2 = Oklab::new(0.8, -0.05, 0.1);
+      let steps = c1.gradient(c2.to_xyz(), 1);
+      assert_eq!(steps.len(), 1);
+      assert!((steps[0].l() - c1.l()).abs() < 1e-4);
+    }
+
+    #[test]
+    fn two_steps_returns_endpoints() {
+      let c1 = Oklab::new(0.5, 0.1, -0.1);
+      let c2 = Oklab::new(0.8, -0.05, 0.1);
+      let steps = c1.gradient(c2.to_xyz(), 2);
+      assert_eq!(steps.len(), 2);
+      assert!((steps[0].l() - c1.l()).abs() < 1e-4);
+      assert!((steps[1].l() - c2.l()).abs() < 1e-4);
+    }
+
+    #[test]
+    fn five_steps_correct_count() {
+      let c1 = Oklab::new(0.2, 0.0, 0.0);
+      let c2 = Oklab::new(0.9, 0.0, 0.0);
+      assert_eq!(c1.gradient(c2.to_xyz(), 5).len(), 5);
+    }
+
+    #[test]
+    fn monotonic_lightness_dark_to_light() {
+      let dark = Oklab::new(0.1, 0.0, 0.0);
+      let light = Oklab::new(0.9, 0.0, 0.0);
+      let steps = dark.gradient(light.to_xyz(), 5);
+      let lightnesses: Vec<f64> = steps.iter().map(|c| c.l()).collect();
+      for i in 1..lightnesses.len() {
+        assert!(
+          lightnesses[i] >= lightnesses[i - 1],
+          "Lightness should be monotonically increasing: {lightnesses:?}"
+        );
+      }
+    }
+  }
+
   mod increment_a {
     use super::*;
 
@@ -1001,6 +1101,80 @@ mod test {
       let oklab = Oklab::new(0.5, 0.1, -0.1);
 
       assert!((oklab.l() - 0.5).abs() < 1e-10);
+    }
+  }
+
+  mod mix {
+    use super::*;
+
+    const EPSILON: f64 = 1e-4;
+
+    #[test]
+    fn at_zero_returns_self() {
+      let c1 = Oklab::new(0.5, 0.1, -0.1);
+      let c2 = Oklab::new(0.8, -0.05, 0.1);
+      let result = c1.mix(c2.to_xyz(), 0.0);
+      assert!((result.l() - c1.l()).abs() < EPSILON);
+      assert!((result.a() - c1.a()).abs() < EPSILON);
+      assert!((result.b() - c1.b()).abs() < EPSILON);
+    }
+
+    #[test]
+    fn at_one_returns_other() {
+      let c1 = Oklab::new(0.5, 0.1, -0.1);
+      let c2 = Oklab::new(0.8, -0.05, 0.1);
+      let result = c1.mix(c2.to_xyz(), 1.0);
+      assert!((result.l() - c2.l()).abs() < EPSILON);
+      assert!((result.a() - c2.a()).abs() < EPSILON);
+      assert!((result.b() - c2.b()).abs() < EPSILON);
+    }
+
+    #[test]
+    fn midpoint_is_between() {
+      let c1 = Oklab::new(0.2, 0.0, 0.0);
+      let c2 = Oklab::new(0.8, 0.0, 0.0);
+      let mid = c1.mix(c2.to_xyz(), 0.5);
+      assert!(mid.l() > 0.3 && mid.l() < 0.7);
+    }
+
+    #[test]
+    fn alpha_interpolation() {
+      let c1 = Oklab::new(0.5, 0.0, 0.0).with_alpha(0.0);
+      let c2 = Oklab::new(0.5, 0.0, 0.0).with_alpha(1.0);
+      let mid = c1.mix(c2.to_xyz(), 0.5);
+      assert!((mid.alpha() - 0.5).abs() < EPSILON);
+    }
+
+    #[test]
+    fn extrapolation() {
+      let c1 = Oklab::new(0.2, 0.0, 0.0);
+      let c2 = Oklab::new(0.8, 0.0, 0.0);
+      let beyond = c1.mix(c2.to_xyz(), 1.5);
+      assert!(beyond.l() > c2.l());
+    }
+
+    #[test]
+    fn cross_type() {
+      let oklab = Oklab::new(0.5, 0.1, -0.1);
+      let xyz = Xyz::new(0.18048, 0.07219, 0.95030);
+      let _result = oklab.mix(xyz, 0.5);
+    }
+  }
+
+  mod mixed_with {
+    use super::*;
+
+    #[test]
+    fn it_mutates_in_place() {
+      let c1 = Oklab::new(0.5, 0.1, -0.1);
+      let c2 = Oklab::new(0.8, -0.05, 0.1);
+      let expected = c1.mix(c2.to_xyz(), 0.5);
+      let mut color = c1;
+      color.mixed_with(c2.to_xyz(), 0.5);
+      assert!((color.l() - expected.l()).abs() < 1e-10);
+      assert!((color.a() - expected.a()).abs() < 1e-10);
+      assert!((color.b() - expected.b()).abs() < 1e-10);
+      assert!((color.alpha() - expected.alpha()).abs() < 1e-10);
     }
   }
 

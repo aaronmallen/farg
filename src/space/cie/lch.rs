@@ -31,6 +31,9 @@ use crate::{
   space::{ColorSpace, Lab, Lms, Rgb, RgbSpec, Srgb, Xyz},
 };
 
+/// Chroma threshold below which a color is considered achromatic (hueless).
+const ACHROMATIC_THRESHOLD: f64 = 1e-4;
+
 /// CIE LCh color space (cylindrical form of CIE L*a*b*).
 ///
 /// A cylindrical representation of the CIE L\*a\*b\* color space where L\* represents
@@ -133,6 +136,24 @@ impl Lch {
     self.l -= amount.into();
   }
 
+  /// Generates a sequence of evenly-spaced colors between `self` and `other`.
+  ///
+  /// Returns `steps` colors including both endpoints, interpolated in the LCh color space.
+  /// When `steps` is 0 the result is empty. When `steps` is 1 the result contains only `self`.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  pub fn gradient(&self, other: impl Into<Xyz>, steps: usize) -> Vec<Self> {
+    if steps == 0 {
+      return Vec::new();
+    }
+    let other = other.into();
+    if steps == 1 {
+      return vec![self.mix(other, 0.0)];
+    }
+    let divisor = (steps - 1) as f64;
+    (0..steps).map(|i| self.mix(other, i as f64 / divisor)).collect()
+  }
+
   /// Returns the normalized hue component (0.0–1.0).
   pub fn h(&self) -> f64 {
     self.h.0
@@ -173,6 +194,36 @@ impl Lch {
     self.l.0
   }
 
+  /// Interpolates between `self` and `other` at parameter `t`, returning a new color.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
+  /// performed in the LCh color space with shortest-arc hue and achromatic handling
+  /// per the CSS Color Level 4 specification.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  pub fn mix(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let other = Self::from(other.into());
+
+    let l = Component::new(self.l()).lerp(other.l(), t);
+    let c = Component::new(self.c()).lerp(other.c(), t);
+    let h = mix_hue(self.hue(), self.c(), other.hue(), other.c(), t);
+    let alpha = Component::new(self.alpha()).lerp(other.alpha(), t);
+
+    Self::new(l, c, h).with_alpha(alpha)
+  }
+
+  /// Interpolates `self` toward `other` at parameter `t`, mutating in place.
+  ///
+  /// See [`mix`](Self::mix) for details on the interpolation behavior.
+  pub fn mixed_with(&mut self, other: impl Into<Xyz>, t: f64) {
+    let result = self.mix(other, t);
+    self.l = result.l;
+    self.c = result.c;
+    self.h = result.h;
+    self.alpha = result.alpha;
+  }
+
   /// Scales the chroma by the given factor.
   pub fn scale_c(&mut self, factor: impl Into<Component>) {
     self.c *= factor.into();
@@ -198,13 +249,6 @@ impl Lch {
     self.l *= factor.into();
   }
 
-  /// Sets the [L\*, C\*, H] components from an array.
-  pub fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
-    self.set_l(components[0].clone());
-    self.set_c(components[1].clone());
-    self.set_h(components[2].clone());
-  }
-
   /// Sets the C\* component.
   pub fn set_c(&mut self, c: impl Into<Component>) {
     self.c = c.into();
@@ -213,6 +257,13 @@ impl Lch {
   /// Alias for [`Self::set_c`].
   pub fn set_chroma(&mut self, chroma: impl Into<Component>) {
     self.set_c(chroma)
+  }
+
+  /// Sets the [L\*, C\*, H] components from an array.
+  pub fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
+    self.set_l(components[0].clone());
+    self.set_c(components[1].clone());
+    self.set_h(components[2].clone());
   }
 
   /// Sets the normalized hue component (0.0–1.0).
@@ -641,6 +692,35 @@ impl TryFrom<String> for Lch {
   }
 }
 
+/// Interpolates hue along the shortest arc with achromatic handling.
+///
+/// When either color is achromatic (chroma below [`ACHROMATIC_THRESHOLD`]), its hue is
+/// treated as "powerless" and the other color's hue is used. When both are achromatic,
+/// hue is 0. This follows the CSS Color Level 4 specification for hue interpolation.
+fn mix_hue(h1: f64, c1: f64, h2: f64, c2: f64, t: f64) -> f64 {
+  let achromatic1 = c1 < ACHROMATIC_THRESHOLD;
+  let achromatic2 = c2 < ACHROMATIC_THRESHOLD;
+
+  if achromatic1 && achromatic2 {
+    return 0.0;
+  }
+  if achromatic1 {
+    return h2;
+  }
+  if achromatic2 {
+    return h1;
+  }
+
+  let mut diff = h2 - h1;
+  if diff > 180.0 {
+    diff -= 360.0;
+  } else if diff < -180.0 {
+    diff += 360.0;
+  }
+
+  (h1 + diff * t).rem_euclid(360.0)
+}
+
 #[cfg(test)]
 mod test {
   use super::*;
@@ -927,6 +1007,57 @@ mod test {
     }
   }
 
+  mod gradient {
+    use super::*;
+
+    #[test]
+    fn zero_steps_is_empty() {
+      let c1 = Lch::new(50.0, 30.0, 180.0);
+      let c2 = Lch::new(80.0, 10.0, 90.0);
+      assert!(c1.gradient(c2.to_xyz(), 0).is_empty());
+    }
+
+    #[test]
+    fn one_step_returns_self() {
+      let c1 = Lch::new(50.0, 30.0, 180.0);
+      let c2 = Lch::new(80.0, 10.0, 90.0);
+      let steps = c1.gradient(c2.to_xyz(), 1);
+      assert_eq!(steps.len(), 1);
+      assert!((steps[0].l() - c1.l()).abs() < 1e-4);
+    }
+
+    #[test]
+    fn two_steps_returns_endpoints() {
+      let c1 = Lch::new(50.0, 30.0, 180.0);
+      let c2 = Lch::new(80.0, 10.0, 90.0);
+      let steps = c1.gradient(c2.to_xyz(), 2);
+      assert_eq!(steps.len(), 2);
+      assert!((steps[0].l() - c1.l()).abs() < 1e-4);
+      assert!((steps[1].l() - c2.l()).abs() < 1e-4);
+    }
+
+    #[test]
+    fn five_steps_correct_count() {
+      let c1 = Lch::new(20.0, 10.0, 0.0);
+      let c2 = Lch::new(90.0, 5.0, 180.0);
+      assert_eq!(c1.gradient(c2.to_xyz(), 5).len(), 5);
+    }
+
+    #[test]
+    fn monotonic_lightness_dark_to_light() {
+      let dark = Lch::new(10.0, 0.0, 0.0);
+      let light = Lch::new(90.0, 0.0, 0.0);
+      let steps = dark.gradient(light.to_xyz(), 5);
+      let lightnesses: Vec<f64> = steps.iter().map(|c| c.l()).collect();
+      for i in 1..lightnesses.len() {
+        assert!(
+          lightnesses[i] >= lightnesses[i - 1],
+          "Lightness should be monotonically increasing: {lightnesses:?}"
+        );
+      }
+    }
+  }
+
   mod h {
     use super::*;
 
@@ -1005,6 +1136,152 @@ mod test {
       let lch = Lch::new(50.0, 30.0, 180.0);
 
       assert!((lch.l() - 50.0).abs() < 1e-10);
+    }
+  }
+
+  mod mix {
+    use super::*;
+
+    const EPSILON: f64 = 1e-4;
+
+    #[test]
+    fn at_zero_returns_self() {
+      let c1 = Lch::new(60.0, 40.0, 30.0);
+      let c2 = Lch::new(40.0, 20.0, 270.0);
+      let result = c1.mix(c2.to_xyz(), 0.0);
+      assert!((result.l() - c1.l()).abs() < EPSILON);
+      assert!((result.c() - c1.c()).abs() < EPSILON);
+    }
+
+    #[test]
+    fn at_one_returns_other() {
+      let c1 = Lch::new(60.0, 40.0, 30.0);
+      let c2 = Lch::new(40.0, 20.0, 270.0);
+      let result = c1.mix(c2.to_xyz(), 1.0);
+      assert!((result.l() - c2.l()).abs() < EPSILON);
+      assert!((result.c() - c2.c()).abs() < EPSILON);
+    }
+
+    #[test]
+    fn midpoint_is_between() {
+      let c1 = Lch::new(20.0, 0.0, 0.0);
+      let c2 = Lch::new(80.0, 0.0, 0.0);
+      let mid = c1.mix(c2.to_xyz(), 0.5);
+      assert!(mid.l() > 30.0 && mid.l() < 70.0);
+    }
+
+    #[test]
+    fn alpha_interpolation() {
+      let c1 = Lch::new(50.0, 10.0, 180.0).with_alpha(0.0);
+      let c2 = Lch::new(50.0, 10.0, 180.0).with_alpha(1.0);
+      let mid = c1.mix(c2.to_xyz(), 0.5);
+      assert!((mid.alpha() - 0.5).abs() < EPSILON);
+    }
+
+    #[test]
+    fn extrapolation() {
+      let c1 = Lch::new(20.0, 0.0, 0.0);
+      let c2 = Lch::new(80.0, 0.0, 0.0);
+      let beyond = c1.mix(c2.to_xyz(), 1.5);
+      assert!(beyond.l() > c2.l());
+    }
+
+    #[test]
+    fn cross_type() {
+      let lch = Lch::new(60.0, 40.0, 30.0);
+      let xyz = Xyz::new(0.18048, 0.07219, 0.95030);
+      let _result = lch.mix(xyz, 0.5);
+    }
+
+    #[test]
+    fn shortest_arc_hue() {
+      let c1 = Lch::new(60.0, 40.0, 350.0);
+      let c2 = Lch::new(60.0, 40.0, 10.0);
+      let mid = c1.mix(c2.to_xyz(), 0.5);
+      let hue = mid.hue();
+      assert!(hue < 20.0 || hue > 340.0, "Hue {hue} should be near 0°/360°");
+    }
+
+    #[test]
+    fn both_achromatic() {
+      let c1 = Lch::new(20.0, 0.0, 0.0);
+      let c2 = Lch::new(80.0, 0.0, 0.0);
+      let mid = c1.mix(c2.to_xyz(), 0.5);
+      assert!(mid.c() < 0.01);
+    }
+
+    #[test]
+    fn one_achromatic() {
+      let grey = Lch::new(50.0, 0.0, 0.0);
+      let red = Lch::new(60.0, 40.0, 30.0);
+      let result = grey.mix(red.to_xyz(), 0.5);
+      let result_hue = result.hue();
+      assert!((result_hue - 30.0).abs() < 5.0);
+    }
+  }
+
+  mod mix_hue_fn {
+    use super::super::mix_hue;
+
+    const EPSILON: f64 = 1e-6;
+
+    #[test]
+    fn shortest_arc_forward() {
+      let h = mix_hue(10.0, 0.1, 50.0, 0.1, 0.5);
+      assert!((h - 30.0).abs() < EPSILON);
+    }
+
+    #[test]
+    fn shortest_arc_crosses_zero() {
+      let h = mix_hue(350.0, 0.1, 10.0, 0.1, 0.5);
+      assert!((h - 0.0).abs() < EPSILON);
+    }
+
+    #[test]
+    fn shortest_arc_backward() {
+      let h = mix_hue(10.0, 0.1, 350.0, 0.1, 0.5);
+      assert!((h - 0.0).abs() < EPSILON);
+    }
+
+    #[test]
+    fn both_achromatic() {
+      let h = mix_hue(90.0, 0.0, 270.0, 0.0, 0.5);
+      assert!((h - 0.0).abs() < EPSILON);
+    }
+
+    #[test]
+    fn first_achromatic_uses_second() {
+      let h = mix_hue(90.0, 0.0, 200.0, 0.1, 0.5);
+      assert!((h - 200.0).abs() < EPSILON);
+    }
+
+    #[test]
+    fn second_achromatic_uses_first() {
+      let h = mix_hue(90.0, 0.1, 200.0, 0.0, 0.5);
+      assert!((h - 90.0).abs() < EPSILON);
+    }
+
+    #[test]
+    fn same_hemisphere() {
+      let h = mix_hue(100.0, 0.1, 140.0, 0.1, 0.5);
+      assert!((h - 120.0).abs() < EPSILON);
+    }
+  }
+
+  mod mixed_with {
+    use super::*;
+
+    #[test]
+    fn it_mutates_in_place() {
+      let c1 = Lch::new(60.0, 40.0, 30.0);
+      let c2 = Lch::new(40.0, 20.0, 270.0);
+      let expected = c1.mix(c2.to_xyz(), 0.5);
+      let mut color = c1;
+      color.mixed_with(c2.to_xyz(), 0.5);
+      assert!((color.l() - expected.l()).abs() < 1e-10);
+      assert!((color.c() - expected.c()).abs() < 1e-10);
+      assert!((color.h() - expected.h()).abs() < 1e-10);
+      assert!((color.alpha() - expected.alpha()).abs() < 1e-10);
     }
   }
 

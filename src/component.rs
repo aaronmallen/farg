@@ -27,6 +27,16 @@ impl Component {
   pub fn clamp(&self, minimum: impl Into<Self>, maximum: impl Into<Self>) -> Self {
     Self(self.0.clamp(minimum.into().0, maximum.into().0))
   }
+
+  /// Linearly interpolates between `self` and `other` at parameter `t`.
+  ///
+  /// When `t` is 0.0 the result is `self`, when 1.0 the result is `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints.
+  pub fn lerp(self, other: impl Into<Self>, t: impl Into<Self>) -> Self {
+    let other = other.into();
+    let t = t.into();
+    Self(self.0 + (other.0 - self.0) * t.0)
+  }
 }
 
 impl<T> Add<T> for Component
@@ -304,6 +314,56 @@ mod test {
       let c = Component::new(150.0);
 
       assert_eq!(c.clamp(0, 100), 100.0);
+    }
+  }
+
+  mod lerp {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_returns_start_at_zero() {
+      let c = Component::new(3.0);
+
+      assert_eq!(c.lerp(7.0, 0.0), 3.0);
+    }
+
+    #[test]
+    fn it_returns_end_at_one() {
+      let c = Component::new(3.0);
+
+      assert_eq!(c.lerp(7.0, 1.0), 7.0);
+    }
+
+    #[test]
+    fn it_returns_midpoint_at_half() {
+      let c = Component::new(0.0);
+
+      assert_eq!(c.lerp(10.0, 0.5), 5.0);
+    }
+
+    #[test]
+    fn it_extrapolates_beyond_one() {
+      let c = Component::new(0.0);
+
+      assert_eq!(c.lerp(10.0, 1.5), 15.0);
+    }
+
+    #[test]
+    fn it_extrapolates_below_zero() {
+      let c = Component::new(0.0);
+
+      assert_eq!(c.lerp(10.0, -0.5), -5.0);
+    }
+
+    #[test]
+    fn it_accepts_component_arguments() {
+      let a = Component::new(0.0);
+      let b = Component::new(10.0);
+      let t = Component::new(0.25);
+
+      assert_eq!(a.lerp(b, t), 2.5);
     }
   }
 

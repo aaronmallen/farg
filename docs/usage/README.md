@@ -10,6 +10,7 @@ Reference documentation for using Farg in your projects.
 | [Color Conversions](conversions.md)    | Converting between color spaces               |
 | [Color Distance](distance.md)          | Measuring distance between colors             |
 | [Color Harmonies](harmonies.md)        | Generating harmonious color palettes          |
+| [Color Mixing](mixing.md)              | Interpolating colors and generating gradients |
 | [Contrast](contrast.md)                | Measuring contrast between colors             |
 | [Correlated Color Temperature](cct.md) | Estimating color temperature of light sources |
 | [Illuminants](illuminants.md)          | Standard, custom, and contextual illuminants  |

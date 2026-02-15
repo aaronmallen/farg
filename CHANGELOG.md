@@ -9,6 +9,16 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add color mixing and interpolation with three strategies on the `ColorSpace` trait: `mix()` / `mixed_with()` for
+  perceptually uniform cylindrical interpolation (Oklch or LCh), `mix_linear()` / `mixed_with_linear()` for physically
+  correct additive light mixing in linear sRGB, and `mix_rectangular()` / `mixed_with_rectangular()` for rectangular
+  Oklab or L\*a\*b\* interpolation — cylindrical and rectangular variants feature-gated behind their respective color
+  spaces
+- Add `gradient()`, `gradient_linear()`, and `gradient_rectangular()` to the `ColorSpace` trait for generating
+  evenly-spaced multi-step color sequences between two colors
+- Add native `mix()`, `mixed_with()`, and `gradient()` methods to `Lab`, `Lch`, `Oklab`, `Oklch`, and `Rgb` color
+  spaces with CSS Color Level 4 shortest-arc hue interpolation and achromatic handling on cylindrical spaces
+- Add `Component::lerp()` for linear interpolation between component values
 - Add color harmony methods to the `ColorSpace` trait: `analogous()`, `complementary()`, `split_complementary()`,
   `triadic()`, and `tetradic()` for hue-based harmonies, plus `monochromatic()` for luminance variations — hue-based
   methods feature-gated behind any cylindrical or perceptual color space

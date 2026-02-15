@@ -429,6 +429,25 @@ where
     self.g.0
   }
 
+  /// Generates a sequence of evenly-spaced colors between `self` and `other` in linear-light RGB.
+  ///
+  /// Returns `steps` colors including both endpoints, interpolated in linearized RGB
+  /// for physically correct additive light mixing. When `steps` is 0 the result is empty.
+  /// When `steps` is 1 the result contains only `self`.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  pub fn gradient_linear(&self, other: impl Into<Xyz>, steps: usize) -> Vec<Self> {
+    if steps == 0 {
+      return Vec::new();
+    }
+    let other = other.into();
+    if steps == 1 {
+      return vec![self.mix_linear(other, 0.0)];
+    }
+    let divisor = (steps - 1) as f64;
+    (0..steps).map(|i| self.mix_linear(other, i as f64 / divisor)).collect()
+  }
+
   /// Returns the green component as a u8 (0-255).
   pub fn green(&self) -> u8 {
     (self.g.0 * 255.0).round() as u8
@@ -467,6 +486,38 @@ where
   /// Returns `true` if all components are within the 0.0-1.0 range.
   pub fn is_in_gamut(&self) -> bool {
     (0.0..=1.0).contains(&self.r.0) && (0.0..=1.0).contains(&self.g.0) && (0.0..=1.0).contains(&self.b.0)
+  }
+
+  /// Interpolates between `self` and `other` at parameter `t` in linear-light RGB.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Both colors are
+  /// linearized before interpolation and re-encoded afterward, producing physically
+  /// correct additive light mixing.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  pub fn mix_linear(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let other_rgb = Rgb::<S>::from(other.into());
+    let a = self.to_linear();
+    let b = other_rgb.to_linear();
+
+    let r = Component::new(a.r()).lerp(b.r(), t);
+    let g = Component::new(a.g()).lerp(b.g(), t);
+    let bl = Component::new(a.b()).lerp(b.b(), t);
+    let alpha = Component::new(self.alpha()).lerp(other_rgb.alpha(), t);
+
+    LinearRgb::<S>::from_normalized(r, g, bl).with_alpha(alpha).to_encoded()
+  }
+
+  /// Interpolates `self` toward `other` at parameter `t` in linear-light RGB, mutating in place.
+  ///
+  /// See [`mix_linear`](Self::mix_linear) for details on the interpolation behavior.
+  pub fn mixed_with_linear(&mut self, other: impl Into<Xyz>, t: f64) {
+    let result = self.mix_linear(other, t);
+    self.r = result.r;
+    self.g = result.g;
+    self.b = result.b;
+    self.alpha = result.alpha;
   }
 
   /// Maps to gamut by scaling LMS components relative to the reference white.
@@ -724,18 +775,6 @@ where
     LinearRgb::from_normalized(r, g, b).with_alpha(self.alpha)
   }
 
-  /// Converts to a different RGB color space via XYZ.
-  pub fn to_rgb<OS>(&self) -> Rgb<OS>
-  where
-    OS: RgbSpec,
-  {
-    if S::NAME == OS::NAME {
-      Rgb::<OS>::from_normalized(self.r(), self.g(), self.b()).with_alpha(self.alpha())
-    } else {
-      self.to_xyz().to_rgb::<OS>().with_alpha(self.alpha())
-    }
-  }
-
   /// Converts to the Oklab perceptual color space via linear sRGB.
   #[cfg(feature = "space-oklab")]
   pub fn to_oklab(&self) -> Oklab {
@@ -746,6 +785,18 @@ where
     let [l, a, b] = Oklab::LINEAR_LMS_MATRIX * lms_nonlinear;
 
     Oklab::new(l, a, b).with_alpha(self.alpha)
+  }
+
+  /// Converts to a different RGB color space via XYZ.
+  pub fn to_rgb<OS>(&self) -> Rgb<OS>
+  where
+    OS: RgbSpec,
+  {
+    if S::NAME == OS::NAME {
+      Rgb::<OS>::from_normalized(self.r(), self.g(), self.b()).with_alpha(self.alpha())
+    } else {
+      self.to_xyz().to_rgb::<OS>().with_alpha(self.alpha())
+    }
   }
 
   /// Converts to CIE XYZ via linear RGB and the space's RGB-to-XYZ matrix.
@@ -1828,6 +1879,43 @@ mod test {
     }
   }
 
+  mod gradient_linear {
+    use super::*;
+
+    #[test]
+    fn zero_steps_is_empty() {
+      let c1 = Rgb::<Srgb>::new(255, 0, 0);
+      let c2 = Rgb::<Srgb>::new(0, 0, 255);
+      assert!(c1.gradient_linear(c2.to_xyz(), 0).is_empty());
+    }
+
+    #[test]
+    fn one_step_returns_self() {
+      let c1 = Rgb::<Srgb>::new(255, 0, 0);
+      let c2 = Rgb::<Srgb>::new(0, 0, 255);
+      let steps = c1.gradient_linear(c2.to_xyz(), 1);
+      assert_eq!(steps.len(), 1);
+      assert_eq!(steps[0].red(), c1.red());
+    }
+
+    #[test]
+    fn two_steps_returns_endpoints() {
+      let c1 = Rgb::<Srgb>::new(255, 0, 0);
+      let c2 = Rgb::<Srgb>::new(0, 0, 255);
+      let steps = c1.gradient_linear(c2.to_xyz(), 2);
+      assert_eq!(steps.len(), 2);
+      assert_eq!(steps[0].red(), 255);
+      assert_eq!(steps[1].blue(), 255);
+    }
+
+    #[test]
+    fn five_steps_correct_count() {
+      let c1 = Rgb::<Srgb>::new(0, 0, 0);
+      let c2 = Rgb::<Srgb>::new(255, 255, 255);
+      assert_eq!(c1.gradient_linear(c2.to_xyz(), 5).len(), 5);
+    }
+  }
+
   mod increment_b {
     use super::*;
 
@@ -1983,6 +2071,72 @@ mod test {
       let rgb = Rgb::<Srgb>::from_normalized(0.5, -0.1, 0.5);
 
       assert!(!rgb.is_in_gamut());
+    }
+  }
+
+  mod mix_linear {
+    use super::*;
+
+    const EPSILON: f64 = 1e-4;
+
+    #[test]
+    fn at_zero_returns_self() {
+      let c1 = Rgb::<Srgb>::new(255, 0, 0);
+      let c2 = Rgb::<Srgb>::new(0, 0, 255);
+      let result = c1.mix_linear(c2.to_xyz(), 0.0);
+      assert_eq!(result.red(), 255);
+      assert_eq!(result.green(), 0);
+      assert_eq!(result.blue(), 0);
+    }
+
+    #[test]
+    fn at_one_returns_other() {
+      let c1 = Rgb::<Srgb>::new(255, 0, 0);
+      let c2 = Rgb::<Srgb>::new(0, 0, 255);
+      let result = c1.mix_linear(c2.to_xyz(), 1.0);
+      assert_eq!(result.red(), 0);
+      assert_eq!(result.green(), 0);
+      assert_eq!(result.blue(), 255);
+    }
+
+    #[test]
+    fn midpoint_is_between() {
+      let c1 = Rgb::<Srgb>::new(0, 0, 0);
+      let c2 = Rgb::<Srgb>::new(255, 255, 255);
+      let mid = c1.mix_linear(c2.to_xyz(), 0.5);
+      assert!(mid.r() > 0.0 && mid.r() < 1.0);
+    }
+
+    #[test]
+    fn alpha_interpolation() {
+      let c1 = Rgb::<Srgb>::new(255, 0, 0).with_alpha(0.0);
+      let c2 = Rgb::<Srgb>::new(0, 0, 255).with_alpha(1.0);
+      let mid = c1.mix_linear(c2.to_xyz(), 0.5);
+      assert!((mid.alpha() - 0.5).abs() < EPSILON);
+    }
+
+    #[test]
+    fn cross_type() {
+      let rgb = Rgb::<Srgb>::new(255, 0, 0);
+      let xyz = Xyz::new(0.18048, 0.07219, 0.95030);
+      let _result = rgb.mix_linear(xyz, 0.5);
+    }
+  }
+
+  mod mixed_with_linear {
+    use super::*;
+
+    #[test]
+    fn it_mutates_in_place() {
+      let c1 = Rgb::<Srgb>::new(255, 0, 0);
+      let c2 = Rgb::<Srgb>::new(0, 0, 255);
+      let expected = c1.mix_linear(c2.to_xyz(), 0.5);
+      let mut color = c1;
+      color.mixed_with_linear(c2.to_xyz(), 0.5);
+      assert!((color.r() - expected.r()).abs() < 1e-10);
+      assert!((color.g() - expected.g()).abs() < 1e-10);
+      assert!((color.b() - expected.b()).abs() < 1e-10);
+      assert!((color.alpha() - expected.alpha()).abs() < 1e-10);
     }
   }
 
