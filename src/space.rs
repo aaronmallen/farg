@@ -31,14 +31,32 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns the alpha (transparency) of the color on a 0.0 to 1.0 scale.
   fn alpha(&self) -> f64;
 
+  /// Scales all components in place by the given factor.
+  fn amplify(&mut self, factor: impl Into<Component>) {
+    self.set_components(self.amplified_by(factor).components())
+  }
+
   /// Returns a new color with all components scaled by the given factor.
   fn amplified_by(&self, factor: impl Into<Component>) -> Self {
     Self::from(self.to_xyz().amplified_by(factor))
   }
 
-  /// Scales all components in place by the given factor.
-  fn amplify(&mut self, factor: impl Into<Component>) {
-    self.set_components(self.amplified_by(factor).components())
+  /// Returns the two analogous colors (±30° hue rotation).
+  ///
+  /// Analogous colors sit adjacent on the color wheel, creating harmonious palettes
+  /// with low contrast. The original color is not included in the result.
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-okhwb",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  fn analogous(&self) -> [Self; 2] {
+    [self.with_hue_decremented_by(30), self.with_hue_incremented_by(30)]
   }
 
   /// Divides all components in place by the given factor.
@@ -130,6 +148,24 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
         da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
       })
       .copied()
+  }
+
+  /// Returns the complementary color (180° hue rotation).
+  ///
+  /// The complementary color sits directly opposite on the color wheel, providing
+  /// maximum hue contrast.
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-okhwb",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  fn complementary(&self) -> Self {
+    self.with_hue_incremented_by(180)
   }
 
   /// Returns the color's components as an array.
@@ -391,14 +427,6 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.set_alpha(self.with_opacity_incremented_by(amount).alpha())
   }
 
-  /// Returns `true` if this color is within the gamut of the specified RGB space.
-  fn is_in_gamut<S>(&self) -> bool
-  where
-    S: RgbSpec,
-  {
-    self.to_rgb::<S>().is_in_gamut()
-  }
-
   /// Returns `true` if this color is perceptually distinguishable from another color.
   ///
   /// Uses the CIEDE2000 color difference formula with a Just Noticeable Difference (JND)
@@ -407,6 +435,14 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(feature = "distance-ciede2000")]
   fn is_distinguishable_from(&self, other: impl Into<Xyz>) -> bool {
     !self.is_perceptually_equivalent(other)
+  }
+
+  /// Returns `true` if this color is within the gamut of the specified RGB space.
+  fn is_in_gamut<S>(&self) -> bool
+  where
+    S: RgbSpec,
+  {
+    self.to_rgb::<S>().is_in_gamut()
   }
 
   /// Returns `true` if this color is perceptually equivalent to another color.
@@ -449,6 +485,20 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(feature = "space-cmyk")]
   fn magenta(&self) -> f64 {
     self.to_cmyk().magenta()
+  }
+
+  /// Returns four monochromatic variations (two darker, two lighter).
+  ///
+  /// Monochromatic palettes vary luminance while preserving chromaticity, producing
+  /// shades and tints of the same color. The original color is not included in the
+  /// result.
+  fn monochromatic(&self) -> [Self; 4] {
+    [
+      self.with_luminance_scaled_by(0.30),
+      self.with_luminance_scaled_by(0.60),
+      self.with_luminance_scaled_by(1.40),
+      self.with_luminance_scaled_by(1.70),
+    ]
   }
 
   /// Returns the opacity as a percentage (0-100%).
@@ -554,6 +604,48 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.set_alpha(opacity.into() / 100.0)
   }
 
+  /// Returns the two split-complementary colors (+150° and +210° hue rotation).
+  ///
+  /// Split-complementary uses the two colors adjacent to the complement, offering
+  /// strong contrast with more variety than a straight complementary pair. The
+  /// original color is not included in the result.
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-okhwb",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  fn split_complementary(&self) -> [Self; 2] {
+    [self.with_hue_incremented_by(150), self.with_hue_incremented_by(210)]
+  }
+
+  /// Returns the three tetradic colors (+90°, +180°, and +270° hue rotation).
+  ///
+  /// Tetradic (rectangle) harmony places four colors at 90° intervals, forming
+  /// a rich palette with two complementary pairs. The original color is not
+  /// included in the result.
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-okhwb",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  fn tetradic(&self) -> [Self; 3] {
+    [
+      self.with_hue_incremented_by(90),
+      self.with_hue_incremented_by(180),
+      self.with_hue_incremented_by(270),
+    ]
+  }
+
   /// Converts to the CMY color space with sRGB encoding.
   #[cfg(feature = "space-cmy")]
   fn to_cmy(&self) -> Cmy<Srgb> {
@@ -653,6 +745,25 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
 
   /// Converts to CIE XYZ.
   fn to_xyz(&self) -> Xyz;
+
+  /// Returns the two triadic colors (+120° and +240° hue rotation).
+  ///
+  /// Triadic harmony places three colors at equal 120° intervals around the
+  /// color wheel, creating vibrant palettes with balanced contrast. The original
+  /// color is not included in the result.
+  #[cfg(any(
+    feature = "space-oklch",
+    feature = "space-lch",
+    feature = "space-okhsl",
+    feature = "space-okhsv",
+    feature = "space-okhwb",
+    feature = "space-hsl",
+    feature = "space-hsv",
+    feature = "space-hwb"
+  ))]
+  fn triadic(&self) -> [Self; 2] {
+    [self.with_hue_incremented_by(120), self.with_hue_incremented_by(240)]
+  }
 
   /// Returns a new color with the given alpha value on a 0.0 to 1.0 scale.
   fn with_alpha(&self, alpha: impl Into<Component>) -> Self {

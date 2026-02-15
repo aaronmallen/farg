@@ -158,6 +158,28 @@ let lc = white.lightness_contrast(&text);
 
 Additional algorithms (Michelson, Weber, RMS, AERT) are available behind `contrast-*` feature flags.
 
+## Color Harmonies
+
+Generate harmonious color palettes using hue rotation and luminance scaling:
+
+```rust
+use farg::space::{ColorSpace, Rgb, Srgb};
+
+let coral = Rgb::<Srgb>::new(255, 87, 51);
+
+// Hue-based harmonies
+let complement = coral.complementary();          // opposite on the color wheel
+let [left, right] = coral.analogous();           // ±30° neighbors
+let [a, b] = coral.split_complementary();        // flanking the complement
+let [b, c] = coral.triadic();                    // 120° intervals
+let [b, c, d] = coral.tetradic();                // 90° intervals
+
+// Luminance-based harmony (always available)
+let [dark2, dark1, light1, light2] = coral.monochromatic();
+```
+
+Hue-based methods require any cylindrical or perceptual color space feature (`space-oklch`, `space-hsl`, etc.).
+
 ## Correlated Color Temperature
 
 Four algorithms for estimating the color temperature of a light source:
@@ -240,6 +262,7 @@ farg = { version = "0.4", features = ["space-oklab", "space-lab", "all-illuminan
   - [Chromatic Adaptation](docs/usage/cats.md) -- CATs for adapting colors between illuminants
   - [Color Conversions](docs/usage/conversions.md) -- Converting between color spaces
   - [Color Distance](docs/usage/distance.md) -- Measuring distance between colors
+  - [Color Harmonies](docs/usage/harmonies.md) -- Generating harmonious color palettes
   - [Contrast](docs/usage/contrast.md) -- Measuring contrast between colors
   - [Correlated Color Temperature](docs/usage/cct.md) -- Estimating CCT
   - [Illuminants](docs/usage/illuminants.md) -- Standard, custom, and contextual illuminants

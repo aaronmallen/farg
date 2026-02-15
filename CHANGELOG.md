@@ -7,6 +7,12 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+### Added
+
+- Add color harmony methods to the `ColorSpace` trait: `analogous()`, `complementary()`, `split_complementary()`,
+  `triadic()`, and `tetradic()` for hue-based harmonies, plus `monochromatic()` for luminance variations — hue-based
+  methods feature-gated behind any cylindrical or perceptual color space
+
 ## [v0.4.1] - 2026-02-14
 
 ### Added
