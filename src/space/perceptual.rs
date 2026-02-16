@@ -1,3 +1,7 @@
+#[cfg(feature = "space-hpluv")]
+mod hpluv;
+#[cfg(feature = "space-hsluv")]
+mod hsluv;
 #[cfg(feature = "space-okhsl")]
 mod okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -9,6 +13,10 @@ mod oklab;
 #[cfg(feature = "space-oklch")]
 mod oklch;
 
+#[cfg(feature = "space-hpluv")]
+pub use hpluv::Hpluv;
+#[cfg(feature = "space-hsluv")]
+pub use hsluv::Hsluv;
 #[cfg(feature = "space-okhsl")]
 pub use okhsl::Okhsl;
 #[cfg(feature = "space-okhsv")]

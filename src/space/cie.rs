@@ -3,7 +3,7 @@ mod lab;
 #[cfg(feature = "space-lch")]
 mod lch;
 #[cfg(feature = "space-lchuv")]
-mod lchuv;
+pub(crate) mod lchuv;
 #[cfg(feature = "space-luv")]
 mod luv;
 #[cfg(feature = "space-xyy")]

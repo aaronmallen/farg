@@ -6,10 +6,14 @@ use std::{
 
 #[cfg(feature = "space-cmyk")]
 use crate::space::Cmyk;
+#[cfg(feature = "space-hpluv")]
+use crate::space::Hpluv;
 #[cfg(feature = "space-hsi")]
 use crate::space::Hsi;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
+#[cfg(feature = "space-hsluv")]
+use crate::space::Hsluv;
 #[cfg(feature = "space-hsv")]
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
@@ -565,6 +569,16 @@ where
   }
 }
 
+#[cfg(feature = "space-hpluv")]
+impl<S> From<Hpluv> for Cmy<S>
+where
+  S: RgbSpec,
+{
+  fn from(hpluv: Hpluv) -> Self {
+    hpluv.to_rgb::<S>().to_cmy()
+  }
+}
+
 #[cfg(feature = "space-hsi")]
 impl<OS, S> From<Hsi<OS>> for Cmy<S>
 where
@@ -584,6 +598,16 @@ where
 {
   fn from(hsl: Hsl<OS>) -> Self {
     hsl.to_rgb::<S>().to_cmy()
+  }
+}
+
+#[cfg(feature = "space-hsluv")]
+impl<S> From<Hsluv> for Cmy<S>
+where
+  S: RgbSpec,
+{
+  fn from(hsluv: Hsluv) -> Self {
+    hsluv.to_rgb::<S>().to_cmy()
   }
 }
 

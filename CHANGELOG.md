@@ -9,6 +9,11 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add `Hpluv` (HPLuv) perceptual color space — hue-preserving variant of HSLuv where saturation is relative to the
+  inscribed sRGB gamut circle, guaranteeing in-gamut results under hue rotation — feature-gated behind `space-hpluv`
+  (depends on `space-lchuv`)
+- Add `Hsluv` (HSLuv) perceptual color space — human-friendly HSL mapped to CIE LCh(uv) with sRGB gamut-relative
+  saturation — with full conversion support, feature-gated behind `space-hsluv` (depends on `space-lchuv`)
 - Add `Hsi` (Hue, Saturation, Intensity) cylindrical color space — uses arithmetic mean of RGB channels for intensity,
   useful in image processing and computer vision — with full conversion support, feature-gated behind `space-hsi`
 - Add `Lchuv` (CIE LCh(uv)) cylindrical color space — the polar-coordinate form of CIE L\*u\*v\* with lightness,

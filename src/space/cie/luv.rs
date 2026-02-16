@@ -7,10 +7,14 @@ use std::{
 use crate::space::Cmy;
 #[cfg(feature = "space-cmyk")]
 use crate::space::Cmyk;
+#[cfg(feature = "space-hpluv")]
+use crate::space::Hpluv;
 #[cfg(feature = "space-hsi")]
 use crate::space::Hsi;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
+#[cfg(feature = "space-hsluv")]
+use crate::space::Hsluv;
 #[cfg(feature = "space-hsv")]
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
@@ -441,6 +445,20 @@ where
 {
   fn from(hsl: Hsl<S>) -> Self {
     hsl.to_luv()
+  }
+}
+
+#[cfg(feature = "space-hsluv")]
+impl From<Hsluv> for Luv {
+  fn from(hsluv: Hsluv) -> Self {
+    hsluv.to_luv()
+  }
+}
+
+#[cfg(feature = "space-hpluv")]
+impl From<Hpluv> for Luv {
+  fn from(hpluv: Hpluv) -> Self {
+    hpluv.to_luv()
   }
 }
 

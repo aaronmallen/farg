@@ -7,10 +7,14 @@ use std::{
 use crate::space::Cmy;
 #[cfg(feature = "space-cmyk")]
 use crate::space::Cmyk;
+#[cfg(feature = "space-hpluv")]
+use crate::space::Hpluv;
 #[cfg(feature = "space-hsi")]
 use crate::space::Hsi;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
+#[cfg(feature = "space-hsluv")]
+use crate::space::Hsluv;
 #[cfg(feature = "space-hsv")]
 use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
@@ -39,6 +43,41 @@ use crate::{
 
 /// Chroma threshold below which a color is considered achromatic (hueless).
 const ACHROMATIC_THRESHOLD: f64 = 1e-4;
+
+/// sRGB gamut boundary coefficients for the denominator (XYZ columns 0, 1, 2).
+#[cfg(any(feature = "space-hsluv", feature = "space-hpluv"))]
+const DENOM_COEFFS: [f64; 3] = [0.0, -126_452.0, 632_260.0];
+
+/// CIE 1976 L\*u\*v\* threshold: (6/29)³.
+#[cfg(any(feature = "space-hsluv", feature = "space-hpluv"))]
+const EPSILON: f64 = 0.0088564516790356308;
+
+/// sRGB gamut boundary coefficients for the intercept numerator (XYZ columns 0, 1, 2).
+#[cfg(any(feature = "space-hsluv", feature = "space-hpluv"))]
+const INTERCEPT_COEFFS: [f64; 3] = [731_718.0, 769_860.0, 838_422.0];
+
+/// CIE 1976 L\*u\*v\* scaling factor: (29/3)³.
+#[cfg(any(feature = "space-hsluv", feature = "space-hpluv"))]
+const KAPPA: f64 = 903.2962962962963;
+
+/// L\* formula offset: `L* = 116 * f(Y/Yn) - 16`.
+#[cfg(any(feature = "space-hsluv", feature = "space-hpluv"))]
+const L_STAR_OFFSET: f64 = 16.0;
+
+/// Cube of the L\* scale factor: 116³ = 1,560,896.
+#[cfg(any(feature = "space-hsluv", feature = "space-hpluv"))]
+const L_STAR_SCALE_CUBED: f64 = 1_560_896.0;
+
+/// Minimum denominator magnitude for the ray–line intersection in chroma computation.
+#[cfg(feature = "space-hsluv")]
+const RAY_INTERSECTION_THRESHOLD: f64 = 1e-15;
+
+/// sRGB gamut boundary coefficients for the slope numerator (XYZ columns 0, 1, 2).
+///
+/// Derived from the algebraic inversion of CIE LUV chromaticity against sRGB channel limits.
+/// See <https://www.hsluv.org/math/> for the full derivation.
+#[cfg(any(feature = "space-hsluv", feature = "space-hpluv"))]
+const SLOPE_COEFFS: [f64; 3] = [284_517.0, 0.0, -94_839.0];
 
 /// CIE LCh(uv) color space (cylindrical form of CIE L*u*v*).
 ///
@@ -287,6 +326,46 @@ impl Lchuv {
     self.l = l.into();
   }
 
+  /// Converts to the HPLuv color space.
+  #[cfg(feature = "space-hpluv")]
+  pub fn to_hpluv(&self) -> Hpluv {
+    let l = self.l();
+    let c = self.chroma();
+    let h = self.hue();
+
+    if l > 99.9999999 {
+      return Hpluv::new(h, 0.0, 100.0).with_alpha(self.alpha);
+    }
+    if l < 0.00000001 {
+      return Hpluv::new(h, 0.0, 0.0).with_alpha(self.alpha);
+    }
+
+    let max_c = max_safe_chroma_for_l(l);
+    let s = if max_c > 0.0 { c / max_c * 100.0 } else { 0.0 };
+
+    Hpluv::new(h, s, l).with_alpha(self.alpha)
+  }
+
+  /// Converts to the HSLuv color space.
+  #[cfg(feature = "space-hsluv")]
+  pub fn to_hsluv(&self) -> Hsluv {
+    let l = self.l();
+    let c = self.chroma();
+    let h = self.hue();
+
+    if l > 99.9999999 {
+      return Hsluv::new(h, 0.0, 100.0).with_alpha(self.alpha);
+    }
+    if l < 0.00000001 {
+      return Hsluv::new(h, 0.0, 0.0).with_alpha(self.alpha);
+    }
+
+    let max_c = max_safe_chroma_for_lh(l, h);
+    let s = if max_c > 0.0 { c / max_c * 100.0 } else { 0.0 };
+
+    Hsluv::new(h, s, l).with_alpha(self.alpha)
+  }
+
   /// Converts to the CIE L\*u\*v\* color space.
   pub fn to_luv(&self) -> Luv {
     let h_rad = self.h.0 * 2.0 * std::f64::consts::PI;
@@ -482,6 +561,16 @@ impl ColorSpace<3> for Lchuv {
     self.set_components(components)
   }
 
+  #[cfg(feature = "space-hsluv")]
+  fn to_hsluv(&self) -> Hsluv {
+    self.to_hsluv()
+  }
+
+  #[cfg(feature = "space-hpluv")]
+  fn to_hpluv(&self) -> Hpluv {
+    self.to_hpluv()
+  }
+
   fn to_xyz(&self) -> Xyz {
     self.to_xyz()
   }
@@ -568,6 +657,20 @@ where
 {
   fn from(hsl: Hsl<S>) -> Self {
     hsl.to_lchuv()
+  }
+}
+
+#[cfg(feature = "space-hsluv")]
+impl From<Hsluv> for Lchuv {
+  fn from(hsluv: Hsluv) -> Self {
+    hsluv.to_lchuv()
+  }
+}
+
+#[cfg(feature = "space-hpluv")]
+impl From<Hpluv> for Lchuv {
+  fn from(hpluv: Hpluv) -> Self {
+    hpluv.to_lchuv()
   }
 }
 
@@ -749,6 +852,82 @@ fn mix_hue(h1: f64, c1: f64, h2: f64, c2: f64, t: f64) -> f64 {
   }
 
   (h1 + diff * t).rem_euclid(360.0)
+}
+
+/// Computes the boundary lines of the sRGB gamut at lightness `l` in the CIE LCh(uv) plane.
+///
+/// Returns 6 `(slope, intercept)` pairs (one per RGB channel boundary × {0, 1}).
+#[cfg(any(feature = "space-hsluv", feature = "space-hpluv"))]
+fn get_bounds(l: f64) -> [(f64, f64); 6] {
+  use crate::space::rgb::RgbSpec;
+
+  let m = *Srgb::inversed_xyz_matrix();
+  let sub1 = (l + L_STAR_OFFSET).powi(3) / L_STAR_SCALE_CUBED;
+  let sub2 = if sub1 > EPSILON { sub1 } else { l / KAPPA };
+
+  let top1_all = m * [SLOPE_COEFFS[0] * sub2, SLOPE_COEFFS[1] * sub2, SLOPE_COEFFS[2] * sub2];
+  let top2_base = m
+    * [
+      INTERCEPT_COEFFS[0] * l * sub2,
+      INTERCEPT_COEFFS[1] * l * sub2,
+      INTERCEPT_COEFFS[2] * l * sub2,
+    ];
+  let bottom_base = m * [DENOM_COEFFS[0] * sub2, DENOM_COEFFS[1] * sub2, DENOM_COEFFS[2] * sub2];
+
+  let mut bounds = [(0.0, 0.0); 6];
+  let mut idx = 0;
+
+  for channel in 0..3 {
+    for t in [0.0_f64, 1.0] {
+      let top2 = top2_base[channel] - INTERCEPT_COEFFS[1] * t * l;
+      let bottom = bottom_base[channel] - DENOM_COEFFS[1] * t;
+      bounds[idx] = (top1_all[channel] / bottom, top2 / bottom);
+      idx += 1;
+    }
+  }
+
+  bounds
+}
+
+/// Returns the maximum chroma achievable within the sRGB gamut at lightness `l` and hue `h` (degrees).
+#[cfg(feature = "space-hsluv")]
+pub(crate) fn max_safe_chroma_for_lh(l: f64, h: f64) -> f64 {
+  let h_rad = h.to_radians();
+  let sin_h = h_rad.sin();
+  let cos_h = h_rad.cos();
+  let mut min_length = f64::MAX;
+
+  for (slope, intercept) in get_bounds(l) {
+    let denom = sin_h - slope * cos_h;
+    if denom.abs() < RAY_INTERSECTION_THRESHOLD {
+      continue;
+    }
+    let length = intercept / denom;
+    if length >= 0.0 {
+      min_length = min_length.min(length);
+    }
+  }
+
+  min_length
+}
+
+/// Returns the maximum chroma achievable within the sRGB gamut at lightness `l` across all hues.
+///
+/// This computes the perpendicular distance from the origin to each gamut boundary line,
+/// returning the minimum — the radius of the largest circle centered at the origin that
+/// fits entirely within the sRGB gamut at the given lightness.
+#[cfg(feature = "space-hpluv")]
+pub(crate) fn max_safe_chroma_for_l(l: f64) -> f64 {
+  let mut min_length = f64::MAX;
+
+  for (slope, intercept) in get_bounds(l) {
+    let length = intercept.abs() / (slope * slope + 1.0).sqrt();
+    if length >= 0.0 {
+      min_length = min_length.min(length);
+    }
+  }
+
+  min_length
 }
 
 #[cfg(test)]
@@ -1730,6 +1909,64 @@ mod test {
       let result = lchuv.with_l_scaled_by(2.0);
 
       assert!((result.l() - 100.0).abs() < 1e-10);
+    }
+  }
+
+  #[cfg(feature = "space-hsluv")]
+  mod max_safe_chroma_for_lh {
+    use super::super::max_safe_chroma_for_lh;
+
+    #[test]
+    fn it_returns_positive_chroma() {
+      let max_c = max_safe_chroma_for_lh(50.0, 0.0);
+      assert!(max_c > 0.0);
+      assert!(max_c.is_finite());
+    }
+
+    #[test]
+    fn it_returns_finite_for_all_hues() {
+      for h in (0..360).step_by(15) {
+        let max_c = max_safe_chroma_for_lh(50.0, h as f64);
+        assert!(max_c > 0.0, "max_chroma should be positive at hue {h}");
+        assert!(max_c.is_finite(), "max_chroma should be finite at hue {h}");
+      }
+    }
+
+    #[test]
+    fn it_returns_finite_for_all_lightness_values() {
+      for l in (1..100).step_by(10) {
+        let max_c = max_safe_chroma_for_lh(l as f64, 0.0);
+        assert!(max_c > 0.0, "max_chroma should be positive at L={l}");
+        assert!(max_c.is_finite(), "max_chroma should be finite at L={l}");
+      }
+    }
+  }
+
+  #[cfg(feature = "space-hpluv")]
+  mod max_safe_chroma_for_l {
+    use super::super::max_safe_chroma_for_l;
+
+    #[test]
+    fn it_returns_positive_chroma() {
+      let max_c = max_safe_chroma_for_l(50.0);
+      assert!(max_c > 0.0);
+      assert!(max_c.is_finite());
+    }
+
+    #[test]
+    fn it_returns_finite_for_all_lightness_values() {
+      for l in (1..100).step_by(10) {
+        let max_c = max_safe_chroma_for_l(l as f64);
+        assert!(max_c > 0.0, "max_chroma should be positive at L={l}");
+        assert!(max_c.is_finite(), "max_chroma should be finite at L={l}");
+      }
+    }
+
+    #[test]
+    fn it_returns_smaller_chroma_than_per_hue_maximum() {
+      let max_c = max_safe_chroma_for_l(50.0);
+      assert!(max_c > 0.0);
+      assert!(max_c < 100.0);
     }
   }
 }

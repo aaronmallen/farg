@@ -55,7 +55,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn analogous(&self) -> [Self; 2] {
     [self.with_hue_decremented_by(30), self.with_hue_incremented_by(30)]
@@ -166,7 +168,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn complementary(&self) -> Self {
     self.with_hue_incremented_by(180)
@@ -260,7 +264,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn decrement_hue(&mut self, amount: impl Into<Component>) {
     self.set_components(self.with_hue_decremented_by(amount).components())
@@ -449,6 +455,39 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_okhwb().hue()
   }
 
+  /// Returns the HSLuv hue channel.
+  #[cfg(all(
+    feature = "space-hsluv",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-lchuv",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-okhwb"
+    ))
+  ))]
+  fn hue(&self) -> f64 {
+    self.to_hsluv().hue()
+  }
+
+  /// Returns the HPLuv hue channel.
+  #[cfg(all(
+    feature = "space-hpluv",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-lchuv",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-okhwb",
+      feature = "space-hsluv"
+    ))
+  ))]
+  fn hue(&self) -> f64 {
+    self.to_hpluv().hue()
+  }
+
   /// Returns the HSL hue channel.
   #[cfg(all(
     feature = "space-hsl",
@@ -458,7 +497,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
       feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv",
-      feature = "space-okhwb"
+      feature = "space-okhwb",
+      feature = "space-hsluv",
+      feature = "space-hpluv"
     ))
   ))]
   fn hue(&self) -> f64 {
@@ -475,6 +516,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
+      feature = "space-hsluv",
+      feature = "space-hpluv",
       feature = "space-hsl"
     ))
   ))]
@@ -492,6 +535,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
+      feature = "space-hsluv",
+      feature = "space-hpluv",
       feature = "space-hsl",
       feature = "space-hsv"
     ))
@@ -510,6 +555,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
+      feature = "space-hsluv",
+      feature = "space-hpluv",
       feature = "space-hsl",
       feature = "space-hsv",
       feature = "space-hwb"
@@ -541,7 +588,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn increment_hue(&mut self, amount: impl Into<Component>) {
     self.set_components(self.with_hue_incremented_by(amount).components())
@@ -795,7 +844,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn scale_hue(&mut self, factor: impl Into<Component>) {
     self.set_components(self.with_hue_scaled_by(factor).components())
@@ -844,7 +895,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn set_hue(&mut self, hue: impl Into<Component>) {
     self.set_components(self.with_hue(hue).components())
@@ -875,7 +928,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn split_complementary(&self) -> [Self; 2] {
     [self.with_hue_incremented_by(150), self.with_hue_incremented_by(210)]
@@ -896,7 +951,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn tetradic(&self) -> [Self; 3] {
     [
@@ -934,6 +991,18 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(feature = "space-hsl")]
   fn to_hsl(&self) -> Hsl<Srgb> {
     self.to_rgb::<Srgb>().to_hsl().with_alpha(self.alpha())
+  }
+
+  /// Converts to the HSLuv color space.
+  #[cfg(feature = "space-hsluv")]
+  fn to_hsluv(&self) -> Hsluv {
+    self.to_lchuv().to_hsluv().with_alpha(self.alpha())
+  }
+
+  /// Converts to the HPLuv color space.
+  #[cfg(feature = "space-hpluv")]
+  fn to_hpluv(&self) -> Hpluv {
+    self.to_lchuv().to_hpluv().with_alpha(self.alpha())
   }
 
   /// Converts to the HSV color space with sRGB encoding.
@@ -1039,7 +1108,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn triadic(&self) -> [Self; 2] {
     [self.with_hue_incremented_by(120), self.with_hue_incremented_by(240)]
@@ -1208,6 +1279,39 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     Self::from(self.to_okhwb().with_hue(hue).to_xyz())
   }
 
+  /// Returns a new color with the given HSLuv hue in degrees.
+  #[cfg(all(
+    feature = "space-hsluv",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-lchuv",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-okhwb"
+    ))
+  ))]
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_hsluv().with_hue(hue).to_xyz())
+  }
+
+  /// Returns a new color with the given HPLuv hue in degrees.
+  #[cfg(all(
+    feature = "space-hpluv",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-lchuv",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-okhwb",
+      feature = "space-hsluv"
+    ))
+  ))]
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_hpluv().with_hue(hue).to_xyz())
+  }
+
   /// Returns a new color with the given HSL hue in degrees.
   #[cfg(all(
     feature = "space-hsl",
@@ -1217,7 +1321,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
       feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv",
-      feature = "space-okhwb"
+      feature = "space-okhwb",
+      feature = "space-hsluv",
+      feature = "space-hpluv"
     ))
   ))]
   fn with_hue(&self, hue: impl Into<Component>) -> Self {
@@ -1234,6 +1340,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
+      feature = "space-hsluv",
+      feature = "space-hpluv",
       feature = "space-hsl"
     ))
   ))]
@@ -1251,6 +1359,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
+      feature = "space-hsluv",
+      feature = "space-hpluv",
       feature = "space-hsl",
       feature = "space-hsv"
     ))
@@ -1269,6 +1379,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
+      feature = "space-hsluv",
+      feature = "space-hpluv",
       feature = "space-hsl",
       feature = "space-hsv",
       feature = "space-hwb"
@@ -1289,7 +1401,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn with_hue_decremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_hue(self.hue() - amount.into().0)
@@ -1306,7 +1420,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn with_hue_incremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_hue(self.hue() + amount.into().0)
@@ -1323,7 +1439,9 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-hsl",
     feature = "space-hsv",
     feature = "space-hwb",
-    feature = "space-hsi"
+    feature = "space-hsi",
+    feature = "space-hsluv",
+    feature = "space-hpluv"
   ))]
   fn with_hue_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_hue(self.hue() * factor.into().0)

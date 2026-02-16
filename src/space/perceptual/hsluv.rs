@@ -1,6 +1,5 @@
 use std::{
   fmt::{Display, Formatter, Result as FmtResult},
-  marker::PhantomData,
   ops::{Add, Div, Mul, Sub},
 };
 
@@ -10,18 +9,18 @@ use crate::space::Cmy;
 use crate::space::Cmyk;
 #[cfg(feature = "space-hpluv")]
 use crate::space::Hpluv;
-#[cfg(feature = "space-hsluv")]
-use crate::space::Hsluv;
+#[cfg(feature = "space-hsi")]
+use crate::space::Hsi;
+#[cfg(feature = "space-hsl")]
+use crate::space::Hsl;
+#[cfg(feature = "space-hsv")]
+use crate::space::Hsv;
 #[cfg(feature = "space-hwb")]
 use crate::space::Hwb;
 #[cfg(feature = "space-lab")]
 use crate::space::Lab;
 #[cfg(feature = "space-lch")]
 use crate::space::Lch;
-#[cfg(feature = "space-lchuv")]
-use crate::space::Lchuv;
-#[cfg(feature = "space-luv")]
-use crate::space::Luv;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -34,64 +33,64 @@ use crate::space::Oklab;
 use crate::space::Oklch;
 #[cfg(feature = "space-xyy")]
 use crate::space::Xyy;
-#[cfg(feature = "space-hsv")]
-use crate::space::{Hsb, Hsv};
 use crate::{
-  ColorimetricContext,
+  ColorimetricContext, Illuminant, Observer,
   component::Component,
-  space::{ColorSpace, Lms, Rgb, RgbSpec, Srgb, Xyz},
+  space::{ColorSpace, Lchuv, Lms, Luv, Rgb, RgbSpec, Srgb, Xyz, cie::lchuv::max_safe_chroma_for_lh},
 };
 
-/// HSL (Hue, Saturation, Lightness) color space.
+/// HSLuv color space.
 ///
-/// A cylindrical representation of RGB colors, parameterized by an [`RgbSpec`] that
-/// determines the underlying RGB space. Defaults to [`Srgb`] when not specified.
-/// Components are stored normalized: hue in 0.0-1.0 (representing 0-360°),
-/// saturation and lightness in 0.0-1.0 (representing 0-100%).
+/// A human-friendly alternative to HSL that provides perceptually uniform colors by
+/// mapping to the CIE LCh(uv) color space. Saturation represents the percentage of
+/// the maximum chroma achievable at a given hue and lightness within the sRGB gamut,
+/// ensuring that S=100% always produces the most vivid in-gamut color.
+///
+/// Components: H is hue (0–360°), S is saturation (0–100%), L is lightness (0–100%)
+/// mapped directly to CIE L\*. Internally, hue is stored as a 0.0–1.0 fraction and
+/// saturation/lightness as 0.0–1.0 (representing 0–100%).
+///
+/// HSLuv depends on CIE LCh(uv) and is feature-gated behind `space-hsluv`.
 #[derive(Clone, Copy, Debug)]
-pub struct Hsl<S = Srgb>
-where
-  S: RgbSpec,
-{
+pub struct Hsluv {
   alpha: Component,
   context: ColorimetricContext,
   h: Component,
   l: Component,
   s: Component,
-  _spec: PhantomData<S>,
 }
 
-impl<S> Hsl<S>
-where
-  S: RgbSpec,
-{
-  /// Creates a new HSL color from hue (0-360°), saturation (0-100%), and lightness (0-100%).
+impl Hsluv {
+  /// The default viewing context for Hsluv (D65 illuminant, CIE 1931 2° observer).
+  pub const DEFAULT_CONTEXT: ColorimetricContext = ColorimetricContext::new()
+    .with_illuminant(Illuminant::D65)
+    .with_observer(Observer::CIE_1931_2D);
+
+  /// Creates a new HSLuv color from hue (0-360°), saturation (0-100%), and lightness (0-100%).
   pub fn new(h: impl Into<Component>, s: impl Into<Component>, l: impl Into<Component>) -> Self {
     Self {
       alpha: Component::new(1.0),
-      context: S::CONTEXT,
+      context: Self::DEFAULT_CONTEXT,
       h: Component::new((h.into().0 / 360.0).rem_euclid(1.0)),
       l: l.into() / 100.0,
       s: s.into() / 100.0,
-      _spec: PhantomData,
     }
   }
 
-  /// Creates a new HSL color in a const context from hue (0-360°), saturation (0-100%), and lightness (0-100%).
+  /// Creates a new HSLuv color in a const context from hue (0-360°), saturation (0-100%), and lightness (0-100%).
   pub const fn new_const(h: f64, s: f64, l: f64) -> Self {
     let r = (h / 360.0) % 1.0;
 
     Self {
       alpha: Component::new_const(1.0),
-      context: S::CONTEXT,
+      context: Self::DEFAULT_CONTEXT,
       h: Component::new_const(if r < 0.0 { r + 1.0 } else { r }),
       l: Component::new_const(l / 100.0),
       s: Component::new_const(s / 100.0),
-      _spec: PhantomData,
     }
   }
 
-  /// Returns the [H, S, L] components as normalized values.
+  /// Returns the [H, S, L] components as normalized values (all 0.0-1.0).
   pub fn components(&self) -> [f64; 3] {
     [self.h.0, self.s.0, self.l.0]
   }
@@ -258,82 +257,40 @@ where
     self.s = saturation.into() / 100.0;
   }
 
-  /// Converts this HSL color in the [`Hsb`] color space.
-  #[cfg(feature = "space-hsv")]
-  pub fn to_hsb(&self) -> Hsb<S> {
-    self.to_hsv()
-  }
+  /// Converts to the CIE LCh(uv) color space.
+  pub fn to_lchuv(&self) -> Lchuv {
+    let l = self.l.0 * 100.0;
+    let h = self.h.0 * 360.0;
 
-  /// Converts this HSL color in the [`Hsv`] color space.
-  #[cfg(feature = "space-hsv")]
-  pub fn to_hsv(&self) -> Hsv<S> {
-    let [h, s, l] = self.components();
-
-    let v = l + (s * l.min(1.0 - l));
-    let ns = if v == 0.0 { 0.0 } else { 2.0 * (1.0 - (l / v)) };
-
-    Hsv::<S>::new(h, ns, v).with_alpha(self.alpha)
-  }
-
-  /// Converts this HSL color to an [`Hwb`] color in the specified RGB color space.
-  #[cfg(feature = "space-hwb")]
-  pub fn to_hwb(&self) -> Hwb<S> {
-    let [h, s, l] = self.components();
-
-    let v = if l <= 0.5 { l * (1.0 + s) } else { (l + s) - (l * s) };
-
-    if v == 0.0 {
-      return Hwb::<S>::new(h * 360.0, 0.0, 100.0).with_alpha(self.alpha);
+    if l > 99.9999999 {
+      return Lchuv::new(100.0, 0.0, h).with_alpha(self.alpha);
+    }
+    if l < 0.00000001 {
+      return Lchuv::new(0.0, 0.0, h).with_alpha(self.alpha);
     }
 
-    let sv = 2.0 * (v - l) / v;
-    let w = v * (1.0 - sv);
-    let b = 1.0 - v;
+    let max_c = max_safe_chroma_for_lh(l, h);
+    let c = self.s.0 * max_c;
 
-    Hwb::<S>::new(h * 360.0, w * 100.0, b * 100.0).with_alpha(self.alpha)
+    Lchuv::new(l, c, h).with_alpha(self.alpha)
   }
 
-  /// Converts this HSL color to an [`Rgb`] color in the specified output space.
-  pub fn to_rgb<OS>(&self) -> Rgb<OS>
+  /// Converts to the CIE L*u*v* color space.
+  pub fn to_luv(&self) -> Luv {
+    self.to_lchuv().to_luv()
+  }
+
+  /// Converts to the specified RGB color space.
+  pub fn to_rgb<S>(&self) -> Rgb<S>
   where
-    OS: RgbSpec,
+    S: RgbSpec,
   {
-    let h = self.h.0;
-    let s = self.s.0;
-    let l = self.l.0;
+    self.to_lchuv().to_rgb::<S>()
+  }
 
-    if s <= 0.0 {
-      return Rgb::<S>::from_normalized(l, l, l).to_rgb::<OS>().with_alpha(self.alpha);
-    }
-    if l <= 0.0 {
-      return Rgb::<S>::from_normalized(0.0, 0.0, 0.0)
-        .to_rgb::<OS>()
-        .with_alpha(self.alpha);
-    }
-    if l >= 1.0 {
-      return Rgb::<S>::from_normalized(1.0, 1.0, 1.0)
-        .to_rgb::<OS>()
-        .with_alpha(self.alpha);
-    }
-
-    let c = (1.0 - ((2.0 * l) - 1.0).abs()) * s;
-    let h_prime = h * 6.0;
-    let x = c * (1.0 - ((h_prime % 2.0) - 1.0).abs());
-    let m = l - (c / 2.0);
-
-    let [r1, g1, b1] = match h_prime.floor().rem_euclid(6.0) {
-      0.0 => [c, x, 0.0],
-      1.0 => [x, c, 0.0],
-      2.0 => [0.0, c, x],
-      3.0 => [0.0, x, c],
-      4.0 => [x, 0.0, c],
-      5.0 => [c, 0.0, x],
-      _ => unreachable!(),
-    };
-
-    Rgb::<S>::from_normalized(r1 + m, g1 + m, b1 + m)
-      .to_rgb::<OS>()
-      .with_alpha(self.alpha)
+  /// Converts to the CIE XYZ color space.
+  pub fn to_xyz(&self) -> Xyz {
+    self.to_lchuv().to_xyz()
   }
 
   /// Returns this color with a different viewing context (without adaptation).
@@ -354,23 +311,23 @@ where
 
   /// Returns a new color with the normalized hue decreased by the given amount.
   pub fn with_h_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.decrement_h(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.decrement_h(amount);
+    hsluv
   }
 
   /// Returns a new color with the normalized hue increased by the given amount.
   pub fn with_h_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.increment_h(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.increment_h(amount);
+    hsluv
   }
 
   /// Returns a new color with the normalized hue scaled by the given factor.
   pub fn with_h_scaled_by(&self, factor: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.scale_h(factor);
-    hsl
+    let mut hsluv = *self;
+    hsluv.scale_h(factor);
+    hsluv
   }
 
   /// Returns a new color with the given hue in degrees (0-360°).
@@ -383,16 +340,16 @@ where
 
   /// Returns a new color with the hue decreased by the given degrees.
   pub fn with_hue_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.decrement_hue(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.decrement_hue(amount);
+    hsluv
   }
 
   /// Returns a new color with the hue increased by the given degrees.
   pub fn with_hue_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.increment_hue(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.increment_hue(amount);
+    hsluv
   }
 
   /// Alias for [`Self::with_h_scaled_by`].
@@ -410,23 +367,23 @@ where
 
   /// Returns a new color with normalized lightness decreased by the given amount.
   pub fn with_l_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.decrement_l(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.decrement_l(amount);
+    hsluv
   }
 
   /// Returns a new color with normalized lightness increased by the given amount.
   pub fn with_l_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.increment_l(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.increment_l(amount);
+    hsluv
   }
 
   /// Returns a new color with normalized lightness scaled by the given factor.
   pub fn with_l_scaled_by(&self, factor: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.scale_l(factor);
-    hsl
+    let mut hsluv = *self;
+    hsluv.scale_l(factor);
+    hsluv
   }
 
   /// Returns a new color with the given lightness in percentage (0-100%).
@@ -439,16 +396,16 @@ where
 
   /// Returns a new color with lightness decreased by the given percentage points.
   pub fn with_lightness_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.decrement_lightness(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.decrement_lightness(amount);
+    hsluv
   }
 
   /// Returns a new color with lightness increased by the given percentage points.
   pub fn with_lightness_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.increment_lightness(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.increment_lightness(amount);
+    hsluv
   }
 
   /// Alias for [`Self::with_l_scaled_by`].
@@ -466,23 +423,23 @@ where
 
   /// Returns a new color with normalized saturation decreased by the given amount.
   pub fn with_s_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.decrement_s(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.decrement_s(amount);
+    hsluv
   }
 
   /// Returns a new color with normalized saturation increased by the given amount.
   pub fn with_s_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.increment_s(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.increment_s(amount);
+    hsluv
   }
 
   /// Returns a new color with normalized saturation scaled by the given factor.
   pub fn with_s_scaled_by(&self, factor: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.scale_s(factor);
-    hsl
+    let mut hsluv = *self;
+    hsluv.scale_s(factor);
+    hsluv
   }
 
   /// Returns a new color with the given saturation in percentage (0-100%).
@@ -495,16 +452,16 @@ where
 
   /// Returns a new color with saturation decreased by the given percentage points.
   pub fn with_saturation_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.decrement_saturation(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.decrement_saturation(amount);
+    hsluv
   }
 
   /// Returns a new color with saturation increased by the given percentage points.
   pub fn with_saturation_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut hsl = *self;
-    hsl.increment_saturation(amount);
-    hsl
+    let mut hsluv = *self;
+    hsluv.increment_saturation(amount);
+    hsluv
   }
 
   /// Alias for [`Self::with_s_scaled_by`].
@@ -513,22 +470,18 @@ where
   }
 }
 
-impl<S, T> Add<T> for Hsl<S>
+impl<T> Add<T> for Hsluv
 where
-  S: RgbSpec,
   T: Into<Self>,
 {
   type Output = Self;
 
-  fn add(self, rhs: T) -> Self {
-    Self::from(self.to_rgb::<S>() + rhs.into().to_rgb::<S>())
+  fn add(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() + rhs.into().to_rgb::<Srgb>())
   }
 }
 
-impl<S> ColorSpace<3> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl ColorSpace<3> for Hsluv {
   fn alpha(&self) -> f64 {
     self.alpha.0
   }
@@ -538,7 +491,7 @@ where
   }
 
   fn set_alpha(&mut self, alpha: impl Into<Component>) {
-    self.alpha = alpha.into().clamp(0.0, 1.0)
+    self.alpha = alpha.into().clamp(0.0, 1.0);
   }
 
   fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
@@ -546,20 +499,17 @@ where
   }
 
   fn to_xyz(&self) -> Xyz {
-    self.to_rgb::<S>().to_xyz()
+    self.to_xyz()
   }
 }
 
-impl<S> Display for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl Display for Hsluv {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     let precision = f.precision().unwrap_or(2);
     if self.alpha.0 < 1.0 {
       write!(
         f,
-        "HSL({:.precision$}°, {:.precision$}%, {:.precision$}%, {:.0}%)",
+        "HSLuv({:.precision$}°, {:.precision$}%, {:.precision$}%, {:.0}%)",
         self.hue(),
         self.saturation(),
         self.lightness(),
@@ -568,7 +518,7 @@ where
     } else {
       write!(
         f,
-        "HSL({:.precision$}°, {:.precision$}%, {:.precision$}%)",
+        "HSLuv({:.precision$}°, {:.precision$}%, {:.precision$}%)",
         self.hue(),
         self.saturation(),
         self.lightness()
@@ -577,21 +527,19 @@ where
   }
 }
 
-impl<S, T> Div<T> for Hsl<S>
+impl<T> Div<T> for Hsluv
 where
-  S: RgbSpec,
   T: Into<Self>,
 {
   type Output = Self;
 
-  fn div(self, rhs: T) -> Self {
-    Self::from(self.to_rgb::<S>() / rhs.into().to_rgb::<S>())
+  fn div(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() / rhs.into().to_rgb::<Srgb>())
   }
 }
 
-impl<S, T> From<[T; 3]> for Hsl<S>
+impl<T> From<[T; 3]> for Hsluv
 where
-  S: RgbSpec,
   T: Into<Component>,
 {
   fn from([h, s, l]: [T; 3]) -> Self {
@@ -600,224 +548,176 @@ where
 }
 
 #[cfg(feature = "space-cmy")]
-impl<OS, S> From<Cmy<OS>> for Hsl<S>
+impl<S> From<Cmy<S>> for Hsluv
 where
-  OS: RgbSpec,
   S: RgbSpec,
 {
-  fn from(cmy: Cmy<OS>) -> Self {
-    cmy.to_rgb::<S>().to_hsl()
+  fn from(cmy: Cmy<S>) -> Self {
+    cmy.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-cmyk")]
-impl<OS, S> From<Cmyk<OS>> for Hsl<S>
-where
-  OS: RgbSpec,
-  S: RgbSpec,
-{
-  fn from(cmyk: Cmyk<OS>) -> Self {
-    cmyk.to_rgb::<S>().to_hsl()
-  }
-}
-
-#[cfg(feature = "space-hsi")]
-impl<OS, S> From<super::Hsi<OS>> for Hsl<S>
-where
-  OS: RgbSpec,
-  S: RgbSpec,
-{
-  fn from(hsi: super::Hsi<OS>) -> Self {
-    hsi.to_rgb::<S>().to_hsl()
-  }
-}
-
-#[cfg(feature = "space-hsluv")]
-impl<S> From<Hsluv> for Hsl<S>
+impl<S> From<Cmyk<S>> for Hsluv
 where
   S: RgbSpec,
 {
-  fn from(hsluv: Hsluv) -> Self {
-    hsluv.to_rgb::<S>().to_hsl()
+  fn from(cmyk: Cmyk<S>) -> Self {
+    cmyk.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-hpluv")]
-impl<S> From<Hpluv> for Hsl<S>
+impl From<Hpluv> for Hsluv {
+  fn from(hpluv: Hpluv) -> Self {
+    hpluv.to_hsluv()
+  }
+}
+
+#[cfg(feature = "space-hsi")]
+impl<S> From<Hsi<S>> for Hsluv
 where
   S: RgbSpec,
 {
-  fn from(hpluv: Hpluv) -> Self {
-    hpluv.to_rgb::<S>().to_hsl()
+  fn from(hsi: Hsi<S>) -> Self {
+    hsi.to_hsluv()
+  }
+}
+
+#[cfg(feature = "space-hsl")]
+impl<S> From<Hsl<S>> for Hsluv
+where
+  S: RgbSpec,
+{
+  fn from(hsl: Hsl<S>) -> Self {
+    hsl.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-hsv")]
-impl<OS, S> From<Hsv<OS>> for Hsl<S>
+impl<S> From<Hsv<S>> for Hsluv
 where
-  OS: RgbSpec,
   S: RgbSpec,
 {
-  fn from(hsv: Hsv<OS>) -> Self {
-    hsv.to_rgb::<S>().to_hsl()
+  fn from(hsv: Hsv<S>) -> Self {
+    hsv.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-hwb")]
-impl<OS, S> From<Hwb<OS>> for Hsl<S>
+impl<S> From<Hwb<S>> for Hsluv
 where
-  OS: RgbSpec,
   S: RgbSpec,
 {
-  fn from(hwb: Hwb<OS>) -> Self {
-    hwb.to_rgb::<S>().to_hsl()
+  fn from(hwb: Hwb<S>) -> Self {
+    hwb.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-lab")]
-impl<S> From<Lab> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Lab> for Hsluv {
   fn from(lab: Lab) -> Self {
-    lab.to_rgb::<S>().to_hsl()
+    lab.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-lch")]
-impl<S> From<Lch> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Lch> for Hsluv {
   fn from(lch: Lch) -> Self {
-    lch.to_rgb::<S>().to_hsl()
+    lch.to_hsluv()
   }
 }
 
-#[cfg(feature = "space-lchuv")]
-impl<S> From<Lchuv> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Lchuv> for Hsluv {
   fn from(lchuv: Lchuv) -> Self {
-    lchuv.to_rgb::<S>().to_hsl()
+    lchuv.to_hsluv()
   }
 }
 
-impl<S> From<Lms> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Lms> for Hsluv {
   fn from(lms: Lms) -> Self {
-    lms.to_rgb::<S>().to_hsl()
+    lms.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-luv")]
-impl<S> From<Luv> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Luv> for Hsluv {
   fn from(luv: Luv) -> Self {
-    luv.to_rgb::<S>().to_hsl()
+    luv.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-okhsl")]
-impl<S> From<Okhsl> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Okhsl> for Hsluv {
   fn from(okhsl: Okhsl) -> Self {
-    okhsl.to_rgb::<S>().to_hsl()
+    okhsl.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-okhsv")]
-impl<S> From<Okhsv> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Okhsv> for Hsluv {
   fn from(okhsv: Okhsv) -> Self {
-    okhsv.to_rgb::<S>().to_hsl()
+    okhsv.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-okhwb")]
-impl<S> From<Okhwb> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Okhwb> for Hsluv {
   fn from(okhwb: Okhwb) -> Self {
-    okhwb.to_rgb::<S>().to_hsl()
+    okhwb.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-oklab")]
-impl<S> From<Oklab> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Oklab> for Hsluv {
   fn from(oklab: Oklab) -> Self {
-    oklab.to_rgb::<S>().to_hsl()
+    oklab.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-oklch")]
-impl<S> From<Oklch> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Oklch> for Hsluv {
   fn from(oklch: Oklch) -> Self {
-    oklch.to_rgb::<S>().to_hsl()
+    oklch.to_hsluv()
   }
 }
 
-impl<OS, S> From<Rgb<OS>> for Hsl<S>
+impl<S> From<Rgb<S>> for Hsluv
 where
-  OS: RgbSpec,
   S: RgbSpec,
 {
-  fn from(rgb: Rgb<OS>) -> Self {
-    rgb.to_rgb::<S>().to_hsl()
+  fn from(rgb: Rgb<S>) -> Self {
+    rgb.to_hsluv()
   }
 }
 
 #[cfg(feature = "space-xyy")]
-impl<S> From<Xyy> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Xyy> for Hsluv {
   fn from(xyy: Xyy) -> Self {
-    xyy.to_rgb::<S>().to_hsl()
+    xyy.to_hsluv()
   }
 }
 
-impl<S> From<Xyz> for Hsl<S>
-where
-  S: RgbSpec,
-{
+impl From<Xyz> for Hsluv {
   fn from(xyz: Xyz) -> Self {
-    xyz.to_rgb::<S>().to_hsl()
+    Self::from(Lchuv::from(xyz)).with_alpha(xyz.alpha())
   }
 }
 
-impl<S, T> Mul<T> for Hsl<S>
+impl<T> Mul<T> for Hsluv
 where
-  S: RgbSpec,
   T: Into<Self>,
 {
   type Output = Self;
 
-  fn mul(self, rhs: T) -> Self {
-    Self::from(self.to_rgb::<S>() * rhs.into().to_rgb::<S>())
+  fn mul(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() * rhs.into().to_rgb::<Srgb>())
   }
 }
 
-impl<S, T> PartialEq<T> for Hsl<S>
+impl<T> PartialEq<T> for Hsluv
 where
-  S: RgbSpec,
-  T: Into<Hsl<S>> + Copy,
+  T: Into<Hsluv> + Copy,
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
@@ -825,15 +725,14 @@ where
   }
 }
 
-impl<S, T> Sub<T> for Hsl<S>
+impl<T> Sub<T> for Hsluv
 where
-  S: RgbSpec,
   T: Into<Self>,
 {
   type Output = Self;
 
-  fn sub(self, rhs: T) -> Self {
-    Self::from(self.to_rgb::<S>() - rhs.into().to_rgb::<S>())
+  fn sub(self, rhs: T) -> Self::Output {
+    Self::from(self.to_rgb::<Srgb>() - rhs.into().to_rgb::<Srgb>())
   }
 }
 
@@ -845,9 +744,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_adds_two_hsl_values_via_rgb() {
-      let a = Hsl::<Srgb>::new(0.0, 50.0, 25.0);
-      let b = Hsl::<Srgb>::new(0.0, 50.0, 25.0);
+    fn it_adds_two_hsluv_values_via_rgb() {
+      let a = Hsluv::new(0.0, 50.0, 25.0);
+      let b = Hsluv::new(0.0, 50.0, 25.0);
       let result = a + b;
 
       assert!(result.h().is_finite());
@@ -863,18 +762,18 @@ mod test {
 
     #[test]
     fn it_subtracts_from_h() {
-      let mut hsl = Hsl::<Srgb>::new(180.0, 50.0, 50.0);
-      hsl.decrement_h(0.25);
+      let mut hsluv = Hsluv::new(180.0, 50.0, 50.0);
+      hsluv.decrement_h(0.25);
 
-      assert_eq!(hsl.h(), 0.25);
+      assert_eq!(hsluv.h(), 0.25);
     }
 
     #[test]
     fn it_wraps_below_zero() {
-      let mut hsl = Hsl::<Srgb>::new(36.0, 50.0, 50.0);
-      hsl.decrement_h(0.2);
+      let mut hsluv = Hsluv::new(36.0, 50.0, 50.0);
+      hsluv.decrement_h(0.2);
 
-      assert!((hsl.h() - 0.9).abs() < 1e-10);
+      assert!((hsluv.h() - 0.9).abs() < 1e-10);
     }
   }
 
@@ -883,18 +782,18 @@ mod test {
 
     #[test]
     fn it_subtracts_degrees_from_hue() {
-      let mut hsl = Hsl::<Srgb>::new(180.0, 50.0, 50.0);
-      hsl.decrement_hue(90.0);
+      let mut hsluv = Hsluv::new(180.0, 50.0, 50.0);
+      hsluv.decrement_hue(90.0);
 
-      assert!((hsl.hue() - 90.0).abs() < 1e-10);
+      assert!((hsluv.hue() - 90.0).abs() < 1e-10);
     }
 
     #[test]
     fn it_wraps_below_zero() {
-      let mut hsl = Hsl::<Srgb>::new(30.0, 50.0, 50.0);
-      hsl.decrement_hue(60.0);
+      let mut hsluv = Hsluv::new(30.0, 50.0, 50.0);
+      hsluv.decrement_hue(60.0);
 
-      assert!((hsl.hue() - 330.0).abs() < 1e-10);
+      assert!((hsluv.hue() - 330.0).abs() < 1e-10);
     }
   }
 
@@ -903,10 +802,10 @@ mod test {
 
     #[test]
     fn it_subtracts_from_l() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      hsl.decrement_l(0.2);
+      let mut hsluv = Hsluv::new(0.0, 50.0, 50.0);
+      hsluv.decrement_l(0.2);
 
-      assert!((hsl.l() - 0.3).abs() < 1e-10);
+      assert!((hsluv.l() - 0.3).abs() < 1e-10);
     }
   }
 
@@ -915,10 +814,10 @@ mod test {
 
     #[test]
     fn it_subtracts_percentage_from_lightness() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      hsl.decrement_lightness(20.0);
+      let mut hsluv = Hsluv::new(0.0, 50.0, 50.0);
+      hsluv.decrement_lightness(20.0);
 
-      assert!((hsl.lightness() - 30.0).abs() < 1e-10);
+      assert!((hsluv.lightness() - 30.0).abs() < 1e-10);
     }
   }
 
@@ -927,10 +826,10 @@ mod test {
 
     #[test]
     fn it_subtracts_from_s() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      hsl.decrement_s(0.2);
+      let mut hsluv = Hsluv::new(0.0, 50.0, 50.0);
+      hsluv.decrement_s(0.2);
 
-      assert!((hsl.s() - 0.3).abs() < 1e-10);
+      assert!((hsluv.s() - 0.3).abs() < 1e-10);
     }
   }
 
@@ -939,10 +838,10 @@ mod test {
 
     #[test]
     fn it_subtracts_percentage_from_saturation() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      hsl.decrement_saturation(20.0);
+      let mut hsluv = Hsluv::new(0.0, 50.0, 50.0);
+      hsluv.decrement_saturation(20.0);
 
-      assert!((hsl.saturation() - 30.0).abs() < 1e-10);
+      assert!((hsluv.saturation() - 30.0).abs() < 1e-10);
     }
   }
 
@@ -953,30 +852,30 @@ mod test {
 
     #[test]
     fn it_formats_with_default_precision() {
-      let hsl = Hsl::<Srgb>::new(120.0, 50.0, 75.0);
+      let hsluv = Hsluv::new(120.0, 50.0, 75.0);
 
-      assert_eq!(format!("{}", hsl), "HSL(120.00°, 50.00%, 75.00%)");
+      assert_eq!(format!("{}", hsluv), "HSLuv(120.00°, 50.00%, 75.00%)");
     }
 
     #[test]
     fn it_formats_with_custom_precision() {
-      let hsl = Hsl::<Srgb>::new(120.12345, 50.6789, 75.4321);
+      let hsluv = Hsluv::new(120.12345, 50.6789, 75.4321);
 
-      assert_eq!(format!("{:.4}", hsl), "HSL(120.1235°, 50.6789%, 75.4321%)");
+      assert_eq!(format!("{:.4}", hsluv), "HSLuv(120.1235°, 50.6789%, 75.4321%)");
     }
 
     #[test]
     fn it_includes_opacity_when_alpha_below_one() {
-      let hsl = Hsl::<Srgb>::new(120.0, 50.0, 75.0).with_alpha(0.5);
+      let hsluv = Hsluv::new(120.0, 50.0, 75.0).with_alpha(0.5);
 
-      assert_eq!(format!("{}", hsl), "HSL(120.00°, 50.00%, 75.00%, 50%)");
+      assert_eq!(format!("{}", hsluv), "HSLuv(120.00°, 50.00%, 75.00%, 50%)");
     }
 
     #[test]
     fn it_omits_opacity_when_fully_opaque() {
-      let hsl = Hsl::<Srgb>::new(120.0, 50.0, 75.0);
+      let hsluv = Hsluv::new(120.0, 50.0, 75.0);
 
-      assert_eq!(format!("{}", hsl), "HSL(120.00°, 50.00%, 75.00%)");
+      assert_eq!(format!("{}", hsluv), "HSLuv(120.00°, 50.00%, 75.00%)");
     }
   }
 
@@ -984,9 +883,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_divides_two_hsl_values_via_rgb() {
-      let a = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      let b = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
+    fn it_divides_two_hsluv_values_via_rgb() {
+      let a = Hsluv::new(0.0, 50.0, 50.0);
+      let b = Hsluv::new(0.0, 50.0, 50.0);
       let result = a / b;
 
       assert!(result.h().is_finite());
@@ -995,18 +894,36 @@ mod test {
     }
   }
 
-  #[cfg(feature = "space-cmyk")]
-  mod from_cmyk {
+  mod from_lchuv {
     use super::*;
 
     #[test]
-    fn it_converts_via_rgb() {
-      let cmyk = Cmyk::<Srgb>::new(100.0, 0.0, 0.0, 0.0);
-      let hsl: Hsl<Srgb> = cmyk.into();
+    fn it_converts_from_lchuv() {
+      let lchuv = Lchuv::new(50.0, 30.0, 120.0);
+      let hsluv: Hsluv = lchuv.into();
 
-      assert!((hsl.hue() - 180.0).abs() < 1.0);
-      assert!((hsl.saturation() - 100.0).abs() < 1.0);
-      assert!((hsl.lightness() - 50.0).abs() < 1.0);
+      assert!((hsluv.hue() - 120.0).abs() < 1e-6);
+      assert!((hsluv.lightness() - 50.0).abs() < 1e-6);
+      assert!(hsluv.saturation() > 0.0);
+      assert!(hsluv.saturation() <= 100.0);
+    }
+
+    #[test]
+    fn it_handles_white() {
+      let lchuv = Lchuv::new(100.0, 0.0, 0.0);
+      let hsluv: Hsluv = lchuv.into();
+
+      assert!((hsluv.lightness() - 100.0).abs() < 1e-6);
+      assert!((hsluv.saturation()).abs() < 1e-6);
+    }
+
+    #[test]
+    fn it_handles_black() {
+      let lchuv = Lchuv::new(0.0, 0.0, 0.0);
+      let hsluv: Hsluv = lchuv.into();
+
+      assert!((hsluv.lightness()).abs() < 1e-6);
+      assert!((hsluv.saturation()).abs() < 1e-6);
     }
   }
 
@@ -1014,13 +931,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_converts_from_lms_via_rgb() {
+    fn it_converts_from_lms_via_xyz() {
       let lms = Lms::new(0.5, 0.5, 0.5);
-      let hsl: Hsl<Srgb> = lms.into();
+      let hsluv: Hsluv = lms.into();
 
-      assert!(hsl.h().is_finite());
-      assert!(hsl.s().is_finite());
-      assert!(hsl.l().is_finite());
+      assert!(hsluv.h().is_finite());
+      assert!(hsluv.s().is_finite());
+      assert!(hsluv.l().is_finite());
     }
   }
 
@@ -1030,58 +947,57 @@ mod test {
     #[test]
     fn it_converts_pure_red() {
       let rgb = Rgb::<Srgb>::from_normalized(1.0, 0.0, 0.0);
-      let hsl: Hsl<Srgb> = rgb.into();
+      let hsluv: Hsluv = rgb.into();
 
-      assert!((hsl.hue() - 0.0).abs() < 1e-10);
-      assert!((hsl.saturation() - 100.0).abs() < 1e-10);
-      assert!((hsl.lightness() - 50.0).abs() < 1e-10);
+      assert!((hsluv.hue() - 12.17).abs() < 0.1);
+      assert!((hsluv.saturation() - 100.0).abs() < 0.1);
+      assert!((hsluv.lightness() - 53.23).abs() < 0.1);
     }
 
     #[test]
     fn it_converts_pure_green() {
       let rgb = Rgb::<Srgb>::from_normalized(0.0, 1.0, 0.0);
-      let hsl: Hsl<Srgb> = rgb.into();
+      let hsluv: Hsluv = rgb.into();
 
-      assert!((hsl.hue() - 120.0).abs() < 1e-10);
-      assert!((hsl.saturation() - 100.0).abs() < 1e-10);
-      assert!((hsl.lightness() - 50.0).abs() < 1e-10);
+      assert!((hsluv.hue() - 127.72).abs() < 0.1);
+      assert!((hsluv.saturation() - 100.0).abs() < 0.1);
+      assert!((hsluv.lightness() - 87.74).abs() < 0.1);
     }
 
     #[test]
     fn it_converts_pure_blue() {
       let rgb = Rgb::<Srgb>::from_normalized(0.0, 0.0, 1.0);
-      let hsl: Hsl<Srgb> = rgb.into();
+      let hsluv: Hsluv = rgb.into();
 
-      assert!((hsl.hue() - 240.0).abs() < 1e-10);
-      assert!((hsl.saturation() - 100.0).abs() < 1e-10);
-      assert!((hsl.lightness() - 50.0).abs() < 1e-10);
+      assert!((hsluv.hue() - 265.87).abs() < 0.1);
+      assert!((hsluv.saturation() - 100.0).abs() < 0.1);
+      assert!((hsluv.lightness() - 32.30).abs() < 0.1);
     }
 
     #[test]
     fn it_converts_white_to_achromatic() {
       let rgb = Rgb::<Srgb>::from_normalized(1.0, 1.0, 1.0);
-      let hsl: Hsl<Srgb> = rgb.into();
+      let hsluv: Hsluv = rgb.into();
 
-      assert!((hsl.saturation()).abs() < 1e-10);
-      assert!((hsl.lightness() - 100.0).abs() < 1e-10);
+      assert!((hsluv.saturation()).abs() < 1e-6);
+      assert!((hsluv.lightness() - 100.0).abs() < 0.01);
     }
 
     #[test]
     fn it_converts_black_to_achromatic() {
       let rgb = Rgb::<Srgb>::from_normalized(0.0, 0.0, 0.0);
-      let hsl: Hsl<Srgb> = rgb.into();
+      let hsluv: Hsluv = rgb.into();
 
-      assert!((hsl.saturation()).abs() < 1e-10);
-      assert!((hsl.lightness()).abs() < 1e-10);
+      assert!((hsluv.saturation()).abs() < 1e-6);
+      assert!((hsluv.lightness()).abs() < 1e-6);
     }
 
     #[test]
     fn it_converts_gray_to_achromatic() {
       let rgb = Rgb::<Srgb>::from_normalized(0.5, 0.5, 0.5);
-      let hsl: Hsl<Srgb> = rgb.into();
+      let hsluv: Hsluv = rgb.into();
 
-      assert!((hsl.saturation()).abs() < 1e-10);
-      assert!((hsl.lightness() - 50.0).abs() < 1e-10);
+      assert!(hsluv.saturation() < 1.0);
     }
   }
 
@@ -1089,13 +1005,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_converts_from_xyz_via_rgb() {
+    fn it_converts_from_xyz_via_lchuv() {
       let xyz = Xyz::new(0.5, 0.5, 0.5);
-      let hsl: Hsl<Srgb> = xyz.into();
+      let hsluv: Hsluv = xyz.into();
 
-      assert!(hsl.h().is_finite());
-      assert!(hsl.s().is_finite());
-      assert!(hsl.l().is_finite());
+      assert!(hsluv.h().is_finite());
+      assert!(hsluv.s().is_finite());
+      assert!(hsluv.l().is_finite());
     }
   }
 
@@ -1106,18 +1022,18 @@ mod test {
 
     #[test]
     fn it_adds_to_h() {
-      let mut hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      hsl.increment_h(0.25);
+      let mut hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      hsluv.increment_h(0.25);
 
-      assert_eq!(hsl.h(), 0.5);
+      assert_eq!(hsluv.h(), 0.5);
     }
 
     #[test]
     fn it_wraps_above_one() {
-      let mut hsl = Hsl::<Srgb>::new(324.0, 50.0, 50.0);
-      hsl.increment_h(0.2);
+      let mut hsluv = Hsluv::new(324.0, 50.0, 50.0);
+      hsluv.increment_h(0.2);
 
-      assert!((hsl.h() - 0.1).abs() < 1e-10);
+      assert!((hsluv.h() - 0.1).abs() < 1e-10);
     }
   }
 
@@ -1126,18 +1042,18 @@ mod test {
 
     #[test]
     fn it_adds_degrees_to_hue() {
-      let mut hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      hsl.increment_hue(90.0);
+      let mut hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      hsluv.increment_hue(90.0);
 
-      assert!((hsl.hue() - 180.0).abs() < 1e-10);
+      assert!((hsluv.hue() - 180.0).abs() < 1e-10);
     }
 
     #[test]
     fn it_wraps_above_360() {
-      let mut hsl = Hsl::<Srgb>::new(300.0, 50.0, 50.0);
-      hsl.increment_hue(90.0);
+      let mut hsluv = Hsluv::new(300.0, 50.0, 50.0);
+      hsluv.increment_hue(90.0);
 
-      assert!((hsl.hue() - 30.0).abs() < 1e-10);
+      assert!((hsluv.hue() - 30.0).abs() < 1e-10);
     }
   }
 
@@ -1148,10 +1064,10 @@ mod test {
 
     #[test]
     fn it_adds_to_l() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 50.0, 25.0);
-      hsl.increment_l(0.25);
+      let mut hsluv = Hsluv::new(0.0, 50.0, 25.0);
+      hsluv.increment_l(0.25);
 
-      assert_eq!(hsl.l(), 0.5);
+      assert_eq!(hsluv.l(), 0.5);
     }
   }
 
@@ -1160,10 +1076,10 @@ mod test {
 
     #[test]
     fn it_adds_percentage_to_lightness() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 50.0, 25.0);
-      hsl.increment_lightness(25.0);
+      let mut hsluv = Hsluv::new(0.0, 50.0, 25.0);
+      hsluv.increment_lightness(25.0);
 
-      assert!((hsl.lightness() - 50.0).abs() < 1e-10);
+      assert!((hsluv.lightness() - 50.0).abs() < 1e-10);
     }
   }
 
@@ -1174,10 +1090,10 @@ mod test {
 
     #[test]
     fn it_adds_to_s() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 25.0, 50.0);
-      hsl.increment_s(0.25);
+      let mut hsluv = Hsluv::new(0.0, 25.0, 50.0);
+      hsluv.increment_s(0.25);
 
-      assert_eq!(hsl.s(), 0.5);
+      assert_eq!(hsluv.s(), 0.5);
     }
   }
 
@@ -1186,10 +1102,10 @@ mod test {
 
     #[test]
     fn it_adds_percentage_to_saturation() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 25.0, 50.0);
-      hsl.increment_saturation(25.0);
+      let mut hsluv = Hsluv::new(0.0, 25.0, 50.0);
+      hsluv.increment_saturation(25.0);
 
-      assert!((hsl.saturation() - 50.0).abs() < 1e-10);
+      assert!((hsluv.saturation() - 50.0).abs() < 1e-10);
     }
   }
 
@@ -1197,9 +1113,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_multiplies_two_hsl_values_via_rgb() {
-      let a = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      let b = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
+    fn it_multiplies_two_hsluv_values_via_rgb() {
+      let a = Hsluv::new(0.0, 50.0, 50.0);
+      let b = Hsluv::new(0.0, 50.0, 50.0);
       let result = a * b;
 
       assert!(result.h().is_finite());
@@ -1215,30 +1131,30 @@ mod test {
 
     #[test]
     fn it_normalizes_hue_to_0_1() {
-      const HSL: Hsl<Srgb> = Hsl::new_const(270.0, 50.0, 50.0);
+      const HSLUV: Hsluv = Hsluv::new_const(270.0, 50.0, 50.0);
 
-      assert_eq!(HSL.h(), 0.75);
+      assert_eq!(HSLUV.h(), 0.75);
     }
 
     #[test]
     fn it_normalizes_negative_hue() {
-      const HSL: Hsl<Srgb> = Hsl::new_const(-90.0, 50.0, 50.0);
+      const HSLUV: Hsluv = Hsluv::new_const(-90.0, 50.0, 50.0);
 
-      assert_eq!(HSL.h(), 0.75);
+      assert_eq!(HSLUV.h(), 0.75);
     }
 
     #[test]
     fn it_normalizes_saturation_to_0_1() {
-      const HSL: Hsl<Srgb> = Hsl::new_const(0.0, 75.0, 50.0);
+      const HSLUV: Hsluv = Hsluv::new_const(0.0, 75.0, 50.0);
 
-      assert_eq!(HSL.s(), 0.75);
+      assert_eq!(HSLUV.s(), 0.75);
     }
 
     #[test]
     fn it_normalizes_lightness_to_0_1() {
-      const HSL: Hsl<Srgb> = Hsl::new_const(0.0, 50.0, 75.0);
+      const HSLUV: Hsluv = Hsluv::new_const(0.0, 50.0, 75.0);
 
-      assert_eq!(HSL.l(), 0.75);
+      assert_eq!(HSLUV.l(), 0.75);
     }
   }
 
@@ -1248,25 +1164,25 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_compares_equal_hsl_values() {
-      let a = Hsl::<Srgb>::new(180.0, 50.0, 50.0);
-      let b = Hsl::<Srgb>::new(180.0, 50.0, 50.0);
+    fn it_compares_equal_hsluv_values() {
+      let a = Hsluv::new(180.0, 50.0, 50.0);
+      let b = Hsluv::new(180.0, 50.0, 50.0);
 
       assert_eq!(a, b);
     }
 
     #[test]
-    fn it_compares_unequal_hsl_values() {
-      let a = Hsl::<Srgb>::new(180.0, 50.0, 50.0);
-      let b = Hsl::<Srgb>::new(180.0, 50.0, 60.0);
+    fn it_compares_unequal_hsluv_values() {
+      let a = Hsluv::new(180.0, 50.0, 50.0);
+      let b = Hsluv::new(180.0, 50.0, 60.0);
 
       assert_ne!(a, b);
     }
 
     #[test]
     fn it_compares_unequal_when_alpha_differs() {
-      let a = Hsl::<Srgb>::new(180.0, 50.0, 50.0).with_alpha(0.5);
-      let b = Hsl::<Srgb>::new(180.0, 50.0, 50.0);
+      let a = Hsluv::new(180.0, 50.0, 50.0).with_alpha(0.5);
+      let b = Hsluv::new(180.0, 50.0, 50.0);
 
       assert_ne!(a, b);
     }
@@ -1277,18 +1193,18 @@ mod test {
 
     #[test]
     fn it_multiplies_h_by_factor() {
-      let mut hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      hsl.scale_h(2.0);
+      let mut hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      hsluv.scale_h(2.0);
 
-      assert!((hsl.h() - 0.5).abs() < 1e-10);
+      assert!((hsluv.h() - 0.5).abs() < 1e-10);
     }
 
     #[test]
     fn it_wraps_when_exceeding_one() {
-      let mut hsl = Hsl::<Srgb>::new(270.0, 50.0, 50.0);
-      hsl.scale_h(2.0);
+      let mut hsluv = Hsluv::new(270.0, 50.0, 50.0);
+      hsluv.scale_h(2.0);
 
-      assert!((hsl.h() - 0.5).abs() < 1e-10);
+      assert!((hsluv.h() - 0.5).abs() < 1e-10);
     }
   }
 
@@ -1299,10 +1215,10 @@ mod test {
 
     #[test]
     fn it_multiplies_l_by_factor() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 50.0, 25.0);
-      hsl.scale_l(2.0);
+      let mut hsluv = Hsluv::new(0.0, 50.0, 25.0);
+      hsluv.scale_l(2.0);
 
-      assert_eq!(hsl.l(), 0.5);
+      assert_eq!(hsluv.l(), 0.5);
     }
   }
 
@@ -1313,10 +1229,10 @@ mod test {
 
     #[test]
     fn it_multiplies_s_by_factor() {
-      let mut hsl = Hsl::<Srgb>::new(0.0, 25.0, 50.0);
-      hsl.scale_s(2.0);
+      let mut hsluv = Hsluv::new(0.0, 25.0, 50.0);
+      hsluv.scale_s(2.0);
 
-      assert_eq!(hsl.s(), 0.5);
+      assert_eq!(hsluv.s(), 0.5);
     }
   }
 
@@ -1324,9 +1240,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_subtracts_two_hsl_values_via_rgb() {
-      let a = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      let b = Hsl::<Srgb>::new(0.0, 25.0, 25.0);
+    fn it_subtracts_two_hsluv_values_via_rgb() {
+      let a = Hsluv::new(0.0, 50.0, 50.0);
+      let b = Hsluv::new(0.0, 25.0, 25.0);
       let result = a - b;
 
       assert!(result.h().is_finite());
@@ -1335,45 +1251,74 @@ mod test {
     }
   }
 
-  mod to_rgb {
-    use pretty_assertions::assert_eq;
-
+  mod to_lchuv {
     use super::*;
 
     #[test]
-    fn it_converts_pure_red() {
-      let hsl = Hsl::<Srgb>::new(0.0, 100.0, 50.0);
-      let rgb: Rgb<Srgb> = hsl.to_rgb();
+    fn it_converts_to_lchuv() {
+      let hsluv = Hsluv::new(120.0, 50.0, 60.0);
+      let lchuv = hsluv.to_lchuv();
 
-      assert_eq!(rgb.red(), 255);
-      assert_eq!(rgb.green(), 0);
-      assert_eq!(rgb.blue(), 0);
+      assert!((lchuv.l() - 60.0).abs() < 1e-6);
+      assert!((lchuv.hue() - 120.0).abs() < 1e-6);
+      assert!(lchuv.chroma() > 0.0);
     }
 
     #[test]
-    fn it_converts_pure_green() {
-      let hsl = Hsl::<Srgb>::new(120.0, 100.0, 50.0);
-      let rgb: Rgb<Srgb> = hsl.to_rgb();
+    fn it_handles_white() {
+      let hsluv = Hsluv::new(0.0, 100.0, 100.0);
+      let lchuv = hsluv.to_lchuv();
 
-      assert_eq!(rgb.red(), 0);
-      assert_eq!(rgb.green(), 255);
-      assert_eq!(rgb.blue(), 0);
+      assert!((lchuv.l() - 100.0).abs() < 1e-6);
+      assert!((lchuv.chroma()).abs() < 1e-6);
     }
 
     #[test]
-    fn it_converts_pure_blue() {
-      let hsl = Hsl::<Srgb>::new(240.0, 100.0, 50.0);
-      let rgb: Rgb<Srgb> = hsl.to_rgb();
+    fn it_handles_black() {
+      let hsluv = Hsluv::new(0.0, 100.0, 0.0);
+      let lchuv = hsluv.to_lchuv();
 
-      assert_eq!(rgb.red(), 0);
-      assert_eq!(rgb.green(), 0);
-      assert_eq!(rgb.blue(), 255);
+      assert!((lchuv.l()).abs() < 1e-6);
+      assert!((lchuv.chroma()).abs() < 1e-6);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let hsluv = Hsluv::new(120.0, 50.0, 50.0).with_alpha(0.3);
+      let lchuv = hsluv.to_lchuv();
+
+      assert!((lchuv.alpha() - 0.3).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_roundtrips_with_from_lchuv() {
+      let original = Hsluv::new(210.0, 60.0, 40.0);
+      let lchuv = original.to_lchuv();
+      let back: Hsluv = lchuv.into();
+
+      assert!((back.hue() - original.hue()).abs() < 0.01);
+      assert!((back.saturation() - original.saturation()).abs() < 0.01);
+      assert!((back.lightness() - original.lightness()).abs() < 0.01);
+    }
+  }
+
+  mod to_rgb {
+    use super::*;
+
+    #[test]
+    fn it_converts_to_rgb() {
+      let hsluv = Hsluv::new(120.0, 100.0, 50.0);
+      let rgb: Rgb<Srgb> = hsluv.to_rgb();
+
+      assert!(rgb.red() <= 255);
+      assert!(rgb.green() <= 255);
+      assert!(rgb.blue() <= 255);
     }
 
     #[test]
     fn it_converts_white() {
-      let hsl = Hsl::<Srgb>::new(0.0, 0.0, 100.0);
-      let rgb: Rgb<Srgb> = hsl.to_rgb();
+      let hsluv = Hsluv::new(0.0, 0.0, 100.0);
+      let rgb: Rgb<Srgb> = hsluv.to_rgb();
 
       assert_eq!(rgb.red(), 255);
       assert_eq!(rgb.green(), 255);
@@ -1382,8 +1327,8 @@ mod test {
 
     #[test]
     fn it_converts_black() {
-      let hsl = Hsl::<Srgb>::new(0.0, 0.0, 0.0);
-      let rgb: Rgb<Srgb> = hsl.to_rgb();
+      let hsluv = Hsluv::new(0.0, 0.0, 0.0);
+      let rgb: Rgb<Srgb> = hsluv.to_rgb();
 
       assert_eq!(rgb.red(), 0);
       assert_eq!(rgb.green(), 0);
@@ -1391,19 +1336,10 @@ mod test {
     }
 
     #[test]
-    fn it_converts_achromatic_gray() {
-      let hsl = Hsl::<Srgb>::new(0.0, 0.0, 50.0);
-      let rgb: Rgb<Srgb> = hsl.to_rgb();
-
-      assert_eq!(rgb.red(), rgb.green());
-      assert_eq!(rgb.green(), rgb.blue());
-    }
-
-    #[test]
     fn it_roundtrips_with_from_rgb() {
-      let original = Hsl::<Srgb>::new(210.0, 80.0, 40.0);
+      let original = Hsluv::new(210.0, 60.0, 40.0);
       let rgb: Rgb<Srgb> = original.to_rgb();
-      let back: Hsl<Srgb> = rgb.into();
+      let back: Hsluv = rgb.into();
 
       assert!((back.hue() - original.hue()).abs() < 1.0);
       assert!((back.saturation() - original.saturation()).abs() < 1.0);
@@ -1412,54 +1348,10 @@ mod test {
 
     #[test]
     fn it_preserves_alpha() {
-      let hsl = Hsl::<Srgb>::new(120.0, 50.0, 50.0).with_alpha(0.3);
-      let rgb: Rgb<Srgb> = hsl.to_rgb();
+      let hsluv = Hsluv::new(120.0, 50.0, 50.0).with_alpha(0.3);
+      let rgb: Rgb<Srgb> = hsluv.to_rgb();
 
       assert!((rgb.alpha() - 0.3).abs() < 1e-10);
-    }
-  }
-
-  #[cfg(feature = "space-hwb")]
-  mod to_hwb {
-    use super::*;
-
-    #[test]
-    fn it_converts_black() {
-      let hsl = Hsl::<Srgb>::new(0.0, 0.0, 0.0);
-      let hwb = hsl.to_hwb();
-
-      assert!((hwb.whiteness()).abs() < 1e-10);
-      assert!((hwb.blackness() - 100.0).abs() < 1e-10);
-    }
-
-    #[test]
-    fn it_converts_pure_color() {
-      let hsl = Hsl::<Srgb>::new(120.0, 100.0, 50.0);
-      let hwb = hsl.to_hwb();
-
-      assert!((hwb.hue() - 120.0).abs() < 1.0);
-      assert!((hwb.whiteness()).abs() < 1.0);
-      assert!((hwb.blackness()).abs() < 1.0);
-    }
-
-    #[test]
-    fn it_converts_white() {
-      let hsl = Hsl::<Srgb>::new(0.0, 0.0, 100.0);
-      let hwb = hsl.to_hwb();
-
-      assert!((hwb.whiteness() - 100.0).abs() < 1e-10);
-      assert!((hwb.blackness()).abs() < 1e-10);
-    }
-
-    #[test]
-    fn it_roundtrips_with_from_hwb() {
-      let original = Hsl::<Srgb>::new(210.0, 80.0, 40.0);
-      let hwb = original.to_hwb();
-      let back: Hsl<Srgb> = hwb.into();
-
-      assert!((back.hue() - original.hue()).abs() < 1.0);
-      assert!((back.saturation() - original.saturation()).abs() < 1.0);
-      assert!((back.lightness() - original.lightness()).abs() < 1.0);
     }
   }
 
@@ -1467,9 +1359,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_converts_to_xyz_via_rgb() {
-      let hsl = Hsl::<Srgb>::new(120.0, 100.0, 50.0);
-      let xyz = hsl.to_xyz();
+    fn it_converts_to_xyz_via_lchuv() {
+      let hsluv = Hsluv::new(120.0, 100.0, 50.0);
+      let xyz = hsluv.to_xyz();
 
       assert!(xyz.x().is_finite());
       assert!(xyz.y().is_finite());
@@ -1478,9 +1370,9 @@ mod test {
 
     #[test]
     fn it_roundtrips_with_from_xyz() {
-      let original = Hsl::<Srgb>::new(210.0, 80.0, 40.0);
+      let original = Hsluv::new(210.0, 60.0, 40.0);
       let xyz = original.to_xyz();
-      let back: Hsl<Srgb> = xyz.into();
+      let back: Hsluv = xyz.into();
 
       assert!((back.hue() - original.hue()).abs() < 1.0);
       assert!((back.saturation() - original.saturation()).abs() < 1.0);
@@ -1494,13 +1386,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_new_h() {
-      let hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      let result = hsl.with_h(0.75);
+    fn it_returns_hsluv_with_new_h() {
+      let hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      let result = hsluv.with_h(0.75);
 
       assert_eq!(result.h(), 0.75);
-      assert_eq!(result.s(), hsl.s());
-      assert_eq!(result.l(), hsl.l());
+      assert_eq!(result.s(), hsluv.s());
+      assert_eq!(result.l(), hsluv.l());
     }
   }
 
@@ -1510,12 +1402,12 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_decremented_h() {
-      let hsl = Hsl::<Srgb>::new(180.0, 50.0, 50.0);
-      let result = hsl.with_h_decremented_by(0.25);
+    fn it_returns_hsluv_with_decremented_h() {
+      let hsluv = Hsluv::new(180.0, 50.0, 50.0);
+      let result = hsluv.with_h_decremented_by(0.25);
 
       assert_eq!(result.h(), 0.25);
-      assert_eq!(hsl.h(), 0.5);
+      assert_eq!(hsluv.h(), 0.5);
     }
   }
 
@@ -1525,9 +1417,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_incremented_h() {
-      let hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      let result = hsl.with_h_incremented_by(0.25);
+    fn it_returns_hsluv_with_incremented_h() {
+      let hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      let result = hsluv.with_h_incremented_by(0.25);
 
       assert_eq!(result.h(), 0.5);
     }
@@ -1537,9 +1429,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_scaled_h() {
-      let hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      let result = hsl.with_h_scaled_by(2.0);
+    fn it_returns_hsluv_with_scaled_h() {
+      let hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      let result = hsluv.with_h_scaled_by(2.0);
 
       assert!((result.h() - 0.5).abs() < 1e-10);
     }
@@ -1549,13 +1441,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_new_hue_in_degrees() {
-      let hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      let result = hsl.with_hue(270.0);
+    fn it_returns_hsluv_with_new_hue_in_degrees() {
+      let hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      let result = hsluv.with_hue(270.0);
 
       assert!((result.hue() - 270.0).abs() < 1e-10);
-      assert_eq!(result.s(), hsl.s());
-      assert_eq!(result.l(), hsl.l());
+      assert_eq!(result.s(), hsluv.s());
+      assert_eq!(result.l(), hsluv.l());
     }
   }
 
@@ -1563,12 +1455,12 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_decremented_hue() {
-      let hsl = Hsl::<Srgb>::new(180.0, 50.0, 50.0);
-      let result = hsl.with_hue_decremented_by(90.0);
+    fn it_returns_hsluv_with_decremented_hue() {
+      let hsluv = Hsluv::new(180.0, 50.0, 50.0);
+      let result = hsluv.with_hue_decremented_by(90.0);
 
       assert!((result.hue() - 90.0).abs() < 1e-10);
-      assert!((hsl.hue() - 180.0).abs() < 1e-10);
+      assert!((hsluv.hue() - 180.0).abs() < 1e-10);
     }
   }
 
@@ -1576,9 +1468,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_incremented_hue() {
-      let hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      let result = hsl.with_hue_incremented_by(90.0);
+    fn it_returns_hsluv_with_incremented_hue() {
+      let hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      let result = hsluv.with_hue_incremented_by(90.0);
 
       assert!((result.hue() - 180.0).abs() < 1e-10);
     }
@@ -1590,13 +1482,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_new_l() {
-      let hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      let result = hsl.with_l(0.75);
+    fn it_returns_hsluv_with_new_l() {
+      let hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      let result = hsluv.with_l(0.75);
 
       assert_eq!(result.l(), 0.75);
-      assert_eq!(result.h(), hsl.h());
-      assert_eq!(result.s(), hsl.s());
+      assert_eq!(result.h(), hsluv.h());
+      assert_eq!(result.s(), hsluv.s());
     }
   }
 
@@ -1606,12 +1498,12 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_decremented_l() {
-      let hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      let result = hsl.with_l_decremented_by(0.2);
+    fn it_returns_hsluv_with_decremented_l() {
+      let hsluv = Hsluv::new(0.0, 50.0, 50.0);
+      let result = hsluv.with_l_decremented_by(0.2);
 
       assert!((result.l() - 0.3).abs() < 1e-10);
-      assert_eq!(hsl.l(), 0.5);
+      assert_eq!(hsluv.l(), 0.5);
     }
   }
 
@@ -1621,9 +1513,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_incremented_l() {
-      let hsl = Hsl::<Srgb>::new(0.0, 50.0, 25.0);
-      let result = hsl.with_l_incremented_by(0.25);
+    fn it_returns_hsluv_with_incremented_l() {
+      let hsluv = Hsluv::new(0.0, 50.0, 25.0);
+      let result = hsluv.with_l_incremented_by(0.25);
 
       assert_eq!(result.l(), 0.5);
     }
@@ -1635,9 +1527,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_scaled_l() {
-      let hsl = Hsl::<Srgb>::new(0.0, 50.0, 25.0);
-      let result = hsl.with_l_scaled_by(2.0);
+    fn it_returns_hsluv_with_scaled_l() {
+      let hsluv = Hsluv::new(0.0, 50.0, 25.0);
+      let result = hsluv.with_l_scaled_by(2.0);
 
       assert_eq!(result.l(), 0.5);
     }
@@ -1647,13 +1539,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_new_lightness_in_percent() {
-      let hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      let result = hsl.with_lightness(75.0);
+    fn it_returns_hsluv_with_new_lightness_in_percent() {
+      let hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      let result = hsluv.with_lightness(75.0);
 
       assert!((result.lightness() - 75.0).abs() < 1e-10);
-      assert_eq!(result.h(), hsl.h());
-      assert_eq!(result.s(), hsl.s());
+      assert_eq!(result.h(), hsluv.h());
+      assert_eq!(result.s(), hsluv.s());
     }
   }
 
@@ -1661,9 +1553,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_decremented_lightness() {
-      let hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      let result = hsl.with_lightness_decremented_by(20.0);
+    fn it_returns_hsluv_with_decremented_lightness() {
+      let hsluv = Hsluv::new(0.0, 50.0, 50.0);
+      let result = hsluv.with_lightness_decremented_by(20.0);
 
       assert!((result.lightness() - 30.0).abs() < 1e-10);
     }
@@ -1673,9 +1565,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_incremented_lightness() {
-      let hsl = Hsl::<Srgb>::new(0.0, 50.0, 25.0);
-      let result = hsl.with_lightness_incremented_by(25.0);
+    fn it_returns_hsluv_with_incremented_lightness() {
+      let hsluv = Hsluv::new(0.0, 50.0, 25.0);
+      let result = hsluv.with_lightness_incremented_by(25.0);
 
       assert!((result.lightness() - 50.0).abs() < 1e-10);
     }
@@ -1687,13 +1579,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_new_s() {
-      let hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      let result = hsl.with_s(0.75);
+    fn it_returns_hsluv_with_new_s() {
+      let hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      let result = hsluv.with_s(0.75);
 
       assert_eq!(result.s(), 0.75);
-      assert_eq!(result.h(), hsl.h());
-      assert_eq!(result.l(), hsl.l());
+      assert_eq!(result.h(), hsluv.h());
+      assert_eq!(result.l(), hsluv.l());
     }
   }
 
@@ -1703,12 +1595,12 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_decremented_s() {
-      let hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      let result = hsl.with_s_decremented_by(0.2);
+    fn it_returns_hsluv_with_decremented_s() {
+      let hsluv = Hsluv::new(0.0, 50.0, 50.0);
+      let result = hsluv.with_s_decremented_by(0.2);
 
       assert!((result.s() - 0.3).abs() < 1e-10);
-      assert_eq!(hsl.s(), 0.5);
+      assert_eq!(hsluv.s(), 0.5);
     }
   }
 
@@ -1718,9 +1610,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_incremented_s() {
-      let hsl = Hsl::<Srgb>::new(0.0, 25.0, 50.0);
-      let result = hsl.with_s_incremented_by(0.25);
+    fn it_returns_hsluv_with_incremented_s() {
+      let hsluv = Hsluv::new(0.0, 25.0, 50.0);
+      let result = hsluv.with_s_incremented_by(0.25);
 
       assert_eq!(result.s(), 0.5);
     }
@@ -1732,9 +1624,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_scaled_s() {
-      let hsl = Hsl::<Srgb>::new(0.0, 25.0, 50.0);
-      let result = hsl.with_s_scaled_by(2.0);
+    fn it_returns_hsluv_with_scaled_s() {
+      let hsluv = Hsluv::new(0.0, 25.0, 50.0);
+      let result = hsluv.with_s_scaled_by(2.0);
 
       assert_eq!(result.s(), 0.5);
     }
@@ -1744,13 +1636,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_new_saturation_in_percent() {
-      let hsl = Hsl::<Srgb>::new(90.0, 50.0, 50.0);
-      let result = hsl.with_saturation(75.0);
+    fn it_returns_hsluv_with_new_saturation_in_percent() {
+      let hsluv = Hsluv::new(90.0, 50.0, 50.0);
+      let result = hsluv.with_saturation(75.0);
 
       assert!((result.saturation() - 75.0).abs() < 1e-10);
-      assert_eq!(result.h(), hsl.h());
-      assert_eq!(result.l(), hsl.l());
+      assert_eq!(result.h(), hsluv.h());
+      assert_eq!(result.l(), hsluv.l());
     }
   }
 
@@ -1758,9 +1650,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_decremented_saturation() {
-      let hsl = Hsl::<Srgb>::new(0.0, 50.0, 50.0);
-      let result = hsl.with_saturation_decremented_by(20.0);
+    fn it_returns_hsluv_with_decremented_saturation() {
+      let hsluv = Hsluv::new(0.0, 50.0, 50.0);
+      let result = hsluv.with_saturation_decremented_by(20.0);
 
       assert!((result.saturation() - 30.0).abs() < 1e-10);
     }
@@ -1770,9 +1662,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_returns_hsl_with_incremented_saturation() {
-      let hsl = Hsl::<Srgb>::new(0.0, 25.0, 50.0);
-      let result = hsl.with_saturation_incremented_by(25.0);
+    fn it_returns_hsluv_with_incremented_saturation() {
+      let hsluv = Hsluv::new(0.0, 25.0, 50.0);
+      let result = hsluv.with_saturation_incremented_by(25.0);
 
       assert!((result.saturation() - 50.0).abs() < 1e-10);
     }

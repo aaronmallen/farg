@@ -308,6 +308,13 @@ Non-RGB color spaces available behind individual `space-*` flags.
 | `space-okhwb`        | Okhwb | Perceptually uniform HWB via Oklab          | `space-okhsv` |
 | `space-oklab-family` | *all* | Enables Oklab, Oklch, Okhsl, Okhsv, Okhwb   | -             |
 
+### HSLuv / HPLuv
+
+| Feature       | Space | Description                                    | Dependencies  |
+|---------------|-------|------------------------------------------------|---------------|
+| `space-hsluv` | HSLuv | Perceptually uniform HSL via CIE LCh(uv)       | `space-lchuv` |
+| `space-hpluv` | HPLuv | Hue-preserving variant with inscribed-circle S | `space-lchuv` |
+
 ### Cylindrical (RGB-derived)
 
 | Feature      | Space   | Description                                    | Dependencies |

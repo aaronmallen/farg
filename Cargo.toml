@@ -104,8 +104,10 @@ all-spaces = [
   "all-rgb-spaces",
   "space-cmy",
   "space-cmyk",
+  "space-hpluv",
   "space-hsi",
   "space-hsl",
+  "space-hsluv",
   "space-hsv",
   "space-hwb",
   "space-lab",
@@ -312,6 +314,8 @@ space-cmyk = []
 space-hsb = ["space-hsv"]
 space-hsi = []
 space-hsl = []
+space-hpluv = ["space-lchuv"]
+space-hsluv = ["space-lchuv"]
 space-hsv = []
 space-hwb = []
 space-lab = []
