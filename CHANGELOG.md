@@ -7,6 +7,11 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+### Added
+
+- Add `Lchuv` (CIE LCh(uv)) cylindrical color space — the polar-coordinate form of CIE L\*u\*v\* with lightness,
+  chroma, and hue — with full conversion support, feature-gated behind `space-lchuv` (depends on `space-luv`)
+
 ## [v0.4.2] - 2026-02-15
 
 ### Added

@@ -109,6 +109,7 @@ all-spaces = [
   "space-hwb",
   "space-lab",
   "space-lch",
+  "space-lchuv",
   "space-luv",
   "space-oklab-family",
   "space-xyy",
@@ -313,6 +314,7 @@ space-hsv = []
 space-hwb = []
 space-lab = []
 space-lch = ["space-lab"]
+space-lchuv = ["space-luv"]
 space-luv = []
 space-xyy = []
 space-okhsl = ["space-oklab"]

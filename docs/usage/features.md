@@ -289,12 +289,13 @@ Non-RGB color spaces available behind individual `space-*` flags.
 
 ### CIE Color Spaces
 
-| Feature     | Space | Description                                                | Dependencies |
-|-------------|-------|------------------------------------------------------------|--------------|
-| `space-lab` | Lab   | CIE 1976 L\*a\*b\* perceptual color space                  | -            |
-| `space-lch` | LCh   | Cylindrical form of CIE L\*a\*b\* (lightness, chroma, hue) | `space-lab`  |
-| `space-luv` | Luv   | CIE 1976 L\*u\*v\* perceptual color space                  | -            |
-| `space-xyy` | xyY   | CIE xyY chromaticity + luminance color space               | -            |
+| Feature       | Space | Description                                                | Dependencies |
+|---------------|-------|------------------------------------------------------------|--------------|
+| `space-lab`   | Lab   | CIE 1976 L\*a\*b\* perceptual color space                  | -            |
+| `space-lch`   | LCh   | Cylindrical form of CIE L\*a\*b\* (lightness, chroma, hue) | `space-lab`  |
+| `space-luv`   | Luv   | CIE 1976 L\*u\*v\* perceptual color space                  | -            |
+| `space-lchuv` | LChuv | Cylindrical form of CIE L\*u\*v\* (lightness, chroma, hue) | `space-luv`  |
+| `space-xyy`   | xyY   | CIE xyY chromaticity + luminance color space               | -            |
 
 ### Oklab Family
 

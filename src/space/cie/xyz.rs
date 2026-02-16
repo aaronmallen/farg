@@ -17,6 +17,8 @@ use crate::space::Hwb;
 use crate::space::Lab;
 #[cfg(feature = "space-lch")]
 use crate::space::Lch;
+#[cfg(feature = "space-lchuv")]
+use crate::space::Lchuv;
 #[cfg(feature = "space-luv")]
 use crate::space::Luv;
 #[cfg(feature = "space-okhsl")]
@@ -281,6 +283,13 @@ impl Xyz {
     Lab::new(l, a, b).with_alpha(self.alpha)
   }
 
+  /// Converts to the LMS cone response space using the context's CAT matrix.
+  pub fn to_lms(&self) -> Lms {
+    Lms::from(self.context.cat().matrix() * *self)
+      .with_context(self.context)
+      .with_alpha(self.alpha)
+  }
+
   /// Converts to the CIE L*u*v* color space.
   #[cfg(feature = "space-luv")]
   pub fn to_luv(&self) -> Luv {
@@ -308,6 +317,29 @@ impl Xyz {
     Luv::new(l, u, v).with_alpha(self.alpha)
   }
 
+  /// Converts to the Oklab perceptual color space.
+  #[cfg(feature = "space-oklab")]
+  pub fn to_oklab(&self) -> Oklab {
+    let adapted = self.adapt_to(Oklab::DEFAULT_CONTEXT);
+    let linear_lms = Oklab::LINEAR_XYZ_MATRIX * adapted;
+    let cube_root_lms = [linear_lms[0].cbrt(), linear_lms[1].cbrt(), linear_lms[2].cbrt()];
+    let [l, a, b] = Oklab::LINEAR_LMS_MATRIX * cube_root_lms;
+
+    Oklab::new(l, a, b).with_alpha(self.alpha)
+  }
+
+  /// Converts to the specified RGB color space.
+  pub fn to_rgb<S>(&self) -> Rgb<S>
+  where
+    S: RgbSpec,
+  {
+    let adapted = self.adapt_to(S::CONTEXT);
+    let [r, g, b] = *S::inversed_xyz_matrix() * adapted;
+    LinearRgb::<S>::from_normalized(r, g, b)
+      .to_encoded()
+      .with_alpha(self.alpha)
+  }
+
   /// Converts to the CIE xyY color space.
   #[cfg(feature = "space-xyy")]
   pub fn to_xyy(&self) -> Xyy {
@@ -329,36 +361,6 @@ impl Xyz {
 
     Xyy::new(x_chrom, y_chrom, y)
       .with_context(self.context)
-      .with_alpha(self.alpha)
-  }
-
-  /// Converts to the LMS cone response space using the context's CAT matrix.
-  pub fn to_lms(&self) -> Lms {
-    Lms::from(self.context.cat().matrix() * *self)
-      .with_context(self.context)
-      .with_alpha(self.alpha)
-  }
-
-  /// Converts to the Oklab perceptual color space.
-  #[cfg(feature = "space-oklab")]
-  pub fn to_oklab(&self) -> Oklab {
-    let adapted = self.adapt_to(Oklab::DEFAULT_CONTEXT);
-    let linear_lms = Oklab::LINEAR_XYZ_MATRIX * adapted;
-    let cube_root_lms = [linear_lms[0].cbrt(), linear_lms[1].cbrt(), linear_lms[2].cbrt()];
-    let [l, a, b] = Oklab::LINEAR_LMS_MATRIX * cube_root_lms;
-
-    Oklab::new(l, a, b).with_alpha(self.alpha)
-  }
-
-  /// Converts to the specified RGB color space.
-  pub fn to_rgb<S>(&self) -> Rgb<S>
-  where
-    S: RgbSpec,
-  {
-    let adapted = self.adapt_to(S::CONTEXT);
-    let [r, g, b] = *S::inversed_xyz_matrix() * adapted;
-    LinearRgb::<S>::from_normalized(r, g, b)
-      .to_encoded()
       .with_alpha(self.alpha)
   }
 
@@ -420,22 +422,6 @@ impl Xyz {
     }
   }
 
-  /// Returns a new color with the given Y value.
-  pub fn with_y(&self, y: impl Into<Component>) -> Self {
-    Self {
-      y: y.into(),
-      ..*self
-    }
-  }
-
-  /// Returns a new color with the given Z value.
-  pub fn with_z(&self, z: impl Into<Component>) -> Self {
-    Self {
-      z: z.into(),
-      ..*self
-    }
-  }
-
   /// Returns a new color with X decreased by the given amount.
   pub fn with_x_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
@@ -457,6 +443,14 @@ impl Xyz {
     xyz
   }
 
+  /// Returns a new color with the given Y value.
+  pub fn with_y(&self, y: impl Into<Component>) -> Self {
+    Self {
+      y: y.into(),
+      ..*self
+    }
+  }
+
   /// Returns a new color with Y decreased by the given amount.
   pub fn with_y_decremented_by(&self, amount: impl Into<Component>) -> Self {
     let mut xyz = *self;
@@ -476,6 +470,14 @@ impl Xyz {
     let mut xyz = *self;
     xyz.scale_y(factor);
     xyz
+  }
+
+  /// Returns a new color with the given Z value.
+  pub fn with_z(&self, z: impl Into<Component>) -> Self {
+    Self {
+      z: z.into(),
+      ..*self
+    }
   }
 
   /// Returns a new color with Z decreased by the given amount.
@@ -651,6 +653,13 @@ impl From<Lab> for Xyz {
 impl From<Lch> for Xyz {
   fn from(lch: Lch) -> Self {
     lch.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-lchuv")]
+impl From<Lchuv> for Xyz {
+  fn from(lchuv: Lchuv) -> Self {
+    lchuv.to_xyz()
   }
 }
 

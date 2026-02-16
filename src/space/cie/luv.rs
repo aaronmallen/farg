@@ -17,6 +17,8 @@ use crate::space::Hwb;
 use crate::space::Lab;
 #[cfg(feature = "space-lch")]
 use crate::space::Lch;
+#[cfg(feature = "space-lchuv")]
+use crate::space::Lchuv;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
@@ -176,6 +178,18 @@ impl Luv {
   /// Sets the v\* component.
   pub fn set_v(&mut self, v: impl Into<Component>) {
     self.v = v.into();
+  }
+
+  /// Converts to the CIE LCh(uv) color space (cylindrical form).
+  #[cfg(feature = "space-lchuv")]
+  pub fn to_lchuv(&self) -> crate::space::Lchuv {
+    let [l, u, v] = self.components();
+    let c = (u * u + v * v).sqrt();
+    let h = v.atan2(u).to_degrees();
+
+    crate::space::Lchuv::new(l, c, h)
+      .with_context(self.context)
+      .with_alpha(self.alpha)
   }
 
   /// Converts to the CIE XYZ color space.
@@ -449,6 +463,13 @@ impl From<Lab> for Luv {
 impl From<Lch> for Luv {
   fn from(lch: Lch) -> Self {
     lch.to_luv()
+  }
+}
+
+#[cfg(feature = "space-lchuv")]
+impl From<Lchuv> for Luv {
+  fn from(lchuv: Lchuv) -> Self {
+    lchuv.to_luv()
   }
 }
 

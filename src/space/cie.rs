@@ -2,6 +2,8 @@
 mod lab;
 #[cfg(feature = "space-lch")]
 mod lch;
+#[cfg(feature = "space-lchuv")]
+mod lchuv;
 #[cfg(feature = "space-luv")]
 mod luv;
 #[cfg(feature = "space-xyy")]
@@ -12,6 +14,8 @@ mod xyz;
 pub use lab::Lab;
 #[cfg(feature = "space-lch")]
 pub use lch::Lch;
+#[cfg(feature = "space-lchuv")]
+pub use lchuv::Lchuv;
 #[cfg(feature = "space-luv")]
 pub use luv::Luv;
 #[cfg(feature = "space-xyy")]

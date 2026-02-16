@@ -17,35 +17,35 @@ use crate::space::Hwb;
 use crate::space::Lab;
 #[cfg(feature = "space-lch")]
 use crate::space::Lch;
-#[cfg(feature = "space-lchuv")]
-use crate::space::Lchuv;
-#[cfg(feature = "space-luv")]
-use crate::space::Luv;
 #[cfg(feature = "space-okhsl")]
 use crate::space::Okhsl;
 #[cfg(feature = "space-okhsv")]
 use crate::space::Okhsv;
 #[cfg(feature = "space-okhwb")]
 use crate::space::Okhwb;
+#[cfg(feature = "space-oklab")]
+use crate::space::Oklab;
+#[cfg(feature = "space-oklch")]
+use crate::space::Oklch;
 #[cfg(feature = "space-xyy")]
 use crate::space::Xyy;
 use crate::{
   ColorimetricContext, Illuminant, Observer,
   component::Component,
-  space::{ColorSpace, Lms, Oklab, Rgb, RgbSpec, Srgb, Xyz},
+  space::{ColorSpace, Lms, Luv, Rgb, RgbSpec, Srgb, Xyz},
 };
 
 /// Chroma threshold below which a color is considered achromatic (hueless).
 const ACHROMATIC_THRESHOLD: f64 = 1e-4;
 
-/// Oklch perceptual color space (cylindrical form of Oklab).
+/// CIE LCh(uv) color space (cylindrical form of CIE L*u*v*).
 ///
-/// A cylindrical representation of the Oklab perceptual color space where L represents
-/// perceived lightness (0.0-1.0), C represents chroma (colorfulness), and H represents
-/// hue stored internally as a 0.0-1.0 fraction (0-360°). Designed for intuitive color
-/// manipulation with perceptual uniformity.
+/// A cylindrical representation of the CIE L\*u\*v\* color space where L\* represents
+/// lightness (0–100), C\*\_uv represents chroma (colorfulness), and H\_uv represents
+/// hue stored internally as a 0.0–1.0 fraction (0–360°). Uses the same L\* lightness
+/// axis as Luv but replaces the rectangular u\*/v\* axes with polar coordinates.
 #[derive(Clone, Copy, Debug)]
-pub struct Oklch {
+pub struct Lchuv {
   alpha: Component,
   c: Component,
   context: ColorimetricContext,
@@ -53,13 +53,13 @@ pub struct Oklch {
   l: Component,
 }
 
-impl Oklch {
-  /// The default viewing context for Oklch (D65 illuminant, CIE 1931 2° observer).
+impl Lchuv {
+  /// The default viewing context for Lchuv (D65 illuminant, CIE 1931 2° observer).
   pub const DEFAULT_CONTEXT: ColorimetricContext = ColorimetricContext::new()
     .with_illuminant(Illuminant::D65)
     .with_observer(Observer::CIE_1931_2D);
 
-  /// Creates a new Oklch color from lightness (0.0-1.0), chroma, and hue (0-360°).
+  /// Creates a new Lchuv color from lightness (0–100), chroma, and hue (0–360°).
   pub fn new(l: impl Into<Component>, c: impl Into<Component>, h: impl Into<Component>) -> Self {
     Self {
       alpha: Component::new(1.0),
@@ -70,7 +70,7 @@ impl Oklch {
     }
   }
 
-  /// Creates a new Oklch color in a const context from lightness, chroma, and hue (0-360°).
+  /// Creates a new Lchuv color in a const context from lightness, chroma, and hue (0–360°).
   pub const fn new_const(l: f64, c: f64, h: f64) -> Self {
     let r = (h / 360.0) % 1.0;
 
@@ -83,7 +83,19 @@ impl Oklch {
     }
   }
 
-  /// Returns the C (chroma) component.
+  /// Adapts this color to a different viewing context via Luv and XYZ.
+  pub fn adapt_to(&self, context: ColorimetricContext) -> Self {
+    let reference_white = self.context.reference_white();
+    let target_white = context.reference_white();
+
+    if reference_white == target_white {
+      return self.with_context(context);
+    }
+
+    Self::from(self.to_luv().adapt_to(context))
+  }
+
+  /// Returns the C\*\_uv (chroma) component.
   pub fn c(&self) -> f64 {
     self.c.0
   }
@@ -93,7 +105,7 @@ impl Oklch {
     self.c.0
   }
 
-  /// Returns the [L, C, H] components as an array (hue normalized to 0.0-1.0).
+  /// Returns the [L\*, C\*\_uv, H\_uv] components as an array (hue normalized to 0.0–1.0).
   pub fn components(&self) -> [f64; 3] {
     [self.l.0, self.c.0, self.h.0]
   }
@@ -113,26 +125,25 @@ impl Oklch {
     self.decrement_c(amount)
   }
 
-  /// Decreases the normalized hue by the given amount (wraps around 0.0-1.0).
+  /// Decreases the normalized hue by the given amount (wraps around 0.0–1.0).
   pub fn decrement_h(&mut self, amount: impl Into<Component>) {
     self.h = Component::new((self.h.0 - amount.into().0).rem_euclid(1.0));
   }
 
-  /// Decreases the hue by the given amount in degrees (wraps around 0-360°).
+  /// Decreases the hue by the given amount in degrees (wraps around 0–360°).
   pub fn decrement_hue(&mut self, amount: impl Into<Component>) {
     self.decrement_h(amount.into() / 360.0)
   }
 
-  /// Decreases the L component by the given amount.
+  /// Decreases the L\* component by the given amount.
   pub fn decrement_l(&mut self, amount: impl Into<Component>) {
     self.l -= amount.into();
   }
 
   /// Generates a sequence of evenly-spaced colors between `self` and `other`.
   ///
-  /// Returns `steps` colors including both endpoints, interpolated in the Oklch color space
-  /// for perceptually uniform results. When `steps` is 0 the result is empty. When `steps`
-  /// is 1 the result contains only `self`.
+  /// Returns `steps` colors including both endpoints, interpolated in the LCh(uv) color space.
+  /// When `steps` is 0 the result is empty. When `steps` is 1 the result contains only `self`.
   ///
   /// Accepts any color type that can be converted to [`Xyz`].
   pub fn gradient(&self, other: impl Into<Xyz>, steps: usize) -> Vec<Self> {
@@ -147,12 +158,12 @@ impl Oklch {
     (0..steps).map(|i| self.mix(other, i as f64 / divisor)).collect()
   }
 
-  /// Returns the normalized hue component (0.0-1.0).
+  /// Returns the normalized hue component (0.0–1.0).
   pub fn h(&self) -> f64 {
     self.h.0
   }
 
-  /// Returns the hue in degrees (0-360°).
+  /// Returns the hue in degrees (0–360°).
   pub fn hue(&self) -> f64 {
     self.h.0 * 360.0
   }
@@ -167,22 +178,22 @@ impl Oklch {
     self.increment_c(amount)
   }
 
-  /// Increases the normalized hue by the given amount (wraps around 0.0-1.0).
+  /// Increases the normalized hue by the given amount (wraps around 0.0–1.0).
   pub fn increment_h(&mut self, amount: impl Into<Component>) {
     self.h = Component::new((self.h.0 + amount.into().0).rem_euclid(1.0));
   }
 
-  /// Increases the hue by the given amount in degrees (wraps around 0-360°).
+  /// Increases the hue by the given amount in degrees (wraps around 0–360°).
   pub fn increment_hue(&mut self, amount: impl Into<Component>) {
     self.increment_h(amount.into() / 360.0)
   }
 
-  /// Increases the L component by the given amount.
+  /// Increases the L\* component by the given amount.
   pub fn increment_l(&mut self, amount: impl Into<Component>) {
     self.l += amount.into();
   }
 
-  /// Returns the L (lightness) component.
+  /// Returns the L\* (lightness) component.
   pub fn l(&self) -> f64 {
     self.l.0
   }
@@ -191,7 +202,7 @@ impl Oklch {
   ///
   /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
   /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
-  /// performed in the Oklch color space with shortest-arc hue and achromatic handling
+  /// performed in the LCh(uv) color space with shortest-arc hue and achromatic handling
   /// per the CSS Color Level 4 specification.
   ///
   /// Accepts any color type that can be converted to [`Xyz`].
@@ -227,7 +238,7 @@ impl Oklch {
     self.scale_c(factor)
   }
 
-  /// Scales the normalized hue by the given factor (wraps around 0.0-1.0).
+  /// Scales the normalized hue by the given factor (wraps around 0.0–1.0).
   pub fn scale_h(&mut self, factor: impl Into<Component>) {
     self.h = Component::new((self.h.0 * factor.into().0).rem_euclid(1.0));
   }
@@ -237,12 +248,12 @@ impl Oklch {
     self.scale_h(factor)
   }
 
-  /// Scales the L component by the given factor.
+  /// Scales the L\* component by the given factor.
   pub fn scale_l(&mut self, factor: impl Into<Component>) {
     self.l *= factor.into();
   }
 
-  /// Sets the C component.
+  /// Sets the C\*\_uv component.
   pub fn set_c(&mut self, c: impl Into<Component>) {
     self.c = c.into();
   }
@@ -252,35 +263,35 @@ impl Oklch {
     self.set_c(chroma)
   }
 
-  /// Sets the [L, C, H] components from an array.
+  /// Sets the [L\*, C\*\_uv, H\_uv] components from an array.
   pub fn set_components(&mut self, components: [impl Into<Component> + Clone; 3]) {
     self.set_l(components[0].clone());
     self.set_c(components[1].clone());
     self.set_h(components[2].clone());
   }
 
-  /// Sets the normalized hue component (0.0-1.0).
+  /// Sets the normalized hue component (0.0–1.0).
   pub fn set_h(&mut self, h: impl Into<Component>) {
     self.h = h.into();
   }
 
-  /// Sets the hue from a value in degrees (0-360°).
+  /// Sets the hue from a value in degrees (0–360°).
   pub fn set_hue(&mut self, hue: impl Into<Component>) {
     self.h = Component::new((hue.into().0 / 360.0).rem_euclid(1.0));
   }
 
-  /// Sets the L component.
+  /// Sets the L\* component.
   pub fn set_l(&mut self, l: impl Into<Component>) {
     self.l = l.into();
   }
 
-  /// Converts to the Oklab perceptual color space.
-  pub fn to_oklab(&self) -> Oklab {
+  /// Converts to the CIE L\*u\*v\* color space.
+  pub fn to_luv(&self) -> Luv {
     let h_rad = self.h.0 * 2.0 * std::f64::consts::PI;
-    let a = self.c.0 * h_rad.cos();
-    let b = self.c.0 * h_rad.sin();
+    let u = self.c.0 * h_rad.cos();
+    let v = self.c.0 * h_rad.sin();
 
-    Oklab::new(self.l, a, b).with_alpha(self.alpha)
+    Luv::new(self.l, u, v).with_context(self.context).with_alpha(self.alpha)
   }
 
   /// Converts to the specified RGB color space.
@@ -288,15 +299,15 @@ impl Oklch {
   where
     S: RgbSpec,
   {
-    self.to_oklab().to_rgb::<S>()
+    self.to_luv().to_rgb::<S>()
   }
 
   /// Converts to the CIE XYZ color space.
   pub fn to_xyz(&self) -> Xyz {
-    self.to_oklab().to_xyz()
+    self.to_luv().to_xyz()
   }
 
-  /// Returns a new color with the given C value.
+  /// Returns a new color with the given C\*\_uv value.
   pub fn with_c(&self, c: impl Into<Component>) -> Self {
     Self {
       c: c.into(),
@@ -304,25 +315,25 @@ impl Oklch {
     }
   }
 
-  /// Returns a new color with C decreased by the given amount.
+  /// Returns a new color with C\*\_uv decreased by the given amount.
   pub fn with_c_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.decrement_c(amount);
-    oklch
+    let mut lchuv = *self;
+    lchuv.decrement_c(amount);
+    lchuv
   }
 
-  /// Returns a new color with C increased by the given amount.
+  /// Returns a new color with C\*\_uv increased by the given amount.
   pub fn with_c_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.increment_c(amount);
-    oklch
+    let mut lchuv = *self;
+    lchuv.increment_c(amount);
+    lchuv
   }
 
-  /// Returns a new color with C scaled by the given factor.
+  /// Returns a new color with C\*\_uv scaled by the given factor.
   pub fn with_c_scaled_by(&self, factor: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.scale_c(factor);
-    oklch
+    let mut lchuv = *self;
+    lchuv.scale_c(factor);
+    lchuv
   }
 
   /// Alias for [`Self::with_c`].
@@ -353,7 +364,7 @@ impl Oklch {
     }
   }
 
-  /// Returns a new color with the given normalized hue (0.0-1.0).
+  /// Returns a new color with the given normalized hue (0.0–1.0).
   pub fn with_h(&self, h: impl Into<Component>) -> Self {
     Self {
       h: h.into(),
@@ -361,28 +372,28 @@ impl Oklch {
     }
   }
 
-  /// Returns a new color with normalized hue decreased by the given amount (wraps around 0.0-1.0).
+  /// Returns a new color with normalized hue decreased by the given amount (wraps around 0.0–1.0).
   pub fn with_h_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.decrement_h(amount);
-    oklch
+    let mut lchuv = *self;
+    lchuv.decrement_h(amount);
+    lchuv
   }
 
-  /// Returns a new color with normalized hue increased by the given amount (wraps around 0.0-1.0).
+  /// Returns a new color with normalized hue increased by the given amount (wraps around 0.0–1.0).
   pub fn with_h_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.increment_h(amount);
-    oklch
+    let mut lchuv = *self;
+    lchuv.increment_h(amount);
+    lchuv
   }
 
-  /// Returns a new color with normalized hue scaled by the given factor (wraps around 0.0-1.0).
+  /// Returns a new color with normalized hue scaled by the given factor (wraps around 0.0–1.0).
   pub fn with_h_scaled_by(&self, factor: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.scale_h(factor);
-    oklch
+    let mut lchuv = *self;
+    lchuv.scale_h(factor);
+    lchuv
   }
 
-  /// Returns a new color with the given hue in degrees (0-360°).
+  /// Returns a new color with the given hue in degrees (0–360°).
   pub fn with_hue(&self, hue: impl Into<Component>) -> Self {
     Self {
       h: Component::new((hue.into().0 / 360.0).rem_euclid(1.0)),
@@ -392,26 +403,26 @@ impl Oklch {
 
   /// Returns a new color with hue decreased by the given amount in degrees.
   pub fn with_hue_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.decrement_hue(amount);
-    oklch
+    let mut lchuv = *self;
+    lchuv.decrement_hue(amount);
+    lchuv
   }
 
   /// Returns a new color with hue increased by the given amount in degrees.
   pub fn with_hue_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.increment_hue(amount);
-    oklch
+    let mut lchuv = *self;
+    lchuv.increment_hue(amount);
+    lchuv
   }
 
   /// Returns a new color with hue scaled by the given factor.
   pub fn with_hue_scaled_by(&self, factor: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.scale_hue(factor);
-    oklch
+    let mut lchuv = *self;
+    lchuv.scale_hue(factor);
+    lchuv
   }
 
-  /// Returns a new color with the given L value.
+  /// Returns a new color with the given L\* value.
   pub fn with_l(&self, l: impl Into<Component>) -> Self {
     Self {
       l: l.into(),
@@ -419,29 +430,29 @@ impl Oklch {
     }
   }
 
-  /// Returns a new color with L decreased by the given amount.
+  /// Returns a new color with L\* decreased by the given amount.
   pub fn with_l_decremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.decrement_l(amount);
-    oklch
+    let mut lchuv = *self;
+    lchuv.decrement_l(amount);
+    lchuv
   }
 
-  /// Returns a new color with L increased by the given amount.
+  /// Returns a new color with L\* increased by the given amount.
   pub fn with_l_incremented_by(&self, amount: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.increment_l(amount);
-    oklch
+    let mut lchuv = *self;
+    lchuv.increment_l(amount);
+    lchuv
   }
 
-  /// Returns a new color with L scaled by the given factor.
+  /// Returns a new color with L\* scaled by the given factor.
   pub fn with_l_scaled_by(&self, factor: impl Into<Component>) -> Self {
-    let mut oklch = *self;
-    oklch.scale_l(factor);
-    oklch
+    let mut lchuv = *self;
+    lchuv.scale_l(factor);
+    lchuv
   }
 }
 
-impl<T> Add<T> for Oklch
+impl<T> Add<T> for Lchuv
 where
   T: Into<Self>,
 {
@@ -452,7 +463,7 @@ where
   }
 }
 
-impl ColorSpace<3> for Oklch {
+impl ColorSpace<3> for Lchuv {
   fn alpha(&self) -> f64 {
     self.alpha.0
   }
@@ -474,13 +485,13 @@ impl ColorSpace<3> for Oklch {
   }
 }
 
-impl Display for Oklch {
+impl Display for Lchuv {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     let precision = f.precision().unwrap_or(4);
     if self.alpha.0 < 1.0 {
       write!(
         f,
-        "Oklch({:.precision$}, {:.precision$}, {:.precision$}°, {:.0}%)",
+        "LCh(uv)({:.precision$}, {:.precision$}, {:.precision$}°, {:.0}%)",
         self.l,
         self.c,
         self.hue(),
@@ -489,7 +500,7 @@ impl Display for Oklch {
     } else {
       write!(
         f,
-        "Oklch({:.precision$}, {:.precision$}, {:.precision$}°)",
+        "LCh(uv)({:.precision$}, {:.precision$}, {:.precision$}°)",
         self.l,
         self.c,
         self.hue()
@@ -498,7 +509,7 @@ impl Display for Oklch {
   }
 }
 
-impl<T> Div<T> for Oklch
+impl<T> Div<T> for Lchuv
 where
   T: Into<Self>,
 {
@@ -509,7 +520,7 @@ where
   }
 }
 
-impl<T> From<[T; 3]> for Oklch
+impl<T> From<[T; 3]> for Lchuv
 where
   T: Into<Component>,
 {
@@ -519,139 +530,139 @@ where
 }
 
 #[cfg(feature = "space-cmy")]
-impl<S> From<Cmy<S>> for Oklch
+impl<S> From<Cmy<S>> for Lchuv
 where
   S: RgbSpec,
 {
   fn from(cmy: Cmy<S>) -> Self {
-    cmy.to_oklch()
+    cmy.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-cmyk")]
-impl<S> From<Cmyk<S>> for Oklch
+impl<S> From<Cmyk<S>> for Lchuv
 where
   S: RgbSpec,
 {
   fn from(cmyk: Cmyk<S>) -> Self {
-    cmyk.to_oklch()
+    cmyk.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-hsl")]
-impl<S> From<Hsl<S>> for Oklch
+impl<S> From<Hsl<S>> for Lchuv
 where
   S: RgbSpec,
 {
   fn from(hsl: Hsl<S>) -> Self {
-    hsl.to_oklch()
+    hsl.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-hsv")]
-impl<S> From<Hsv<S>> for Oklch
+impl<S> From<Hsv<S>> for Lchuv
 where
   S: RgbSpec,
 {
   fn from(hsv: Hsv<S>) -> Self {
-    hsv.to_oklch()
+    hsv.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-hwb")]
-impl<S> From<Hwb<S>> for Oklch
+impl<S> From<Hwb<S>> for Lchuv
 where
   S: RgbSpec,
 {
   fn from(hwb: Hwb<S>) -> Self {
-    hwb.to_oklch()
+    hwb.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-lab")]
-impl From<Lab> for Oklch {
+impl From<Lab> for Lchuv {
   fn from(lab: Lab) -> Self {
-    lab.to_oklch()
+    lab.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-lch")]
-impl From<Lch> for Oklch {
+impl From<Lch> for Lchuv {
   fn from(lch: Lch) -> Self {
-    lch.to_oklch()
+    lch.to_lchuv()
   }
 }
 
-#[cfg(feature = "space-lchuv")]
-impl From<Lchuv> for Oklch {
-  fn from(lchuv: Lchuv) -> Self {
-    lchuv.to_oklch()
-  }
-}
-
-impl From<Lms> for Oklch {
+impl From<Lms> for Lchuv {
   fn from(lms: Lms) -> Self {
-    lms.to_oklch()
+    lms.to_lchuv()
   }
 }
 
-#[cfg(feature = "space-luv")]
-impl From<Luv> for Oklch {
+impl From<Luv> for Lchuv {
   fn from(luv: Luv) -> Self {
-    luv.to_oklch()
+    luv.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-okhsl")]
-impl From<Okhsl> for Oklch {
+impl From<Okhsl> for Lchuv {
   fn from(okhsl: Okhsl) -> Self {
-    okhsl.to_oklch()
+    okhsl.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-okhsv")]
-impl From<Okhsv> for Oklch {
+impl From<Okhsv> for Lchuv {
   fn from(okhsv: Okhsv) -> Self {
-    okhsv.to_oklch()
+    okhsv.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-okhwb")]
-impl From<Okhwb> for Oklch {
+impl From<Okhwb> for Lchuv {
   fn from(okhwb: Okhwb) -> Self {
-    okhwb.to_oklch()
+    okhwb.to_lchuv()
   }
 }
 
-impl From<Oklab> for Oklch {
+#[cfg(feature = "space-oklab")]
+impl From<Oklab> for Lchuv {
   fn from(oklab: Oklab) -> Self {
-    oklab.to_oklch()
+    oklab.to_lchuv()
   }
 }
 
-impl<S> From<Rgb<S>> for Oklch
+#[cfg(feature = "space-oklch")]
+impl From<Oklch> for Lchuv {
+  fn from(oklch: Oklch) -> Self {
+    oklch.to_lchuv()
+  }
+}
+
+impl<S> From<Rgb<S>> for Lchuv
 where
   S: RgbSpec,
 {
   fn from(rgb: Rgb<S>) -> Self {
-    rgb.to_oklch()
+    rgb.to_lchuv()
   }
 }
 
 #[cfg(feature = "space-xyy")]
-impl From<Xyy> for Oklch {
+impl From<Xyy> for Lchuv {
   fn from(xyy: Xyy) -> Self {
-    xyy.to_oklch()
+    xyy.to_lchuv()
   }
 }
 
-impl From<Xyz> for Oklch {
+impl From<Xyz> for Lchuv {
   fn from(xyz: Xyz) -> Self {
-    xyz.to_oklch()
+    xyz.to_lchuv()
   }
 }
 
-impl<T> Mul<T> for Oklch
+impl<T> Mul<T> for Lchuv
 where
   T: Into<Self>,
 {
@@ -662,9 +673,9 @@ where
   }
 }
 
-impl<T> PartialEq<T> for Oklch
+impl<T> PartialEq<T> for Lchuv
 where
-  T: Into<Oklch> + Copy,
+  T: Into<Lchuv> + Copy,
 {
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
@@ -672,7 +683,7 @@ where
   }
 }
 
-impl<T> Sub<T> for Oklch
+impl<T> Sub<T> for Lchuv
 where
   T: Into<Self>,
 {
@@ -683,7 +694,7 @@ where
   }
 }
 
-impl TryFrom<&str> for Oklch {
+impl TryFrom<&str> for Lchuv {
   type Error = crate::Error;
 
   fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -691,7 +702,7 @@ impl TryFrom<&str> for Oklch {
   }
 }
 
-impl TryFrom<String> for Oklch {
+impl TryFrom<String> for Lchuv {
   type Error = crate::Error;
 
   fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -736,12 +747,76 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_adds_two_oklch_colors() {
-      let a = Oklch::new(0.5, 0.15, 180.0);
-      let b = Oklch::new(0.3, 0.1, 90.0);
+    fn it_adds_two_lchuv_colors() {
+      let a = Lchuv::new(50.0, 30.0, 180.0);
+      let b = Lchuv::new(30.0, 20.0, 90.0);
       let result = a + b;
 
       assert!(result.l() > 0.0);
+    }
+  }
+
+  mod adapt_to {
+    use super::*;
+    use crate::{Illuminant, illuminant::IlluminantType, spectral::Spd};
+
+    static TEST_SPD_A: &[(u32, f64)] = &[
+      (380, 9.80),
+      (400, 14.71),
+      (420, 20.99),
+      (440, 28.70),
+      (460, 37.81),
+      (480, 48.24),
+      (500, 59.86),
+      (520, 72.50),
+      (540, 85.95),
+      (560, 100.00),
+      (580, 114.44),
+      (600, 129.04),
+      (620, 143.62),
+      (640, 157.98),
+      (660, 171.96),
+      (680, 185.43),
+      (700, 198.26),
+      (720, 210.36),
+      (740, 221.67),
+      (760, 232.12),
+      (780, 241.68),
+    ];
+
+    #[test]
+    fn it_returns_same_values_when_white_points_match() {
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let same_context = Lchuv::DEFAULT_CONTEXT;
+      let adapted = lchuv.adapt_to(same_context);
+
+      assert!((adapted.l() - lchuv.l()).abs() < 1e-10);
+      assert!((adapted.c() - lchuv.c()).abs() < 1e-10);
+      assert!((adapted.h() - lchuv.h()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_changes_values_for_non_d65_source() {
+      let illuminant_a = Illuminant::new("Test A", IlluminantType::Custom, Spd::new(TEST_SPD_A));
+      let context_a = ColorimetricContext::new().with_illuminant(illuminant_a);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0).with_context(context_a);
+      let adapted = lchuv.adapt_to(Lchuv::DEFAULT_CONTEXT);
+
+      assert!(
+        (adapted.l() - lchuv.l()).abs() > 0.01
+          || (adapted.c() - lchuv.c()).abs() > 0.01
+          || (adapted.h() - lchuv.h()).abs() > 0.001
+      );
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let illuminant_a = Illuminant::new("Test A", IlluminantType::Custom, Spd::new(TEST_SPD_A));
+      let target_context = ColorimetricContext::new().with_illuminant(illuminant_a);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0).with_alpha(0.5);
+      let adapted = lchuv.adapt_to(target_context);
+
+      assert!((adapted.alpha() - 0.5).abs() < 1e-10);
     }
   }
 
@@ -750,9 +825,9 @@ mod test {
 
     #[test]
     fn it_returns_c_component() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
 
-      assert!((oklch.c() - 0.15).abs() < 1e-10);
+      assert!((lchuv.c() - 30.0).abs() < 1e-10);
     }
   }
 
@@ -761,9 +836,9 @@ mod test {
 
     #[test]
     fn it_returns_chroma_as_alias() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
 
-      assert!((oklch.chroma() - 0.15).abs() < 1e-10);
+      assert!((lchuv.chroma() - 30.0).abs() < 1e-10);
     }
   }
 
@@ -774,11 +849,11 @@ mod test {
 
     #[test]
     fn it_returns_components_as_array() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let [l, c, h] = oklch.components();
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let [l, c, h] = lchuv.components();
 
-      assert_eq!(l, 0.5);
-      assert_eq!(c, 0.15);
+      assert_eq!(l, 50.0);
+      assert_eq!(c, 30.0);
       assert_eq!(h, 0.5);
     }
   }
@@ -788,10 +863,10 @@ mod test {
 
     #[test]
     fn it_decreases_c_component() {
-      let mut oklch = Oklch::new(0.5, 0.15, 180.0);
-      oklch.decrement_c(0.05);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      lchuv.decrement_c(10.0);
 
-      assert!((oklch.c() - 0.1).abs() < 1e-10);
+      assert!((lchuv.c() - 20.0).abs() < 1e-10);
     }
   }
 
@@ -800,10 +875,10 @@ mod test {
 
     #[test]
     fn it_decreases_h_with_wrapping() {
-      let mut oklch = Oklch::new(0.5, 0.15, 36.0);
-      oklch.decrement_h(0.2);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 36.0);
+      lchuv.decrement_h(0.2);
 
-      assert!((oklch.h() - 0.9).abs() < 1e-10);
+      assert!((lchuv.h() - 0.9).abs() < 1e-10);
     }
   }
 
@@ -812,10 +887,10 @@ mod test {
 
     #[test]
     fn it_decreases_hue_in_degrees() {
-      let mut oklch = Oklch::new(0.5, 0.15, 180.0);
-      oklch.decrement_hue(90.0);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      lchuv.decrement_hue(90.0);
 
-      assert!((oklch.hue() - 90.0).abs() < 1e-10);
+      assert!((lchuv.hue() - 90.0).abs() < 1e-10);
     }
   }
 
@@ -824,10 +899,129 @@ mod test {
 
     #[test]
     fn it_decreases_l_component() {
-      let mut oklch = Oklch::new(0.5, 0.15, 180.0);
-      oklch.decrement_l(0.1);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      lchuv.decrement_l(10.0);
 
-      assert!((oklch.l() - 0.4).abs() < 1e-10);
+      assert!((lchuv.l() - 40.0).abs() < 1e-10);
+    }
+  }
+
+  mod display {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_formats_with_default_precision() {
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+
+      assert_eq!(format!("{}", lchuv), "LCh(uv)(50.0000, 30.0000, 180.0000°)");
+    }
+
+    #[test]
+    fn it_formats_with_custom_precision() {
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+
+      assert_eq!(format!("{:.2}", lchuv), "LCh(uv)(50.00, 30.00, 180.00°)");
+    }
+
+    #[test]
+    fn it_includes_opacity_when_alpha_below_one() {
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0).with_alpha(0.5);
+
+      assert_eq!(format!("{}", lchuv), "LCh(uv)(50.0000, 30.0000, 180.0000°, 50%)");
+    }
+
+    #[test]
+    fn it_omits_opacity_when_fully_opaque() {
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+
+      assert_eq!(format!("{}", lchuv), "LCh(uv)(50.0000, 30.0000, 180.0000°)");
+    }
+  }
+
+  mod from_array {
+    use super::*;
+
+    #[test]
+    fn it_creates_from_f64_array() {
+      let lchuv = Lchuv::from([50.0, 30.0, 180.0]);
+
+      assert!((lchuv.l() - 50.0).abs() < 1e-10);
+      assert!((lchuv.c() - 30.0).abs() < 1e-10);
+      assert!((lchuv.hue() - 180.0).abs() < 1e-10);
+    }
+  }
+
+  mod from_luv {
+    use super::*;
+
+    #[test]
+    fn it_converts_from_luv() {
+      let luv = Luv::new(50.0, 0.0, 30.0);
+      let lchuv = Lchuv::from(luv);
+
+      assert!((lchuv.l() - 50.0).abs() < 1e-10);
+      assert!((lchuv.c() - 30.0).abs() < 1e-10);
+      assert!((lchuv.hue() - 90.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let luv = Luv::new(50.0, 20.0, -30.0).with_alpha(0.5);
+      let lchuv = Lchuv::from(luv);
+
+      assert!((lchuv.alpha() - 0.5).abs() < 1e-10);
+    }
+  }
+
+  mod from_rgb {
+    use super::*;
+
+    #[test]
+    fn it_converts_white_correctly() {
+      let rgb = Rgb::<Srgb>::new(255, 255, 255);
+      let lchuv = Lchuv::from(rgb);
+
+      assert!((lchuv.l() - 100.0).abs() < 0.01);
+      assert!(lchuv.c().abs() < 0.01);
+    }
+
+    #[test]
+    fn it_converts_black_correctly() {
+      let rgb = Rgb::<Srgb>::new(0, 0, 0);
+      let lchuv = Lchuv::from(rgb);
+
+      assert!(lchuv.l().abs() < 1e-10);
+      assert!(lchuv.c().abs() < 1e-10);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let rgb = Rgb::<Srgb>::new(128, 64, 32).with_alpha(0.5);
+      let lchuv = Lchuv::from(rgb);
+
+      assert!((lchuv.alpha() - 0.5).abs() < 1e-10);
+    }
+  }
+
+  mod from_xyz {
+    use super::*;
+
+    #[test]
+    fn it_converts_from_xyz() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5);
+      let lchuv = Lchuv::from(xyz);
+
+      assert!(lchuv.l() > 0.0);
+    }
+
+    #[test]
+    fn it_preserves_alpha() {
+      let xyz = Xyz::new(0.5, 0.5, 0.5).with_alpha(0.3);
+      let lchuv = Lchuv::from(xyz);
+
+      assert!((lchuv.alpha() - 0.3).abs() < 1e-10);
     }
   }
 
@@ -836,15 +1030,15 @@ mod test {
 
     #[test]
     fn zero_steps_is_empty() {
-      let c1 = Oklch::new(0.5, 0.15, 180.0);
-      let c2 = Oklch::new(0.8, 0.10, 90.0);
+      let c1 = Lchuv::new(50.0, 30.0, 180.0);
+      let c2 = Lchuv::new(80.0, 10.0, 90.0);
       assert!(c1.gradient(c2.to_xyz(), 0).is_empty());
     }
 
     #[test]
     fn one_step_returns_self() {
-      let c1 = Oklch::new(0.5, 0.15, 180.0);
-      let c2 = Oklch::new(0.8, 0.10, 90.0);
+      let c1 = Lchuv::new(50.0, 30.0, 180.0);
+      let c2 = Lchuv::new(80.0, 10.0, 90.0);
       let steps = c1.gradient(c2.to_xyz(), 1);
       assert_eq!(steps.len(), 1);
       assert!((steps[0].l() - c1.l()).abs() < 1e-4);
@@ -852,8 +1046,8 @@ mod test {
 
     #[test]
     fn two_steps_returns_endpoints() {
-      let c1 = Oklch::new(0.5, 0.15, 180.0);
-      let c2 = Oklch::new(0.8, 0.10, 90.0);
+      let c1 = Lchuv::new(50.0, 30.0, 180.0);
+      let c2 = Lchuv::new(80.0, 10.0, 90.0);
       let steps = c1.gradient(c2.to_xyz(), 2);
       assert_eq!(steps.len(), 2);
       assert!((steps[0].l() - c1.l()).abs() < 1e-4);
@@ -862,15 +1056,15 @@ mod test {
 
     #[test]
     fn five_steps_correct_count() {
-      let c1 = Oklch::new(0.2, 0.1, 0.0);
-      let c2 = Oklch::new(0.9, 0.05, 180.0);
+      let c1 = Lchuv::new(20.0, 10.0, 0.0);
+      let c2 = Lchuv::new(90.0, 5.0, 180.0);
       assert_eq!(c1.gradient(c2.to_xyz(), 5).len(), 5);
     }
 
     #[test]
     fn monotonic_lightness_dark_to_light() {
-      let dark = Oklch::new(0.1, 0.0, 0.0);
-      let light = Oklch::new(0.9, 0.0, 0.0);
+      let dark = Lchuv::new(10.0, 0.0, 0.0);
+      let light = Lchuv::new(90.0, 0.0, 0.0);
       let steps = dark.gradient(light.to_xyz(), 5);
       let lightnesses: Vec<f64> = steps.iter().map(|c| c.l()).collect();
       for i in 1..lightnesses.len() {
@@ -882,133 +1076,14 @@ mod test {
     }
   }
 
-  mod display {
-    use pretty_assertions::assert_eq;
-
-    use super::*;
-
-    #[test]
-    fn it_formats_with_default_precision() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-
-      assert_eq!(format!("{}", oklch), "Oklch(0.5000, 0.1500, 180.0000°)");
-    }
-
-    #[test]
-    fn it_formats_with_custom_precision() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-
-      assert_eq!(format!("{:.2}", oklch), "Oklch(0.50, 0.15, 180.00°)");
-    }
-
-    #[test]
-    fn it_includes_opacity_when_alpha_below_one() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0).with_alpha(0.5);
-
-      assert_eq!(format!("{}", oklch), "Oklch(0.5000, 0.1500, 180.0000°, 50%)");
-    }
-
-    #[test]
-    fn it_omits_opacity_when_fully_opaque() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-
-      assert_eq!(format!("{}", oklch), "Oklch(0.5000, 0.1500, 180.0000°)");
-    }
-  }
-
-  mod from_array {
-    use super::*;
-
-    #[test]
-    fn it_creates_from_f64_array() {
-      let oklch = Oklch::from([0.5, 0.15, 180.0]);
-
-      assert!((oklch.l() - 0.5).abs() < 1e-10);
-      assert!((oklch.c() - 0.15).abs() < 1e-10);
-      assert!((oklch.hue() - 180.0).abs() < 1e-10);
-    }
-  }
-
-  mod from_oklab {
-    use super::*;
-
-    #[test]
-    fn it_converts_from_oklab() {
-      let oklab = Oklab::new(0.5, 0.0, 0.15);
-      let oklch = Oklch::from(oklab);
-
-      assert!((oklch.l() - 0.5).abs() < 1e-10);
-      assert!((oklch.c() - 0.15).abs() < 1e-10);
-      assert!((oklch.hue() - 90.0).abs() < 1e-10);
-    }
-
-    #[test]
-    fn it_preserves_alpha() {
-      let oklab = Oklab::new(0.5, 0.1, -0.1).with_alpha(0.5);
-      let oklch = Oklch::from(oklab);
-
-      assert!((oklch.alpha() - 0.5).abs() < 1e-10);
-    }
-  }
-
-  mod from_rgb {
-    use super::*;
-
-    #[test]
-    fn it_converts_white_correctly() {
-      let rgb = Rgb::<Srgb>::new(255, 255, 255);
-      let oklch = Oklch::from(rgb);
-
-      assert!((oklch.l() - 1.0).abs() < 1e-3);
-      assert!(oklch.c().abs() < 1e-3);
-    }
-
-    #[test]
-    fn it_converts_black_correctly() {
-      let rgb = Rgb::<Srgb>::new(0, 0, 0);
-      let oklch = Oklch::from(rgb);
-
-      assert!(oklch.l().abs() < 1e-3);
-      assert!(oklch.c().abs() < 1e-3);
-    }
-
-    #[test]
-    fn it_preserves_alpha() {
-      let rgb = Rgb::<Srgb>::new(128, 64, 32).with_alpha(0.5);
-      let oklch = Oklch::from(rgb);
-
-      assert!((oklch.alpha() - 0.5).abs() < 1e-10);
-    }
-  }
-
-  mod from_xyz {
-    use super::*;
-
-    #[test]
-    fn it_converts_from_xyz() {
-      let xyz = Xyz::new(0.5, 0.5, 0.5);
-      let oklch = Oklch::from(xyz);
-
-      assert!(oklch.l() > 0.0);
-    }
-
-    #[test]
-    fn it_preserves_alpha() {
-      let xyz = Xyz::new(0.5, 0.5, 0.5).with_alpha(0.3);
-      let oklch = Oklch::from(xyz);
-
-      assert!((oklch.alpha() - 0.3).abs() < 1e-10);
-    }
-  }
-
   mod h {
     use super::*;
 
     #[test]
     fn it_returns_normalized_hue() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
 
-      assert!((oklch.h() - 0.5).abs() < 1e-10);
+      assert!((lchuv.h() - 0.5).abs() < 1e-10);
     }
   }
 
@@ -1017,9 +1092,9 @@ mod test {
 
     #[test]
     fn it_returns_hue_in_degrees() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
 
-      assert!((oklch.hue() - 180.0).abs() < 1e-10);
+      assert!((lchuv.hue() - 180.0).abs() < 1e-10);
     }
   }
 
@@ -1028,10 +1103,10 @@ mod test {
 
     #[test]
     fn it_increases_c_component() {
-      let mut oklch = Oklch::new(0.5, 0.15, 180.0);
-      oklch.increment_c(0.05);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      lchuv.increment_c(10.0);
 
-      assert!((oklch.c() - 0.2).abs() < 1e-10);
+      assert!((lchuv.c() - 40.0).abs() < 1e-10);
     }
   }
 
@@ -1040,10 +1115,10 @@ mod test {
 
     #[test]
     fn it_increases_h_with_wrapping() {
-      let mut oklch = Oklch::new(0.5, 0.15, 324.0);
-      oklch.increment_h(0.2);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 324.0);
+      lchuv.increment_h(0.2);
 
-      assert!((oklch.h() - 0.1).abs() < 1e-10);
+      assert!((lchuv.h() - 0.1).abs() < 1e-10);
     }
   }
 
@@ -1052,10 +1127,10 @@ mod test {
 
     #[test]
     fn it_increases_hue_in_degrees() {
-      let mut oklch = Oklch::new(0.5, 0.15, 180.0);
-      oklch.increment_hue(90.0);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      lchuv.increment_hue(90.0);
 
-      assert!((oklch.hue() - 270.0).abs() < 1e-10);
+      assert!((lchuv.hue() - 270.0).abs() < 1e-10);
     }
   }
 
@@ -1064,10 +1139,10 @@ mod test {
 
     #[test]
     fn it_increases_l_component() {
-      let mut oklch = Oklch::new(0.5, 0.15, 180.0);
-      oklch.increment_l(0.1);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      lchuv.increment_l(10.0);
 
-      assert!((oklch.l() - 0.6).abs() < 1e-10);
+      assert!((lchuv.l() - 60.0).abs() < 1e-10);
     }
   }
 
@@ -1076,9 +1151,9 @@ mod test {
 
     #[test]
     fn it_returns_l_component() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
 
-      assert!((oklch.l() - 0.5).abs() < 1e-10);
+      assert!((lchuv.l() - 50.0).abs() < 1e-10);
     }
   }
 
@@ -1089,8 +1164,8 @@ mod test {
 
     #[test]
     fn at_zero_returns_self() {
-      let c1 = Oklch::new(0.6, 0.2, 30.0);
-      let c2 = Oklch::new(0.4, 0.1, 270.0);
+      let c1 = Lchuv::new(60.0, 40.0, 30.0);
+      let c2 = Lchuv::new(40.0, 20.0, 270.0);
       let result = c1.mix(c2.to_xyz(), 0.0);
       assert!((result.l() - c1.l()).abs() < EPSILON);
       assert!((result.c() - c1.c()).abs() < EPSILON);
@@ -1098,8 +1173,8 @@ mod test {
 
     #[test]
     fn at_one_returns_other() {
-      let c1 = Oklch::new(0.6, 0.2, 30.0);
-      let c2 = Oklch::new(0.4, 0.1, 270.0);
+      let c1 = Lchuv::new(60.0, 40.0, 30.0);
+      let c2 = Lchuv::new(40.0, 20.0, 270.0);
       let result = c1.mix(c2.to_xyz(), 1.0);
       assert!((result.l() - c2.l()).abs() < EPSILON);
       assert!((result.c() - c2.c()).abs() < EPSILON);
@@ -1107,39 +1182,39 @@ mod test {
 
     #[test]
     fn midpoint_is_between() {
-      let c1 = Oklch::new(0.2, 0.0, 0.0);
-      let c2 = Oklch::new(0.8, 0.0, 0.0);
+      let c1 = Lchuv::new(20.0, 0.0, 0.0);
+      let c2 = Lchuv::new(80.0, 0.0, 0.0);
       let mid = c1.mix(c2.to_xyz(), 0.5);
-      assert!(mid.l() > 0.3 && mid.l() < 0.7);
+      assert!(mid.l() > 30.0 && mid.l() < 70.0);
     }
 
     #[test]
     fn alpha_interpolation() {
-      let c1 = Oklch::new(0.5, 0.1, 180.0).with_alpha(0.0);
-      let c2 = Oklch::new(0.5, 0.1, 180.0).with_alpha(1.0);
+      let c1 = Lchuv::new(50.0, 10.0, 180.0).with_alpha(0.0);
+      let c2 = Lchuv::new(50.0, 10.0, 180.0).with_alpha(1.0);
       let mid = c1.mix(c2.to_xyz(), 0.5);
       assert!((mid.alpha() - 0.5).abs() < EPSILON);
     }
 
     #[test]
     fn extrapolation() {
-      let c1 = Oklch::new(0.2, 0.0, 0.0);
-      let c2 = Oklch::new(0.8, 0.0, 0.0);
+      let c1 = Lchuv::new(20.0, 0.0, 0.0);
+      let c2 = Lchuv::new(80.0, 0.0, 0.0);
       let beyond = c1.mix(c2.to_xyz(), 1.5);
       assert!(beyond.l() > c2.l());
     }
 
     #[test]
     fn cross_type() {
-      let oklch = Oklch::new(0.6, 0.2, 30.0);
+      let lchuv = Lchuv::new(60.0, 40.0, 30.0);
       let xyz = Xyz::new(0.18048, 0.07219, 0.95030);
-      let _result = oklch.mix(xyz, 0.5);
+      let _result = lchuv.mix(xyz, 0.5);
     }
 
     #[test]
     fn shortest_arc_hue() {
-      let c1 = Oklch::new(0.6, 0.2, 350.0);
-      let c2 = Oklch::new(0.6, 0.2, 10.0);
+      let c1 = Lchuv::new(60.0, 40.0, 350.0);
+      let c2 = Lchuv::new(60.0, 40.0, 10.0);
       let mid = c1.mix(c2.to_xyz(), 0.5);
       let hue = mid.hue();
       assert!(hue < 20.0 || hue > 340.0, "Hue {hue} should be near 0°/360°");
@@ -1147,16 +1222,16 @@ mod test {
 
     #[test]
     fn both_achromatic() {
-      let c1 = Oklch::new(0.2, 0.0, 0.0);
-      let c2 = Oklch::new(0.8, 0.0, 0.0);
+      let c1 = Lchuv::new(20.0, 0.0, 0.0);
+      let c2 = Lchuv::new(80.0, 0.0, 0.0);
       let mid = c1.mix(c2.to_xyz(), 0.5);
       assert!(mid.c() < 0.01);
     }
 
     #[test]
     fn one_achromatic() {
-      let grey = Oklch::new(0.5, 0.0, 0.0);
-      let red = Oklch::new(0.6, 0.2, 30.0);
+      let grey = Lchuv::new(50.0, 0.0, 0.0);
+      let red = Lchuv::new(60.0, 40.0, 30.0);
       let result = grey.mix(red.to_xyz(), 0.5);
       let result_hue = result.hue();
       assert!((result_hue - 30.0).abs() < 5.0);
@@ -1216,8 +1291,8 @@ mod test {
 
     #[test]
     fn it_mutates_in_place() {
-      let c1 = Oklch::new(0.6, 0.2, 30.0);
-      let c2 = Oklch::new(0.4, 0.1, 270.0);
+      let c1 = Lchuv::new(60.0, 40.0, 30.0);
+      let c2 = Lchuv::new(40.0, 20.0, 270.0);
       let expected = c1.mix(c2.to_xyz(), 0.5);
       let mut color = c1;
       color.mixed_with(c2.to_xyz(), 0.5);
@@ -1233,30 +1308,30 @@ mod test {
 
     #[test]
     fn it_creates_with_default_alpha() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
 
-      assert!((oklch.alpha() - 1.0).abs() < 1e-10);
+      assert!((lchuv.alpha() - 1.0).abs() < 1e-10);
     }
 
     #[test]
     fn it_creates_with_default_context() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
 
-      assert_eq!(oklch.context().illuminant().name(), "D65");
+      assert_eq!(lchuv.context().illuminant().name(), "D65");
     }
 
     #[test]
     fn it_normalizes_hue_to_zero_one() {
-      let oklch = Oklch::new(0.5, 0.15, 450.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 450.0);
 
-      assert!((oklch.h() - 0.25).abs() < 1e-10);
+      assert!((lchuv.h() - 0.25).abs() < 1e-10);
     }
 
     #[test]
     fn it_normalizes_negative_hue() {
-      let oklch = Oklch::new(0.5, 0.15, -90.0);
+      let lchuv = Lchuv::new(50.0, 30.0, -90.0);
 
-      assert!((oklch.h() - 0.75).abs() < 1e-10);
+      assert!((lchuv.h() - 0.75).abs() < 1e-10);
     }
   }
 
@@ -1265,16 +1340,16 @@ mod test {
 
     #[test]
     fn it_compares_equal_colors() {
-      let a = Oklch::new(0.5, 0.15, 180.0);
-      let b = Oklch::new(0.5, 0.15, 180.0);
+      let a = Lchuv::new(50.0, 30.0, 180.0);
+      let b = Lchuv::new(50.0, 30.0, 180.0);
 
       assert!(a == b);
     }
 
     #[test]
     fn it_compares_unequal_colors() {
-      let a = Oklch::new(0.5, 0.15, 180.0);
-      let b = Oklch::new(0.6, 0.15, 180.0);
+      let a = Lchuv::new(50.0, 30.0, 180.0);
+      let b = Lchuv::new(60.0, 30.0, 180.0);
 
       assert!(a != b);
     }
@@ -1285,10 +1360,10 @@ mod test {
 
     #[test]
     fn it_scales_c_component() {
-      let mut oklch = Oklch::new(0.5, 0.15, 180.0);
-      oklch.scale_c(2.0);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      lchuv.scale_c(2.0);
 
-      assert!((oklch.c() - 0.3).abs() < 1e-10);
+      assert!((lchuv.c() - 60.0).abs() < 1e-10);
     }
   }
 
@@ -1297,10 +1372,10 @@ mod test {
 
     #[test]
     fn it_scales_h_with_wrapping() {
-      let mut oklch = Oklch::new(0.5, 0.15, 270.0);
-      oklch.scale_h(2.0);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 270.0);
+      lchuv.scale_h(2.0);
 
-      assert!((oklch.h() - 0.5).abs() < 1e-10);
+      assert!((lchuv.h() - 0.5).abs() < 1e-10);
     }
   }
 
@@ -1309,30 +1384,30 @@ mod test {
 
     #[test]
     fn it_scales_l_component() {
-      let mut oklch = Oklch::new(0.5, 0.15, 180.0);
-      oklch.scale_l(2.0);
+      let mut lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      lchuv.scale_l(2.0);
 
-      assert!((oklch.l() - 1.0).abs() < 1e-10);
+      assert!((lchuv.l() - 100.0).abs() < 1e-10);
     }
   }
 
-  mod to_oklab {
+  mod to_luv {
     use super::*;
 
     #[test]
-    fn it_converts_to_oklab() {
-      let oklch = Oklch::new(0.5, 0.15, 90.0);
-      let oklab = oklch.to_oklab();
+    fn it_converts_to_luv() {
+      let lchuv = Lchuv::new(50.0, 30.0, 90.0);
+      let luv = lchuv.to_luv();
 
-      assert!((oklab.l() - 0.5).abs() < 1e-10);
-      assert!(oklab.a().abs() < 1e-10);
-      assert!((oklab.b() - 0.15).abs() < 1e-10);
+      assert!((luv.l() - 50.0).abs() < 1e-10);
+      assert!(luv.u().abs() < 1e-10);
+      assert!((luv.v() - 30.0).abs() < 1e-10);
     }
 
     #[test]
-    fn it_roundtrips_through_oklab() {
-      let original = Oklch::new(0.5, 0.15, 180.0);
-      let roundtrip = Oklch::from(original.to_oklab());
+    fn it_roundtrips_through_luv() {
+      let original = Lchuv::new(50.0, 30.0, 180.0);
+      let roundtrip = Lchuv::from(original.to_luv());
 
       assert!((original.l() - roundtrip.l()).abs() < 1e-10);
       assert!((original.c() - roundtrip.c()).abs() < 1e-10);
@@ -1341,78 +1416,18 @@ mod test {
 
     #[test]
     fn it_preserves_alpha() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0).with_alpha(0.7);
-      let oklab = oklch.to_oklab();
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0).with_alpha(0.7);
+      let luv = lchuv.to_luv();
 
-      assert!((oklab.alpha() - 0.7).abs() < 1e-10);
-    }
-  }
-
-  #[cfg(feature = "space-okhsl")]
-  mod to_okhsl {
-    use super::*;
-
-    #[test]
-    fn it_converts_to_okhsl() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let okhsl = oklch.to_okhsl();
-
-      assert!(okhsl.l() > 0.0);
-      assert!(okhsl.h().is_finite());
+      assert!((luv.alpha() - 0.7).abs() < 1e-10);
     }
 
     #[test]
-    fn it_converts_black() {
-      let oklch = Oklch::new(0.0, 0.0, 0.0);
-      let okhsl = oklch.to_okhsl();
+    fn it_preserves_context() {
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let luv = lchuv.to_luv();
 
-      assert!(okhsl.l().abs() < 1e-10);
-    }
-
-    #[test]
-    fn it_converts_white() {
-      let oklch = Oklch::new(1.0, 0.0, 0.0);
-      let okhsl = oklch.to_okhsl();
-
-      assert!((okhsl.l() - 1.0).abs() < 1e-10);
-    }
-
-    #[test]
-    fn it_preserves_alpha() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0).with_alpha(0.3);
-      let okhsl = oklch.to_okhsl();
-
-      assert!((okhsl.alpha() - 0.3).abs() < 1e-10);
-    }
-  }
-
-  #[cfg(feature = "space-okhsv")]
-  mod to_okhsv {
-    use super::*;
-
-    #[test]
-    fn it_converts_to_okhsv() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let okhsv = oklch.to_okhsv();
-
-      assert!(okhsv.v() > 0.0);
-      assert!(okhsv.h().is_finite());
-    }
-
-    #[test]
-    fn it_converts_black() {
-      let oklch = Oklch::new(0.0, 0.0, 0.0);
-      let okhsv = oklch.to_okhsv();
-
-      assert!(okhsv.v().abs() < 1e-10);
-    }
-
-    #[test]
-    fn it_preserves_alpha() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0).with_alpha(0.3);
-      let okhsv = oklch.to_okhsv();
-
-      assert!((okhsv.alpha() - 0.3).abs() < 1e-10);
+      assert_eq!(luv.context().illuminant().name(), "D65");
     }
   }
 
@@ -1421,26 +1436,26 @@ mod test {
 
     #[test]
     fn it_converts_to_srgb() {
-      let oklch = Oklch::new(0.5, 0.0, 0.0);
-      let rgb = oklch.to_rgb::<Srgb>();
+      let lchuv = Lchuv::new(50.0, 0.0, 0.0);
+      let rgb = lchuv.to_rgb::<Srgb>();
 
       assert!(rgb.red() > 0);
     }
 
     #[test]
     fn it_roundtrips_through_rgb() {
-      let original = Oklch::from(Rgb::<Srgb>::new(128, 64, 200));
-      let roundtrip = Oklch::from(original.to_rgb::<Srgb>());
+      let original = Lchuv::from(Rgb::<Srgb>::new(128, 64, 200));
+      let roundtrip = Lchuv::from(original.to_rgb::<Srgb>());
 
-      assert!((original.l() - roundtrip.l()).abs() < 1e-3);
-      assert!((original.c() - roundtrip.c()).abs() < 1e-3);
-      assert!((original.h() - roundtrip.h()).abs() < 1e-3);
+      assert!((original.l() - roundtrip.l()).abs() < 0.5);
+      assert!((original.c() - roundtrip.c()).abs() < 0.5);
+      assert!((original.h() - roundtrip.h()).abs() < 0.01);
     }
 
     #[test]
     fn it_preserves_alpha() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0).with_alpha(0.7);
-      let rgb = oklch.to_rgb::<Srgb>();
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0).with_alpha(0.7);
+      let rgb = lchuv.to_rgb::<Srgb>();
 
       assert!((rgb.alpha() - 0.7).abs() < 1e-10);
     }
@@ -1451,16 +1466,16 @@ mod test {
 
     #[test]
     fn it_converts_to_xyz() {
-      let oklch = Oklch::new(0.5, 0.0, 0.0);
-      let xyz = oklch.to_xyz();
+      let lchuv = Lchuv::new(50.0, 0.0, 0.0);
+      let xyz = lchuv.to_xyz();
 
       assert!(xyz.y() > 0.0);
     }
 
     #[test]
     fn it_roundtrips_through_xyz() {
-      let original = Oklch::new(0.5, 0.15, 180.0);
-      let roundtrip = Oklch::from(original.to_xyz());
+      let original = Lchuv::new(50.0, 30.0, 180.0);
+      let roundtrip = Lchuv::from(original.to_xyz());
 
       assert!((original.l() - roundtrip.l()).abs() < 1e-10);
       assert!((original.c() - roundtrip.c()).abs() < 1e-10);
@@ -1469,8 +1484,8 @@ mod test {
 
     #[test]
     fn it_preserves_alpha() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0).with_alpha(0.3);
-      let xyz = oklch.to_xyz();
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0).with_alpha(0.3);
+      let xyz = lchuv.to_xyz();
 
       assert!((xyz.alpha() - 0.3).abs() < 1e-10);
     }
@@ -1481,14 +1496,14 @@ mod test {
 
     #[test]
     fn it_parses_hex_string() {
-      let oklch = Oklch::try_from("#FF5733").unwrap();
+      let lchuv = Lchuv::try_from("#FF5733").unwrap();
 
-      assert!(oklch.l() > 0.0);
+      assert!(lchuv.l() > 0.0);
     }
 
     #[test]
     fn it_returns_error_for_invalid_hex() {
-      let result = Oklch::try_from("not_a_color");
+      let result = Lchuv::try_from("not_a_color");
 
       assert!(result.is_err());
     }
@@ -1499,11 +1514,11 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_alpha() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_alpha(0.5);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_alpha(0.5);
 
       assert!((result.alpha() - 0.5).abs() < 1e-10);
-      assert!((result.l() - 0.5).abs() < 1e-10);
+      assert!((result.l() - 50.0).abs() < 1e-10);
     }
   }
 
@@ -1512,11 +1527,11 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_c() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_c(0.2);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_c(40.0);
 
-      assert!((result.c() - 0.2).abs() < 1e-10);
-      assert!((result.l() - 0.5).abs() < 1e-10);
+      assert!((result.c() - 40.0).abs() < 1e-10);
+      assert!((result.l() - 50.0).abs() < 1e-10);
       assert!((result.h() - 0.5).abs() < 1e-10);
     }
   }
@@ -1526,10 +1541,10 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_c_decremented() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_c_decremented_by(0.05);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_c_decremented_by(10.0);
 
-      assert!((result.c() - 0.1).abs() < 1e-10);
+      assert!((result.c() - 20.0).abs() < 1e-10);
     }
   }
 
@@ -1538,10 +1553,10 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_c_incremented() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_c_incremented_by(0.05);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_c_incremented_by(10.0);
 
-      assert!((result.c() - 0.2).abs() < 1e-10);
+      assert!((result.c() - 40.0).abs() < 1e-10);
     }
   }
 
@@ -1550,10 +1565,10 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_c_scaled() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_c_scaled_by(2.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_c_scaled_by(2.0);
 
-      assert!((result.c() - 0.3).abs() < 1e-10);
+      assert!((result.c() - 60.0).abs() < 1e-10);
     }
   }
 
@@ -1562,11 +1577,11 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_context() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
       let context = ColorimetricContext::default();
-      let result = oklch.with_context(context);
+      let result = lchuv.with_context(context);
 
-      assert!((result.l() - 0.5).abs() < 1e-10);
+      assert!((result.l() - 50.0).abs() < 1e-10);
     }
   }
 
@@ -1575,12 +1590,12 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_h() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_h(0.75);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_h(0.75);
 
       assert!((result.h() - 0.75).abs() < 1e-10);
-      assert!((result.l() - 0.5).abs() < 1e-10);
-      assert!((result.c() - 0.15).abs() < 1e-10);
+      assert!((result.l() - 50.0).abs() < 1e-10);
+      assert!((result.c() - 30.0).abs() < 1e-10);
     }
   }
 
@@ -1589,8 +1604,8 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_h_decremented() {
-      let oklch = Oklch::new(0.5, 0.15, 36.0);
-      let result = oklch.with_h_decremented_by(0.2);
+      let lchuv = Lchuv::new(50.0, 30.0, 36.0);
+      let result = lchuv.with_h_decremented_by(0.2);
 
       assert!((result.h() - 0.9).abs() < 1e-10);
     }
@@ -1601,8 +1616,8 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_h_incremented() {
-      let oklch = Oklch::new(0.5, 0.15, 324.0);
-      let result = oklch.with_h_incremented_by(0.2);
+      let lchuv = Lchuv::new(50.0, 30.0, 324.0);
+      let result = lchuv.with_h_incremented_by(0.2);
 
       assert!((result.h() - 0.1).abs() < 1e-10);
     }
@@ -1613,8 +1628,8 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_h_scaled() {
-      let oklch = Oklch::new(0.5, 0.15, 270.0);
-      let result = oklch.with_h_scaled_by(2.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 270.0);
+      let result = lchuv.with_h_scaled_by(2.0);
 
       assert!((result.h() - 0.5).abs() < 1e-10);
     }
@@ -1625,8 +1640,8 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_hue_in_degrees() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_hue(270.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_hue(270.0);
 
       assert!((result.hue() - 270.0).abs() < 1e-10);
     }
@@ -1637,8 +1652,8 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_hue_decremented() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_hue_decremented_by(90.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_hue_decremented_by(90.0);
 
       assert!((result.hue() - 90.0).abs() < 1e-10);
     }
@@ -1649,8 +1664,8 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_hue_incremented() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_hue_incremented_by(90.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_hue_incremented_by(90.0);
 
       assert!((result.hue() - 270.0).abs() < 1e-10);
     }
@@ -1661,11 +1676,11 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_l() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_l(0.8);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_l(80.0);
 
-      assert!((result.l() - 0.8).abs() < 1e-10);
-      assert!((result.c() - 0.15).abs() < 1e-10);
+      assert!((result.l() - 80.0).abs() < 1e-10);
+      assert!((result.c() - 30.0).abs() < 1e-10);
       assert!((result.h() - 0.5).abs() < 1e-10);
     }
   }
@@ -1675,10 +1690,10 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_l_decremented() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_l_decremented_by(0.1);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_l_decremented_by(10.0);
 
-      assert!((result.l() - 0.4).abs() < 1e-10);
+      assert!((result.l() - 40.0).abs() < 1e-10);
     }
   }
 
@@ -1687,10 +1702,10 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_l_incremented() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_l_incremented_by(0.1);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_l_incremented_by(10.0);
 
-      assert!((result.l() - 0.6).abs() < 1e-10);
+      assert!((result.l() - 60.0).abs() < 1e-10);
     }
   }
 
@@ -1699,10 +1714,10 @@ mod test {
 
     #[test]
     fn it_returns_new_color_with_l_scaled() {
-      let oklch = Oklch::new(0.5, 0.15, 180.0);
-      let result = oklch.with_l_scaled_by(2.0);
+      let lchuv = Lchuv::new(50.0, 30.0, 180.0);
+      let result = lchuv.with_l_scaled_by(2.0);
 
-      assert!((result.l() - 1.0).abs() < 1e-10);
+      assert!((result.l() - 100.0).abs() < 1e-10);
     }
   }
 }

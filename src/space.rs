@@ -48,6 +48,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -157,6 +158,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -249,6 +251,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -399,8 +402,17 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_lch().hue()
   }
 
+  /// Returns the CIE LCh(uv) hue channel.
+  #[cfg(all(feature = "space-lchuv", not(any(feature = "space-oklch", feature = "space-lch"))))]
+  fn hue(&self) -> f64 {
+    self.to_lchuv().hue()
+  }
+
   /// Returns the Okhsl hue channel.
-  #[cfg(all(feature = "space-okhsl", not(any(feature = "space-oklch", feature = "space-lch"))))]
+  #[cfg(all(
+    feature = "space-okhsl",
+    not(any(feature = "space-oklch", feature = "space-lch", feature = "space-lchuv"))
+  ))]
   fn hue(&self) -> f64 {
     self.to_okhsl().hue()
   }
@@ -408,7 +420,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns the Okhsv hue channel.
   #[cfg(all(
     feature = "space-okhsv",
-    not(any(feature = "space-oklch", feature = "space-lch", feature = "space-okhsl"))
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-lchuv",
+      feature = "space-okhsl"
+    ))
   ))]
   fn hue(&self) -> f64 {
     self.to_okhsv().hue()
@@ -420,6 +437,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     not(any(
       feature = "space-oklch",
       feature = "space-lch",
+      feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv"
     ))
@@ -434,6 +452,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     not(any(
       feature = "space-oklch",
       feature = "space-lch",
+      feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb"
@@ -449,6 +468,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     not(any(
       feature = "space-oklch",
       feature = "space-lch",
+      feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
@@ -465,6 +485,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     not(any(
       feature = "space-oklch",
       feature = "space-lch",
+      feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
@@ -491,6 +512,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -743,6 +765,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -790,6 +813,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -819,6 +843,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -838,6 +863,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -907,6 +933,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_lab().to_lch().with_alpha(self.alpha())
   }
 
+  /// Converts to the CIE LCh(uv) color space (cylindrical form of L*u*v*).
+  #[cfg(feature = "space-lchuv")]
+  fn to_lchuv(&self) -> Lchuv {
+    self.to_luv().to_lchuv().with_alpha(self.alpha())
+  }
+
   /// Converts to the CIE xyY color space.
   #[cfg(feature = "space-xyy")]
   fn to_xyy(&self) -> Xyy {
@@ -967,6 +999,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -1097,8 +1130,17 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     Self::from(self.to_lch().with_hue(hue).to_xyz())
   }
 
+  /// Returns a new color with the given CIE LCh(uv) hue in degrees.
+  #[cfg(all(feature = "space-lchuv", not(any(feature = "space-oklch", feature = "space-lch"))))]
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_lchuv().with_hue(hue).to_xyz())
+  }
+
   /// Returns a new color with the given Okhsl hue in degrees.
-  #[cfg(all(feature = "space-okhsl", not(any(feature = "space-oklch", feature = "space-lch"))))]
+  #[cfg(all(
+    feature = "space-okhsl",
+    not(any(feature = "space-oklch", feature = "space-lch", feature = "space-lchuv"))
+  ))]
   fn with_hue(&self, hue: impl Into<Component>) -> Self {
     Self::from(self.to_okhsl().with_hue(hue).to_xyz())
   }
@@ -1106,7 +1148,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns a new color with the given Okhsv hue in degrees.
   #[cfg(all(
     feature = "space-okhsv",
-    not(any(feature = "space-oklch", feature = "space-lch", feature = "space-okhsl"))
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-lchuv",
+      feature = "space-okhsl"
+    ))
   ))]
   fn with_hue(&self, hue: impl Into<Component>) -> Self {
     Self::from(self.to_okhsv().with_hue(hue).to_xyz())
@@ -1118,6 +1165,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     not(any(
       feature = "space-oklch",
       feature = "space-lch",
+      feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv"
     ))
@@ -1132,6 +1180,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     not(any(
       feature = "space-oklch",
       feature = "space-lch",
+      feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb"
@@ -1147,6 +1196,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     not(any(
       feature = "space-oklch",
       feature = "space-lch",
+      feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
@@ -1163,6 +1213,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     not(any(
       feature = "space-oklch",
       feature = "space-lch",
+      feature = "space-lchuv",
       feature = "space-okhsl",
       feature = "space-okhsv",
       feature = "space-okhwb",
@@ -1178,6 +1229,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -1193,6 +1245,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
@@ -1208,6 +1261,7 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(any(
     feature = "space-oklch",
     feature = "space-lch",
+    feature = "space-lchuv",
     feature = "space-okhsl",
     feature = "space-okhsv",
     feature = "space-okhwb",
