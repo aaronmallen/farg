@@ -31,14 +31,14 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   /// Returns the alpha (transparency) of the color on a 0.0 to 1.0 scale.
   fn alpha(&self) -> f64;
 
-  /// Scales all components in place by the given factor.
-  fn amplify(&mut self, factor: impl Into<Component>) {
-    self.set_components(self.amplified_by(factor).components())
-  }
-
   /// Returns a new color with all components scaled by the given factor.
   fn amplified_by(&self, factor: impl Into<Component>) -> Self {
     Self::from(self.to_xyz().amplified_by(factor))
+  }
+
+  /// Scales all components in place by the given factor.
+  fn amplify(&mut self, factor: impl Into<Component>) {
+    self.set_components(self.amplified_by(factor).components())
   }
 
   /// Returns the two analogous colors (±30° hue rotation).
@@ -54,7 +54,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn analogous(&self) -> [Self; 2] {
     [self.with_hue_decremented_by(30), self.with_hue_incremented_by(30)]
@@ -164,7 +165,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn complementary(&self) -> Self {
     self.with_hue_incremented_by(180)
@@ -257,7 +259,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn decrement_hue(&mut self, amount: impl Into<Component>) {
     self.set_components(self.with_hue_decremented_by(amount).components())
@@ -497,6 +500,25 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_hwb().hue()
   }
 
+  /// Returns the HSI hue channel.
+  #[cfg(all(
+    feature = "space-hsi",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-lchuv",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-okhwb",
+      feature = "space-hsl",
+      feature = "space-hsv",
+      feature = "space-hwb"
+    ))
+  ))]
+  fn hue(&self) -> f64 {
+    self.to_hsi().hue()
+  }
+
   /// Increases alpha in place by the given amount on a 0.0 to 1.0 scale.
   fn increment_alpha(&mut self, amount: impl Into<Component>) {
     self.set_alpha(self.with_alpha_incremented_by(amount).alpha())
@@ -518,7 +540,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn increment_hue(&mut self, amount: impl Into<Component>) {
     self.set_components(self.with_hue_incremented_by(amount).components())
@@ -622,6 +645,49 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     Self::from(result.to_xyz()).with_alpha(result.alpha())
   }
 
+  /// Interpolates between `self` and `other` at parameter `t` in linear-light sRGB.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Both colors are
+  /// converted to linear sRGB before interpolation and converted back afterward,
+  /// producing physically correct additive light mixing.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  fn mix_linear(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let result = self.to_rgb::<Srgb>().mix_linear(other, t);
+    Self::from(result.to_xyz()).with_alpha(result.alpha())
+  }
+
+  /// Interpolates between `self` and `other` at parameter `t` in rectangular Oklab
+  /// (or L\*a\*b\*) coordinates.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
+  /// performed directly in rectangular coordinates, which avoids hue-interpolation
+  /// desaturation and handles neutrals naturally.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(feature = "space-oklab")]
+  fn mix_rectangular(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let result = self.to_oklab().mix(other, t);
+    Self::from(result.to_xyz()).with_alpha(result.alpha())
+  }
+
+  /// Interpolates between `self` and `other` at parameter `t` in rectangular L\*a\*b\*
+  /// coordinates.
+  ///
+  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
+  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
+  /// performed directly in rectangular coordinates, which avoids hue-interpolation
+  /// desaturation and handles neutrals naturally.
+  ///
+  /// Accepts any color type that can be converted to [`Xyz`].
+  #[cfg(all(feature = "space-lab", not(feature = "space-oklab")))]
+  fn mix_rectangular(&self, other: impl Into<Xyz>, t: f64) -> Self {
+    let result = self.to_lab().mix(other, t);
+    Self::from(result.to_xyz()).with_alpha(result.alpha())
+  }
+
   /// Interpolates `self` toward `other` at parameter `t`, mutating in place.
   ///
   /// See [`mix`](Self::mix) for details on the interpolation behavior.
@@ -671,49 +737,6 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     let result = self.mix_rectangular(other, t);
     self.set_components(result.components());
     self.set_alpha(result.alpha());
-  }
-
-  /// Interpolates between `self` and `other` at parameter `t` in linear-light sRGB.
-  ///
-  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
-  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Both colors are
-  /// converted to linear sRGB before interpolation and converted back afterward,
-  /// producing physically correct additive light mixing.
-  ///
-  /// Accepts any color type that can be converted to [`Xyz`].
-  fn mix_linear(&self, other: impl Into<Xyz>, t: f64) -> Self {
-    let result = self.to_rgb::<Srgb>().mix_linear(other, t);
-    Self::from(result.to_xyz()).with_alpha(result.alpha())
-  }
-
-  /// Interpolates between `self` and `other` at parameter `t` in rectangular Oklab
-  /// (or L\*a\*b\*) coordinates.
-  ///
-  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
-  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
-  /// performed directly in rectangular coordinates, which avoids hue-interpolation
-  /// desaturation and handles neutrals naturally.
-  ///
-  /// Accepts any color type that can be converted to [`Xyz`].
-  #[cfg(feature = "space-oklab")]
-  fn mix_rectangular(&self, other: impl Into<Xyz>, t: f64) -> Self {
-    let result = self.to_oklab().mix(other, t);
-    Self::from(result.to_xyz()).with_alpha(result.alpha())
-  }
-
-  /// Interpolates between `self` and `other` at parameter `t` in rectangular L\*a\*b\*
-  /// coordinates.
-  ///
-  /// When `t` is 0.0 the result matches `self`, when 1.0 it matches `other`.
-  /// Values outside 0.0–1.0 extrapolate beyond the endpoints. Interpolation is
-  /// performed directly in rectangular coordinates, which avoids hue-interpolation
-  /// desaturation and handles neutrals naturally.
-  ///
-  /// Accepts any color type that can be converted to [`Xyz`].
-  #[cfg(all(feature = "space-lab", not(feature = "space-oklab")))]
-  fn mix_rectangular(&self, other: impl Into<Xyz>, t: f64) -> Self {
-    let result = self.to_lab().mix(other, t);
-    Self::from(result.to_xyz()).with_alpha(result.alpha())
   }
 
   /// Returns four monochromatic variations (two darker, two lighter).
@@ -771,7 +794,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn scale_hue(&mut self, factor: impl Into<Component>) {
     self.set_components(self.with_hue_scaled_by(factor).components())
@@ -819,7 +843,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn set_hue(&mut self, hue: impl Into<Component>) {
     self.set_components(self.with_hue(hue).components())
@@ -849,7 +874,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn split_complementary(&self) -> [Self; 2] {
     [self.with_hue_incremented_by(150), self.with_hue_incremented_by(210)]
@@ -869,7 +895,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn tetradic(&self) -> [Self; 3] {
     [
@@ -897,6 +924,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_rgb::<Srgb>().to_hsb().with_alpha(self.alpha())
   }
 
+  /// Converts to the HSI color space with sRGB encoding.
+  #[cfg(feature = "space-hsi")]
+  fn to_hsi(&self) -> Hsi<Srgb> {
+    self.to_rgb::<Srgb>().to_hsi().with_alpha(self.alpha())
+  }
+
   /// Converts to the HSL color space with sRGB encoding.
   #[cfg(feature = "space-hsl")]
   fn to_hsl(&self) -> Hsl<Srgb> {
@@ -921,12 +954,6 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     Lab::from(self.to_xyz()).with_alpha(self.alpha())
   }
 
-  /// Converts to the CIE L*u*v* color space.
-  #[cfg(feature = "space-luv")]
-  fn to_luv(&self) -> Luv {
-    Luv::from(self.to_xyz()).with_alpha(self.alpha())
-  }
-
   /// Converts to the CIE LCh color space (cylindrical form of L*a*b*).
   #[cfg(feature = "space-lch")]
   fn to_lch(&self) -> Lch {
@@ -939,15 +966,15 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_luv().to_lchuv().with_alpha(self.alpha())
   }
 
-  /// Converts to the CIE xyY color space.
-  #[cfg(feature = "space-xyy")]
-  fn to_xyy(&self) -> Xyy {
-    Xyy::from(self.to_xyz()).with_alpha(self.alpha())
-  }
-
   /// Converts to the LMS cone response space.
   fn to_lms(&self) -> Lms {
     self.to_xyz().to_lms().with_alpha(self.alpha())
+  }
+
+  /// Converts to the CIE L*u*v* color space.
+  #[cfg(feature = "space-luv")]
+  fn to_luv(&self) -> Luv {
+    Luv::from(self.to_xyz()).with_alpha(self.alpha())
   }
 
   /// Converts to the Okhsl perceptual color space.
@@ -988,6 +1015,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_xyz().to_rgb::<S>().with_alpha(self.alpha())
   }
 
+  /// Converts to the CIE xyY color space.
+  #[cfg(feature = "space-xyy")]
+  fn to_xyy(&self) -> Xyy {
+    Xyy::from(self.to_xyz()).with_alpha(self.alpha())
+  }
+
   /// Converts to CIE XYZ.
   fn to_xyz(&self) -> Xyz;
 
@@ -1005,7 +1038,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn triadic(&self) -> [Self; 2] {
     [self.with_hue_incremented_by(120), self.with_hue_incremented_by(240)]
@@ -1225,6 +1259,25 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     Self::from(self.to_hwb().with_hue(hue).to_xyz())
   }
 
+  /// Returns a new color with the given HSI hue in degrees.
+  #[cfg(all(
+    feature = "space-hsi",
+    not(any(
+      feature = "space-oklch",
+      feature = "space-lch",
+      feature = "space-lchuv",
+      feature = "space-okhsl",
+      feature = "space-okhsv",
+      feature = "space-okhwb",
+      feature = "space-hsl",
+      feature = "space-hsv",
+      feature = "space-hwb"
+    ))
+  ))]
+  fn with_hue(&self, hue: impl Into<Component>) -> Self {
+    Self::from(self.to_hsi().with_hue(hue).to_xyz())
+  }
+
   /// Returns a new color with hue decreased by the given amount in degrees.
   #[cfg(any(
     feature = "space-oklch",
@@ -1235,7 +1288,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn with_hue_decremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_hue(self.hue() - amount.into().0)
@@ -1251,7 +1305,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn with_hue_incremented_by(&self, amount: impl Into<Component>) -> Self {
     self.with_hue(self.hue() + amount.into().0)
@@ -1267,7 +1322,8 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     feature = "space-okhwb",
     feature = "space-hsl",
     feature = "space-hsv",
-    feature = "space-hwb"
+    feature = "space-hwb",
+    feature = "space-hsi"
   ))]
   fn with_hue_scaled_by(&self, factor: impl Into<Component>) -> Self {
     self.with_hue(self.hue() * factor.into().0)

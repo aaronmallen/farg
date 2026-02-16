@@ -165,6 +165,8 @@ use super::{LinearRgb, RgbSpec};
 use crate::space::Cmy;
 #[cfg(feature = "space-cmyk")]
 use crate::space::Cmyk;
+#[cfg(feature = "space-hsi")]
+use crate::space::Hsi;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
 #[cfg(feature = "space-hwb")]
@@ -684,6 +686,40 @@ where
     self.to_hsv()
   }
 
+  /// Converts to HSI in this color space.
+  #[cfg(feature = "space-hsi")]
+  pub fn to_hsi(&self) -> Hsi<S> {
+    let r = self.r.0;
+    let g = self.g.0;
+    let b = self.b.0;
+
+    let i = (r + g + b) / 3.0;
+
+    if i <= 0.0 {
+      return Hsi::new(0.0, 0.0, 0.0).with_alpha(self.alpha);
+    }
+
+    let min = r.min(g).min(b);
+    let s = 1.0 - min / i;
+
+    let max = r.max(g).max(b);
+    let delta = max - min;
+
+    if delta <= 0.0 {
+      return Hsi::new(0.0, 0.0, i * 100.0).with_alpha(self.alpha);
+    }
+
+    let h = if (max - r).abs() < f64::EPSILON {
+      ((g - b) / delta).rem_euclid(6.0) / 6.0
+    } else if (max - g).abs() < f64::EPSILON {
+      (2.0 + (b - r) / delta) / 6.0
+    } else {
+      (4.0 + (r - g) / delta) / 6.0
+    };
+
+    Hsi::new(h * 360.0, s * 100.0, i * 100.0).with_alpha(self.alpha)
+  }
+
   /// Converts to HSL in this color space.
   #[cfg(feature = "space-hsl")]
   pub fn to_hsl(&self) -> Hsl<S> {
@@ -888,35 +924,6 @@ where
     self.with_b_scaled_by(factor)
   }
 
-  /// Returns a new color with all components clamped to the 0.0-1.0 range.
-  pub fn with_gamut_clipped(&self) -> Self {
-    let mut rgb = *self;
-    rgb.clip_to_gamut();
-    rgb
-  }
-
-  /// Returns a new color with chroma reduced in CIELAB space until the color fits the gamut.
-  #[cfg(feature = "space-lab")]
-  pub fn with_gamut_compressed(&self) -> Self {
-    let mut rgb = *self;
-    rgb.compress_to_gamut();
-    rgb
-  }
-
-  /// Returns a new color mapped to gamut by scaling LMS components relative to the reference white.
-  pub fn with_gamut_perceptually_mapped(&self) -> Self {
-    let mut rgb = *self;
-    rgb.perceptually_map_to_gamut();
-    rgb
-  }
-
-  /// Returns a new color with linear RGB components scaled to fit within the gamut.
-  pub fn with_gamut_scaled(&self) -> Self {
-    let mut rgb = *self;
-    rgb.scale_to_gamut();
-    rgb
-  }
-
   /// Returns a new color with the given normalized green channel value (0.0-1.0).
   pub fn with_g(&self, g: impl Into<Component>) -> Self {
     Self {
@@ -943,6 +950,35 @@ where
   pub fn with_g_scaled_by(&self, factor: impl Into<Component>) -> Self {
     let mut rgb = *self;
     rgb.scale_g(factor);
+    rgb
+  }
+
+  /// Returns a new color with all components clamped to the 0.0-1.0 range.
+  pub fn with_gamut_clipped(&self) -> Self {
+    let mut rgb = *self;
+    rgb.clip_to_gamut();
+    rgb
+  }
+
+  /// Returns a new color with chroma reduced in CIELAB space until the color fits the gamut.
+  #[cfg(feature = "space-lab")]
+  pub fn with_gamut_compressed(&self) -> Self {
+    let mut rgb = *self;
+    rgb.compress_to_gamut();
+    rgb
+  }
+
+  /// Returns a new color mapped to gamut by scaling LMS components relative to the reference white.
+  pub fn with_gamut_perceptually_mapped(&self) -> Self {
+    let mut rgb = *self;
+    rgb.perceptually_map_to_gamut();
+    rgb
+  }
+
+  /// Returns a new color with linear RGB components scaled to fit within the gamut.
+  pub fn with_gamut_scaled(&self) -> Self {
+    let mut rgb = *self;
+    rgb.scale_to_gamut();
     rgb
   }
 
@@ -1154,6 +1190,17 @@ where
 {
   fn from(cmyk: Cmyk<OS>) -> Self {
     cmyk.to_rgb::<S>()
+  }
+}
+
+#[cfg(feature = "space-hsi")]
+impl<OS, S> From<Hsi<OS>> for Rgb<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(hsi: Hsi<OS>) -> Self {
+    hsi.to_rgb::<S>()
   }
 }
 

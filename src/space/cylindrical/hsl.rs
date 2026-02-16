@@ -617,6 +617,17 @@ where
   }
 }
 
+#[cfg(feature = "space-hsi")]
+impl<OS, S> From<super::Hsi<OS>> for Hsl<S>
+where
+  OS: RgbSpec,
+  S: RgbSpec,
+{
+  fn from(hsi: super::Hsi<OS>) -> Self {
+    hsi.to_rgb::<S>().to_hsl()
+  }
+}
+
 #[cfg(feature = "space-hsv")]
 impl<OS, S> From<Hsv<OS>> for Hsl<S>
 where

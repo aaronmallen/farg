@@ -104,6 +104,7 @@ all-spaces = [
   "all-rgb-spaces",
   "space-cmy",
   "space-cmyk",
+  "space-hsi",
   "space-hsl",
   "space-hsv",
   "space-hwb",
@@ -309,6 +310,7 @@ rgb-wide-gamut-rgb = ["illuminant-d50"]
 space-cmy = []
 space-cmyk = []
 space-hsb = ["space-hsv"]
+space-hsi = []
 space-hsl = []
 space-hsv = []
 space-hwb = []

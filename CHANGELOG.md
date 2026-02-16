@@ -9,6 +9,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add `Hsi` (Hue, Saturation, Intensity) cylindrical color space — uses arithmetic mean of RGB channels for intensity,
+  useful in image processing and computer vision — with full conversion support, feature-gated behind `space-hsi`
 - Add `Lchuv` (CIE LCh(uv)) cylindrical color space — the polar-coordinate form of CIE L\*u\*v\* with lightness,
   chroma, and hue — with full conversion support, feature-gated behind `space-lchuv` (depends on `space-luv`)
 

@@ -312,6 +312,7 @@ Non-RGB color spaces available behind individual `space-*` flags.
 
 | Feature      | Space   | Description                                    | Dependencies |
 |--------------|---------|------------------------------------------------|--------------|
+| `space-hsi`  | HSI     | Hue, Saturation, Intensity                     | -            |
 | `space-hsl`  | HSL     | Hue, Saturation, Lightness                     | -            |
 | `space-hsv`  | HSV/HSB | Hue, Saturation, Value (Brightness)            | -            |
 | `space-hwb`  | HWB     | Hue, Whiteness, Blackness                      | -            |

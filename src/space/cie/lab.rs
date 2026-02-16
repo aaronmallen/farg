@@ -7,6 +7,8 @@ use std::{
 use crate::space::Cmy;
 #[cfg(feature = "space-cmyk")]
 use crate::space::Cmyk;
+#[cfg(feature = "space-hsi")]
+use crate::space::Hsi;
 #[cfg(feature = "space-hsl")]
 use crate::space::Hsl;
 #[cfg(feature = "space-hsv")]
@@ -456,6 +458,16 @@ where
 {
   fn from(cmyk: Cmyk<S>) -> Self {
     cmyk.to_lab()
+  }
+}
+
+#[cfg(feature = "space-hsi")]
+impl<S> From<Hsi<S>> for Lab
+where
+  S: RgbSpec,
+{
+  fn from(hsi: Hsi<S>) -> Self {
+    hsi.to_lab()
   }
 }
 

@@ -1,3 +1,5 @@
+#[cfg(feature = "space-hsi")]
+mod hsi;
 #[cfg(feature = "space-hsl")]
 mod hsl;
 #[cfg(feature = "space-hsv")]
@@ -5,6 +7,8 @@ mod hsv;
 #[cfg(feature = "space-hwb")]
 mod hwb;
 
+#[cfg(feature = "space-hsi")]
+pub use hsi::Hsi;
 #[cfg(feature = "space-hsl")]
 pub use hsl::Hsl;
 #[cfg(feature = "space-hsv")]
