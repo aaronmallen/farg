@@ -38,7 +38,7 @@ are enabled through [feature flags](#feature-flags).
 
 | Family                 | Spaces                            | Feature Flags                                                             |
 |------------------------|-----------------------------------|---------------------------------------------------------------------------|
-| **CIE**                | XYZ, Lab, LCh, Luv                | `space-lab`, `space-lch`, `space-luv`                                     |
+| **CIE**                | XYZ, Lab, LCh, Luv, xyY           | `space-lab`, `space-lch`, `space-luv`, `space-xyy`                        |
 | **Perceptual (Oklab)** | Oklab, Oklch, Okhsl, Okhsv, Okhwb | `space-oklab`, `space-oklch`, `space-okhsl`, `space-okhsv`, `space-okhwb` |
 | **Cylindrical**        | HSL, HSV/HSB, HWB                 | `space-hsl`, `space-hsv`, `space-hwb`                                     |
 | **Subtractive**        | CMY, CMYK                         | `space-cmy`, `space-cmyk`                                                 |
@@ -179,6 +179,28 @@ let [dark2, dark1, light1, light2] = coral.monochromatic();
 ```
 
 Hue-based methods require any cylindrical or perceptual color space feature (`space-oklch`, `space-hsl`, etc.).
+
+## Color Mixing & Gradients
+
+Three interpolation strategies for mixing colors and generating gradients:
+
+```rust
+use farg::space::{ColorSpace, Rgb, Srgb};
+
+let coral = Rgb::<Srgb>::new(255, 87, 51);
+let teal = Rgb::<Srgb>::new(0, 128, 128);
+
+// Perceptually uniform mixing (Oklch/LCh)
+let midpoint = coral.mix(&teal, 0.5);
+
+// Physically correct additive light mixing (linear sRGB)
+let blended = coral.mix_linear(&teal, 0.5);
+
+// Generate a 5-step gradient
+let gradient = coral.gradient(&teal, 5);
+```
+
+Cylindrical and rectangular mixing variants are feature-gated behind their respective color spaces.
 
 ## Correlated Color Temperature
 
