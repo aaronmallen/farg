@@ -41,6 +41,7 @@ Group features that enable entire categories at once.
 |--------------------|---------------------------------------------------------------------------|
 | `full`             | All categories below                                                      |
 | `all-cats`         | All 9 chromatic adaptation transforms                                     |
+| `all-cct`          | All 4 correlated color temperature algorithms                             |
 | `all-chromaticity` | All 3 chromaticity coordinate systems                                     |
 | `all-contrast`     | All 6 contrast algorithms                                                 |
 | `all-distance`     | All 6 color distance algorithms                                           |
@@ -81,6 +82,17 @@ Three additional chromaticity types. CIE 1931 (x, y) is always available.
 | `chromaticity-rg`    | Rg    | RGB-relative chromaticity (r, g)                     |
 | `chromaticity-upvp`  | Upvp  | CIE 1976 UCS chromaticity (u', v')                   |
 | `chromaticity-uv`    | Uv    | CIE 1960 UCS chromaticity (u, v)                     |
+
+## Correlated Color Temperature
+
+Four CCT estimation algorithms available behind individual `cct-*` flags.
+
+| Feature                | Algorithm        | Description                                       | Dependencies     |
+|------------------------|------------------|---------------------------------------------------|------------------|
+| `cct-hernandez-andres` | Hernandez-Andres | Higher-order polynomial (3,000–800,000 K)         | -                |
+| `cct-mccamy`           | McCamy           | Third-degree polynomial (~2,000–12,500 K)         | -                |
+| `cct-ohno`             | Ohno             | Planckian locus search with parabolic refinement  | `chromaticity-uv`|
+| `cct-robertson`        | Robertson        | Isotherm interpolation from 31-entry lookup table | `chromaticity-uv`|
 
 ## Contrast Algorithms
 

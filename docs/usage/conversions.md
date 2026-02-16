@@ -9,14 +9,14 @@ All conversions flow through CIE 1931 XYZ, the device-independent reference spac
 any other color space through XYZ.
 
 ```text
-               ┌──────────────┐
-               │     XYZ      │
-               └──────┬───────┘
-          ┌───────┬───┴───┬────────┐
-          ▼       ▼       ▼        ▼
+              ┌──────────────┐
+              │     XYZ      │
+              └──────┬───────┘
+          ┌───────┬──┴───┬────────┐
+          ▼       ▼      ▼        ▼
         Lab    Oklab   LinearRGB  LMS
-         │       │       │
-         ▼       ▼       ▼
+        │       │        │
+        ▼       ▼        ▼
         LCh   Oklch    RGB (sRGB, Display P3, …)
                 │        │
                 ▼        ▼
