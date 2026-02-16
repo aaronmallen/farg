@@ -11,6 +11,7 @@ stages:
 
 variables:
   MISE_YES: "true"
+  MISE_TRUSTED_CONFIG_PATHS: "$CI_PROJECT_DIR"
   MISE_DATA_DIR: "$CI_PROJECT_DIR/.mise-data"
   MISE_INSTALL_PATH: "$CI_PROJECT_DIR/.mise/bin/mise"
   MISE_JOBS: "1"
@@ -32,7 +33,6 @@ variables:
   before_script:
     - curl https://mise.run | sh
     - export PATH="$CI_PROJECT_DIR/.mise/bin:$CI_PROJECT_DIR/.cargo/bin:$PATH"
-    - cp .config/mise.toml mise.toml
     - mise install
 
 check:
