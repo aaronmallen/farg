@@ -29,6 +29,8 @@ use crate::space::Okhwb;
 use crate::space::Oklab;
 #[cfg(feature = "space-oklch")]
 use crate::space::Oklch;
+#[cfg(feature = "space-xyy")]
+use crate::space::Xyy;
 use crate::{
   ColorimetricContext,
   component::Component,
@@ -603,6 +605,13 @@ where
 {
   fn from(rgb: Rgb<S>) -> Self {
     rgb.to_xyz().to_lms().with_context(*rgb.context())
+  }
+}
+
+#[cfg(feature = "space-xyy")]
+impl From<Xyy> for Lms {
+  fn from(xyy: Xyy) -> Self {
+    xyy.to_lms()
   }
 }
 

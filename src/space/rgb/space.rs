@@ -185,6 +185,8 @@ use crate::space::Okhwb;
 use crate::space::Oklab;
 #[cfg(feature = "space-oklch")]
 use crate::space::Oklch;
+#[cfg(feature = "space-xyy")]
+use crate::space::Xyy;
 #[cfg(feature = "space-hsv")]
 use crate::space::{Hsb, Hsv};
 use crate::{
@@ -1206,6 +1208,15 @@ where
   }
 }
 
+impl<S> From<Lms> for Rgb<S>
+where
+  S: RgbSpec,
+{
+  fn from(lms: Lms) -> Self {
+    lms.to_rgb::<S>()
+  }
+}
+
 #[cfg(feature = "space-luv")]
 impl<S> From<Luv> for Rgb<S>
 where
@@ -1213,15 +1224,6 @@ where
 {
   fn from(luv: Luv) -> Self {
     luv.to_rgb::<S>()
-  }
-}
-
-impl<S> From<Lms> for Rgb<S>
-where
-  S: RgbSpec,
-{
-  fn from(lms: Lms) -> Self {
-    lms.to_rgb::<S>()
   }
 }
 
@@ -1272,6 +1274,16 @@ where
 {
   fn from(oklch: Oklch) -> Self {
     oklch.to_rgb::<S>()
+  }
+}
+
+#[cfg(feature = "space-xyy")]
+impl<S> From<Xyy> for Rgb<S>
+where
+  S: RgbSpec,
+{
+  fn from(xyy: Xyy) -> Self {
+    xyy.to_rgb::<S>()
   }
 }
 

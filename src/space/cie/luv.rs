@@ -27,6 +27,8 @@ use crate::space::Okhwb;
 use crate::space::Oklab;
 #[cfg(feature = "space-oklch")]
 use crate::space::Oklch;
+#[cfg(feature = "space-xyy")]
+use crate::space::Xyy;
 use crate::{
   ColorimetricContext, Illuminant, Observer,
   component::Component,
@@ -497,6 +499,13 @@ where
 {
   fn from(rgb: Rgb<S>) -> Self {
     rgb.to_luv()
+  }
+}
+
+#[cfg(feature = "space-xyy")]
+impl From<Xyy> for Luv {
+  fn from(xyy: Xyy) -> Self {
+    xyy.to_luv()
   }
 }
 

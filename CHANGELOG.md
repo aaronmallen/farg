@@ -9,6 +9,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Add `Xyy` (CIE xyY) chromaticity + luminance color space with full conversion support, feature-gated behind
+  `space-xyy`
 - Add color mixing and interpolation with three strategies on the `ColorSpace` trait: `mix()` / `mixed_with()` for
   perceptually uniform cylindrical interpolation (Oklch or LCh), `mix_linear()` / `mixed_with_linear()` for physically
   correct additive light mixing in linear sRGB, and `mix_rectangular()` / `mixed_with_rectangular()` for rectangular

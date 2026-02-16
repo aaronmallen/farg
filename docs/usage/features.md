@@ -87,12 +87,12 @@ Three additional chromaticity types. CIE 1931 (x, y) is always available.
 
 Four CCT estimation algorithms available behind individual `cct-*` flags.
 
-| Feature                | Algorithm        | Description                                       | Dependencies     |
-|------------------------|------------------|---------------------------------------------------|------------------|
-| `cct-hernandez-andres` | Hernandez-Andres | Higher-order polynomial (3,000–800,000 K)         | -                |
-| `cct-mccamy`           | McCamy           | Third-degree polynomial (~2,000–12,500 K)         | -                |
-| `cct-ohno`             | Ohno             | Planckian locus search with parabolic refinement  | `chromaticity-uv`|
-| `cct-robertson`        | Robertson        | Isotherm interpolation from 31-entry lookup table | `chromaticity-uv`|
+| Feature                | Algorithm        | Description                                       | Dependencies      |
+|------------------------|------------------|---------------------------------------------------|-------------------|
+| `cct-hernandez-andres` | Hernandez-Andres | Higher-order polynomial (3,000–800,000 K)         | -                 |
+| `cct-mccamy`           | McCamy           | Third-degree polynomial (~2,000–12,500 K)         | -                 |
+| `cct-ohno`             | Ohno             | Planckian locus search with parabolic refinement  | `chromaticity-uv` |
+| `cct-robertson`        | Robertson        | Isotherm interpolation from 31-entry lookup table | `chromaticity-uv` |
 
 ## Contrast Algorithms
 
@@ -294,6 +294,7 @@ Non-RGB color spaces available behind individual `space-*` flags.
 | `space-lab` | Lab   | CIE 1976 L\*a\*b\* perceptual color space                  | -            |
 | `space-lch` | LCh   | Cylindrical form of CIE L\*a\*b\* (lightness, chroma, hue) | `space-lab`  |
 | `space-luv` | Luv   | CIE 1976 L\*u\*v\* perceptual color space                  | -            |
+| `space-xyy` | xyY   | CIE xyY chromaticity + luminance color space               | -            |
 
 ### Oklab Family
 

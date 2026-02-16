@@ -907,6 +907,12 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_lab().to_lch().with_alpha(self.alpha())
   }
 
+  /// Converts to the CIE xyY color space.
+  #[cfg(feature = "space-xyy")]
+  fn to_xyy(&self) -> Xyy {
+    Xyy::from(self.to_xyz()).with_alpha(self.alpha())
+  }
+
   /// Converts to the LMS cone response space.
   fn to_lms(&self) -> Lms {
     self.to_xyz().to_lms().with_alpha(self.alpha())

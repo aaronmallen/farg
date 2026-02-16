@@ -28,6 +28,8 @@ use crate::space::Okhwb;
 use crate::space::Oklab;
 #[cfg(feature = "space-oklch")]
 use crate::space::Oklch;
+#[cfg(feature = "space-xyy")]
+use crate::space::Xyy;
 use crate::{
   ColorimetricContext,
   component::Component,
@@ -734,6 +736,15 @@ where
   }
 }
 
+impl<S> From<Lms> for Hsv<S>
+where
+  S: RgbSpec,
+{
+  fn from(lms: Lms) -> Self {
+    lms.to_rgb::<S>().to_hsv()
+  }
+}
+
 #[cfg(feature = "space-luv")]
 impl<S> From<Luv> for Hsv<S>
 where
@@ -741,15 +752,6 @@ where
 {
   fn from(luv: Luv) -> Self {
     luv.to_rgb::<S>().to_hsv()
-  }
-}
-
-impl<S> From<Lms> for Hsv<S>
-where
-  S: RgbSpec,
-{
-  fn from(lms: Lms) -> Self {
-    lms.to_rgb::<S>().to_hsv()
   }
 }
 
@@ -810,6 +812,16 @@ where
 {
   fn from(rgb: Rgb<OS>) -> Self {
     rgb.to_rgb::<S>().to_hsv()
+  }
+}
+
+#[cfg(feature = "space-xyy")]
+impl<S> From<Xyy> for Hsv<S>
+where
+  S: RgbSpec,
+{
+  fn from(xyy: Xyy) -> Self {
+    xyy.to_rgb::<S>().to_hsv()
   }
 }
 

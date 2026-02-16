@@ -29,6 +29,8 @@ use crate::space::Okhwb;
 use crate::space::Oklab;
 #[cfg(feature = "space-oklch")]
 use crate::space::Oklch;
+#[cfg(feature = "space-xyy")]
+use crate::space::Xyy;
 use crate::{
   ColorimetricContext,
   chromaticity::Xy,
@@ -304,6 +306,30 @@ impl Xyz {
     let v = 13.0 * l * (v_prime - v_prime_n);
 
     Luv::new(l, u, v).with_alpha(self.alpha)
+  }
+
+  /// Converts to the CIE xyY color space.
+  #[cfg(feature = "space-xyy")]
+  pub fn to_xyy(&self) -> Xyy {
+    let [x, y, z] = self.components();
+    let sum = x + y + z;
+
+    let (x_chrom, y_chrom) = if sum == 0.0 {
+      // For black, use the reference white chromaticity
+      let [xn, yn, zn] = self.context.reference_white().components();
+      let sum_n = xn + yn + zn;
+      if sum_n == 0.0 {
+        (0.0, 0.0)
+      } else {
+        (xn / sum_n, yn / sum_n)
+      }
+    } else {
+      (x / sum, y / sum)
+    };
+
+    Xyy::new(x_chrom, y_chrom, y)
+      .with_context(self.context)
+      .with_alpha(self.alpha)
   }
 
   /// Converts to the LMS cone response space using the context's CAT matrix.
@@ -628,16 +654,16 @@ impl From<Lch> for Xyz {
   }
 }
 
+impl From<Lms> for Xyz {
+  fn from(lms: Lms) -> Self {
+    lms.to_xyz()
+  }
+}
+
 #[cfg(feature = "space-luv")]
 impl From<Luv> for Xyz {
   fn from(luv: Luv) -> Self {
     luv.to_xyz()
-  }
-}
-
-impl From<Lms> for Xyz {
-  fn from(lms: Lms) -> Self {
-    lms.to_xyz()
   }
 }
 
@@ -682,6 +708,13 @@ where
 {
   fn from(rgb: Rgb<S>) -> Self {
     rgb.to_xyz().with_context(*rgb.context())
+  }
+}
+
+#[cfg(feature = "space-xyy")]
+impl From<Xyy> for Xyz {
+  fn from(xyy: Xyy) -> Self {
+    xyy.to_xyz()
   }
 }
 
