@@ -38,9 +38,10 @@ are enabled through [feature flags](#feature-flags).
 
 | Family                 | Spaces                            | Feature Flags                                                             |
 |------------------------|-----------------------------------|---------------------------------------------------------------------------|
-| **CIE**                | XYZ, Lab, LCh, Luv, xyY           | `space-lab`, `space-lch`, `space-luv`, `space-xyy`                        |
+| **CIE**                | XYZ, Lab, LCh, LCh(uv), Luv, xyY  | `space-lab`, `space-lch`, `space-lchuv`, `space-luv`, `space-xyy`         |
 | **Perceptual (Oklab)** | Oklab, Oklch, Okhsl, Okhsv, Okhwb | `space-oklab`, `space-oklch`, `space-okhsl`, `space-okhsv`, `space-okhwb` |
-| **Cylindrical**        | HSL, HSV/HSB, HWB                 | `space-hsl`, `space-hsv`, `space-hwb`                                     |
+| **Perceptual (Luv)**   | HSLuv, HPLuv                      | `space-hsluv`, `space-hpluv`                                              |
+| **Cylindrical**        | HSL, HSV/HSB, HWB, HSI            | `space-hsl`, `space-hsv`, `space-hwb`, `space-hsi`                        |
 | **Subtractive**        | CMY, CMYK                         | `space-cmy`, `space-cmyk`                                                 |
 | **Physiological**      | LMS                               | *(always available)*                                                      |
 | **RGB**                | sRGB + 37 additional spaces       | `all-rgb-spaces` or individual `rgb-*` flags                              |
@@ -201,6 +202,24 @@ let gradient = coral.gradient(&teal, 5);
 ```
 
 Cylindrical and rectangular mixing variants are feature-gated behind their respective color spaces.
+
+## CSS Serialization
+
+Convert any color to CSS Color Level 4 strings or hex notation:
+
+```rust
+use farg::space::{ColorSpace, Rgb, Srgb, Oklch};
+
+let coral = Rgb::<Srgb>::new(255, 87, 51);
+assert_eq!(coral.to_css(), "rgb(255 87 51)");
+assert_eq!(coral.to_hex(), "#ff5733");
+
+let oklch = Oklch::new(0.7, 0.15, 145.0);
+assert_eq!(oklch.to_css(), "oklch(0.7 0.15 145)");
+```
+
+Types with a native CSS representation (`Rgb<Srgb>`, `Rgb<DisplayP3>`, `Lab`, `Lch`, `Oklab`, `Oklch`, `Hsl<Srgb>`,
+`Hwb<Srgb>`, and others) output their space-specific format. All other color spaces fall back to sRGB `rgb(...)`.
 
 ## Correlated Color Temperature
 
