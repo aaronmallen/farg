@@ -19,3 +19,38 @@ impl RgbSpec for Rec2020 {
   );
   const TRANSFER_FUNCTION: TransferFunction = TransferFunction::Bt709;
 }
+
+impl super::super::Rgb<Rec2020> {
+  /// Returns this color as a CSS Color Level 4 `color(rec2020 ...)` string.
+  ///
+  /// Components are normalized 0-1 decimal values. Alpha is appended only
+  /// when less than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, Rec2020, Rgb};
+  ///
+  /// let color = Rgb::<Rec2020>::from_normalized(0.5, 0.3, 0.2);
+  /// assert_eq!(color.to_css(), "color(rec2020 0.5 0.3 0.2)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    fn f(v: f64) -> String {
+      format!("{:.6}", v)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string()
+    }
+
+    let a = self.alpha.0;
+    if a < 1.0 {
+      format!(
+        "color(rec2020 {} {} {} / {})",
+        f(self.r()),
+        f(self.g()),
+        f(self.b()),
+        f(a)
+      )
+    } else {
+      format!("color(rec2020 {} {} {})", f(self.r()), f(self.g()), f(self.b()))
+    }
+  }
+}

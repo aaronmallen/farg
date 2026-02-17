@@ -643,16 +643,6 @@ where
   }
 }
 
-#[cfg(feature = "space-hsluv")]
-impl<S> From<Hsluv> for Hwb<S>
-where
-  S: RgbSpec,
-{
-  fn from(hsluv: Hsluv) -> Self {
-    hsluv.to_rgb::<S>().to_hwb()
-  }
-}
-
 #[cfg(feature = "space-hpluv")]
 impl<S> From<Hpluv> for Hwb<S>
 where
@@ -660,6 +650,16 @@ where
 {
   fn from(hpluv: Hpluv) -> Self {
     hpluv.to_rgb::<S>().to_hwb()
+  }
+}
+
+#[cfg(feature = "space-hsluv")]
+impl<S> From<Hsluv> for Hwb<S>
+where
+  S: RgbSpec,
+{
+  fn from(hsluv: Hsluv) -> Self {
+    hsluv.to_rgb::<S>().to_hwb()
   }
 }
 
@@ -834,6 +834,46 @@ where
 
   fn sub(self, rhs: T) -> Self {
     Self::from(self.to_rgb::<S>() - rhs.into().to_rgb::<S>())
+  }
+}
+
+impl Hwb<crate::space::Srgb> {
+  /// Returns this color as a CSS Color Level 4 `hwb(...)` string.
+  ///
+  /// Uses space-separated modern syntax: hue in degrees, whiteness and blackness
+  /// as percentages. Alpha is appended only when less than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, Hwb, Srgb};
+  ///
+  /// let color = Hwb::<Srgb>::new(14.0, 10.0, 20.0);
+  /// assert_eq!(color.to_css(), "hwb(14 10% 20%)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    fn f(v: f64) -> String {
+      format!("{:.6}", v)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string()
+    }
+
+    let a = self.alpha.0;
+    if a < 1.0 {
+      format!(
+        "hwb({} {}% {}% / {})",
+        f(self.hue()),
+        f(self.whiteness()),
+        f(self.blackness()),
+        f(a)
+      )
+    } else {
+      format!(
+        "hwb({} {}% {}%)",
+        f(self.hue()),
+        f(self.whiteness()),
+        f(self.blackness())
+      )
+    }
   }
 }
 
@@ -1362,6 +1402,24 @@ mod test {
       assert!(result.h().is_finite());
       assert!(result.w().is_finite());
       assert!(result.b().is_finite());
+    }
+  }
+
+  mod to_css {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_outputs_opaque_hwb() {
+      let color = Hwb::<Srgb>::new(14.0, 10.0, 20.0);
+      assert_eq!(color.to_css(), "hwb(14 10% 20%)");
+    }
+
+    #[test]
+    fn it_outputs_translucent_hwb() {
+      let color = Hwb::<Srgb>::new(14.0, 10.0, 20.0).with_alpha(0.5);
+      assert_eq!(color.to_css(), "hwb(14 10% 20% / 0.5)");
     }
   }
 

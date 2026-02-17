@@ -250,6 +250,33 @@ impl Oklab {
     self.l = l.into();
   }
 
+  /// Returns this color as a CSS Color Level 4 `oklab(...)` string.
+  ///
+  /// L is 0-1, a and b are signed values. Alpha is appended only when less
+  /// than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, Oklab};
+  ///
+  /// let color = Oklab::new(0.7, 0.1, -0.1);
+  /// assert_eq!(color.to_css(), "oklab(0.7 0.1 -0.1)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    fn f(v: f64) -> String {
+      format!("{:.6}", v)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string()
+    }
+
+    let a = self.alpha.0;
+    if a < 1.0 {
+      format!("oklab({} {} {} / {})", f(self.l()), f(self.a()), f(self.b()), f(a))
+    } else {
+      format!("oklab({} {} {})", f(self.l()), f(self.a()), f(self.b()))
+    }
+  }
+
   /// Converts to the Okhsl perceptual color space.
   #[cfg(feature = "space-okhsl")]
   pub fn to_okhsl(&self) -> Okhsl {
@@ -1297,6 +1324,24 @@ mod test {
       oklab.scale_l(2.0);
 
       assert!((oklab.l() - 1.0).abs() < 1e-10);
+    }
+  }
+
+  mod to_css {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_outputs_opaque_oklab() {
+      let color = Oklab::new(0.7, 0.1, -0.1);
+      assert_eq!(color.to_css(), "oklab(0.7 0.1 -0.1)");
+    }
+
+    #[test]
+    fn it_outputs_translucent_oklab() {
+      let color = Oklab::new(0.7, 0.1, -0.1).with_alpha(0.5);
+      assert_eq!(color.to_css(), "oklab(0.7 0.1 -0.1 / 0.5)");
     }
   }
 

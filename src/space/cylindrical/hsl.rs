@@ -632,16 +632,6 @@ where
   }
 }
 
-#[cfg(feature = "space-hsluv")]
-impl<S> From<Hsluv> for Hsl<S>
-where
-  S: RgbSpec,
-{
-  fn from(hsluv: Hsluv) -> Self {
-    hsluv.to_rgb::<S>().to_hsl()
-  }
-}
-
 #[cfg(feature = "space-hpluv")]
 impl<S> From<Hpluv> for Hsl<S>
 where
@@ -649,6 +639,16 @@ where
 {
   fn from(hpluv: Hpluv) -> Self {
     hpluv.to_rgb::<S>().to_hsl()
+  }
+}
+
+#[cfg(feature = "space-hsluv")]
+impl<S> From<Hsluv> for Hsl<S>
+where
+  S: RgbSpec,
+{
+  fn from(hsluv: Hsluv) -> Self {
+    hsluv.to_rgb::<S>().to_hsl()
   }
 }
 
@@ -834,6 +834,46 @@ where
 
   fn sub(self, rhs: T) -> Self {
     Self::from(self.to_rgb::<S>() - rhs.into().to_rgb::<S>())
+  }
+}
+
+impl Hsl<crate::space::Srgb> {
+  /// Returns this color as a CSS Color Level 4 `hsl(...)` string.
+  ///
+  /// Uses space-separated modern syntax: hue in degrees, saturation and lightness
+  /// as percentages. Alpha is appended only when less than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, Hsl, Srgb};
+  ///
+  /// let color = Hsl::<Srgb>::new(14.0, 100.0, 60.0);
+  /// assert_eq!(color.to_css(), "hsl(14 100% 60%)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    fn f(v: f64) -> String {
+      format!("{:.6}", v)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string()
+    }
+
+    let a = self.alpha.0;
+    if a < 1.0 {
+      format!(
+        "hsl({} {}% {}% / {})",
+        f(self.hue()),
+        f(self.saturation()),
+        f(self.lightness()),
+        f(a)
+      )
+    } else {
+      format!(
+        "hsl({} {}% {}%)",
+        f(self.hue()),
+        f(self.saturation()),
+        f(self.lightness())
+      )
+    }
   }
 }
 
@@ -1332,6 +1372,24 @@ mod test {
       assert!(result.h().is_finite());
       assert!(result.s().is_finite());
       assert!(result.l().is_finite());
+    }
+  }
+
+  mod to_css {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_outputs_opaque_hsl() {
+      let color = Hsl::<Srgb>::new(14.0, 100.0, 60.0);
+      assert_eq!(color.to_css(), "hsl(14 100% 60%)");
+    }
+
+    #[test]
+    fn it_outputs_translucent_hsl() {
+      let color = Hsl::<Srgb>::new(14.0, 100.0, 60.0).with_alpha(0.5);
+      assert_eq!(color.to_css(), "hsl(14 100% 60% / 0.5)");
     }
   }
 

@@ -19,3 +19,38 @@ impl RgbSpec for LinearSrgb {
   );
   const TRANSFER_FUNCTION: TransferFunction = TransferFunction::Linear;
 }
+
+impl super::super::Rgb<LinearSrgb> {
+  /// Returns this color as a CSS Color Level 4 `color(srgb-linear ...)` string.
+  ///
+  /// Components are normalized 0-1 decimal values. Alpha is appended only
+  /// when less than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, LinearSrgb, Rgb};
+  ///
+  /// let color = Rgb::<LinearSrgb>::from_normalized(0.5, 0.3, 0.2);
+  /// assert_eq!(color.to_css(), "color(srgb-linear 0.5 0.3 0.2)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    fn f(v: f64) -> String {
+      format!("{:.6}", v)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string()
+    }
+
+    let a = self.alpha.0;
+    if a < 1.0 {
+      format!(
+        "color(srgb-linear {} {} {} / {})",
+        f(self.r()),
+        f(self.g()),
+        f(self.b()),
+        f(a)
+      )
+    } else {
+      format!("color(srgb-linear {} {} {})", f(self.r()), f(self.g()), f(self.b()))
+    }
+  }
+}

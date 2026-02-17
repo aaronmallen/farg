@@ -291,6 +291,33 @@ impl Lch {
     self.l = l.into();
   }
 
+  /// Returns this color as a CSS Color Level 4 `lch(...)` string.
+  ///
+  /// L is 0-100, C is chroma, H is hue in degrees. Alpha is appended only
+  /// when less than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, Lch};
+  ///
+  /// let color = Lch::new(62.0, 56.0, 14.0);
+  /// assert_eq!(color.to_css(), "lch(62 56 14)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    fn f(v: f64) -> String {
+      format!("{:.6}", v)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string()
+    }
+
+    let a = self.alpha.0;
+    if a < 1.0 {
+      format!("lch({} {} {} / {})", f(self.l()), f(self.c()), f(self.hue()), f(a))
+    } else {
+      format!("lch({} {} {})", f(self.l()), f(self.c()), f(self.hue()))
+    }
+  }
+
   /// Converts to the CIE L\*a\*b\* color space.
   pub fn to_lab(&self) -> Lab {
     let h_rad = self.h.0 * 2.0 * std::f64::consts::PI;
@@ -575,17 +602,17 @@ where
   }
 }
 
-#[cfg(feature = "space-hsluv")]
-impl From<Hsluv> for Lch {
-  fn from(hsluv: Hsluv) -> Self {
-    hsluv.to_lch()
-  }
-}
-
 #[cfg(feature = "space-hpluv")]
 impl From<Hpluv> for Lch {
   fn from(hpluv: Hpluv) -> Self {
     hpluv.to_lch()
+  }
+}
+
+#[cfg(feature = "space-hsluv")]
+impl From<Hsluv> for Lch {
+  fn from(hsluv: Hsluv) -> Self {
+    hsluv.to_lch()
   }
 }
 
@@ -1418,6 +1445,24 @@ mod test {
       lch.scale_l(2.0);
 
       assert!((lch.l() - 100.0).abs() < 1e-10);
+    }
+  }
+
+  mod to_css {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_outputs_opaque_lch() {
+      let color = Lch::new(62.0, 56.0, 14.0);
+      assert_eq!(color.to_css(), "lch(62 56 14)");
+    }
+
+    #[test]
+    fn it_outputs_translucent_lch() {
+      let color = Lch::new(62.0, 56.0, 14.0).with_alpha(0.5);
+      assert_eq!(color.to_css(), "lch(62 56 14 / 0.5)");
     }
   }
 

@@ -280,6 +280,33 @@ impl Oklch {
     self.l = l.into();
   }
 
+  /// Returns this color as a CSS Color Level 4 `oklch(...)` string.
+  ///
+  /// L is 0-1, C is chroma, H is hue in degrees. Alpha is appended only
+  /// when less than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, Oklch};
+  ///
+  /// let color = Oklch::new(0.7, 0.15, 145.0);
+  /// assert_eq!(color.to_css(), "oklch(0.7 0.15 145)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    fn f(v: f64) -> String {
+      format!("{:.6}", v)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string()
+    }
+
+    let a = self.alpha.0;
+    if a < 1.0 {
+      format!("oklch({} {} {} / {})", f(self.l()), f(self.c()), f(self.hue()), f(a))
+    } else {
+      format!("oklch({} {} {})", f(self.l()), f(self.c()), f(self.hue()))
+    }
+  }
+
   /// Converts to the Oklab perceptual color space.
   pub fn to_oklab(&self) -> Oklab {
     let h_rad = self.h.0 * 2.0 * std::f64::consts::PI;
@@ -1343,6 +1370,24 @@ mod test {
       oklch.scale_l(2.0);
 
       assert!((oklch.l() - 1.0).abs() < 1e-10);
+    }
+  }
+
+  mod to_css {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_outputs_opaque_oklch() {
+      let color = Oklch::new(0.7, 0.15, 145.0);
+      assert_eq!(color.to_css(), "oklch(0.7 0.15 145)");
+    }
+
+    #[test]
+    fn it_outputs_translucent_oklch() {
+      let color = Oklch::new(0.7, 0.15, 145.0).with_alpha(0.5);
+      assert_eq!(color.to_css(), "oklch(0.7 0.15 145 / 0.5)");
     }
   }
 

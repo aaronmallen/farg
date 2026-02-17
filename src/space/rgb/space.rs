@@ -684,6 +684,20 @@ where
     .with_alpha(self.alpha)
   }
 
+  /// Returns this color as a hex string (e.g., `#ff5733`).
+  ///
+  /// Always lowercase, 6-digit format. Alpha is not included.
+  ///
+  /// ```
+  /// use farg::space::{Rgb, Srgb};
+  ///
+  /// let color = Rgb::<Srgb>::new(255, 87, 51);
+  /// assert_eq!(color.to_hex(), "#ff5733");
+  /// ```
+  pub fn to_hex(&self) -> String {
+    format!("#{:02x}{:02x}{:02x}", self.red(), self.green(), self.blue())
+  }
+
   /// Converts to HSB in this color space. Alias for [`Self::to_hsv`].
   #[cfg(feature = "space-hsv")]
   pub fn to_hsb(&self) -> Hsb<S> {
@@ -2423,6 +2437,60 @@ mod test {
       assert_eq!(result.r(), 0.0);
       assert_eq!(result.g(), 0.0);
       assert_eq!(result.b(), 0.0);
+    }
+  }
+
+  mod to_css {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_outputs_opaque_rgb() {
+      let color = Rgb::<Srgb>::new(255, 87, 51);
+      assert_eq!(color.to_css(), "rgb(255 87 51)");
+    }
+
+    #[test]
+    fn it_outputs_translucent_rgb() {
+      let color = Rgb::<Srgb>::new(255, 87, 51).with_alpha(0.5);
+      assert_eq!(color.to_css(), "rgb(255 87 51 / 0.5)");
+    }
+
+    #[test]
+    fn it_outputs_black() {
+      let color = Rgb::<Srgb>::new(0, 0, 0);
+      assert_eq!(color.to_css(), "rgb(0 0 0)");
+    }
+
+    #[test]
+    fn it_outputs_white() {
+      let color = Rgb::<Srgb>::new(255, 255, 255);
+      assert_eq!(color.to_css(), "rgb(255 255 255)");
+    }
+  }
+
+  mod to_hex {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_outputs_hex() {
+      let color = Rgb::<Srgb>::new(255, 87, 51);
+      assert_eq!(color.to_hex(), "#ff5733");
+    }
+
+    #[test]
+    fn it_outputs_black() {
+      let color = Rgb::<Srgb>::new(0, 0, 0);
+      assert_eq!(color.to_hex(), "#000000");
+    }
+
+    #[test]
+    fn it_outputs_white() {
+      let color = Rgb::<Srgb>::new(255, 255, 255);
+      assert_eq!(color.to_hex(), "#ffffff");
     }
   }
 

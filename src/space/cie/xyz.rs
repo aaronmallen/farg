@@ -273,6 +273,39 @@ impl Xyz {
     self.z = z.into();
   }
 
+  /// Returns this color as a CSS Color Level 4 `color(xyz-d65 ...)` string.
+  ///
+  /// If the color's illuminant is not D65, it is chromatically adapted to D65
+  /// before output. Alpha is appended only when less than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, Xyz};
+  ///
+  /// let color = Xyz::new(0.5, 0.4, 0.3);
+  /// assert_eq!(color.to_css(), "color(xyz-d65 0.5 0.4 0.3)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    fn f(v: f64) -> String {
+      format!("{:.6}", v)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string()
+    }
+
+    let xyz = if self.context().illuminant().name() != "D65" {
+      self.adapt_to(ColorimetricContext::default())
+    } else {
+      *self
+    };
+
+    let a = xyz.alpha.0;
+    if a < 1.0 {
+      format!("color(xyz-d65 {} {} {} / {})", f(xyz.x()), f(xyz.y()), f(xyz.z()), f(a))
+    } else {
+      format!("color(xyz-d65 {} {} {})", f(xyz.x()), f(xyz.y()), f(xyz.z()))
+    }
+  }
+
   /// Converts to the CIE L*a*b* color space.
   #[cfg(feature = "space-lab")]
   pub fn to_lab(&self) -> Lab {
@@ -638,17 +671,17 @@ where
   }
 }
 
-#[cfg(feature = "space-hsluv")]
-impl From<Hsluv> for Xyz {
-  fn from(hsluv: Hsluv) -> Self {
-    hsluv.to_xyz()
-  }
-}
-
 #[cfg(feature = "space-hpluv")]
 impl From<Hpluv> for Xyz {
   fn from(hpluv: Hpluv) -> Self {
     hpluv.to_xyz()
+  }
+}
+
+#[cfg(feature = "space-hsluv")]
+impl From<Hsluv> for Xyz {
+  fn from(hsluv: Hsluv) -> Self {
+    hsluv.to_xyz()
   }
 }
 
@@ -1576,6 +1609,24 @@ mod test {
       assert!(xyz.x().is_finite());
       assert!(xyz.y().is_finite());
       assert!(xyz.z().is_finite());
+    }
+  }
+
+  mod to_css {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_outputs_opaque_xyz() {
+      let color = Xyz::new(0.5, 0.4, 0.3);
+      assert_eq!(color.to_css(), "color(xyz-d65 0.5 0.4 0.3)");
+    }
+
+    #[test]
+    fn it_outputs_translucent_xyz() {
+      let color = Xyz::new(0.5, 0.4, 0.3).with_alpha(0.5);
+      assert_eq!(color.to_css(), "color(xyz-d65 0.5 0.4 0.3 / 0.5)");
     }
   }
 

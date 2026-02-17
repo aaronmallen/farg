@@ -22,3 +22,32 @@ impl RgbSpec for Srgb {
   );
   const TRANSFER_FUNCTION: TransferFunction = TransferFunction::Srgb;
 }
+
+impl super::super::Rgb<Srgb> {
+  /// Returns this color as a CSS Color Level 4 `rgb(...)` string.
+  ///
+  /// Uses space-separated modern syntax with integer 0-255 channel values.
+  /// Alpha is appended only when less than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, Rgb, Srgb};
+  ///
+  /// let color = Rgb::<Srgb>::new(255, 87, 51);
+  /// assert_eq!(color.to_css(), "rgb(255 87 51)");
+  ///
+  /// let translucent = color.with_alpha(0.5);
+  /// assert_eq!(translucent.to_css(), "rgb(255 87 51 / 0.5)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    let a = self.alpha.0;
+    if a < 1.0 {
+      let a = format!("{:.6}", a)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string();
+      format!("rgb({} {} {} / {})", self.red(), self.green(), self.blue(), a)
+    } else {
+      format!("rgb({} {} {})", self.red(), self.green(), self.blue())
+    }
+  }
+}

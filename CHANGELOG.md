@@ -18,6 +18,14 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
   useful in image processing and computer vision — with full conversion support, feature-gated behind `space-hsi`
 - Add `Lchuv` (CIE LCh(uv)) cylindrical color space — the polar-coordinate form of CIE L\*u\*v\* with lightness,
   chroma, and hue — with full conversion support, feature-gated behind `space-lchuv` (depends on `space-luv`)
+- Add `to_css()` CSS Color Level 4 serialization to the `ColorSpace` trait and native implementations on `Rgb<Srgb>`
+  (`rgb(...)`), `Rgb<DisplayP3>` (`color(display-p3 ...)`), `Rgb<AdobeRgb>` (`color(a98-rgb ...)`),
+  `Rgb<ProPhotoRgb>` (`color(prophoto-rgb ...)`), `Rgb<Rec2020>` (`color(rec2020 ...)`), `Rgb<LinearSrgb>`
+  (`color(srgb-linear ...)`), `Xyz` (`color(xyz-d65 ...)`), `Lab` (`lab(...)`), `Lch` (`lch(...)`), `Oklab`
+  (`oklab(...)`), `Oklch` (`oklch(...)`), `Hsl<Srgb>` (`hsl(...)`), and `Hwb<Srgb>` (`hwb(...)`) — all other
+  color spaces fall back to sRGB `rgb(...)` output via the trait default
+- Add `to_hex()` hex string serialization to the `ColorSpace` trait and `Rgb` — converts to sRGB and formats as
+  lowercase 6-digit hex (e.g., `#ff5733`)
 
 ## [v0.4.2] - 2026-02-15
 

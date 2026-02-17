@@ -975,6 +975,28 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.to_rgb::<Srgb>().to_cmyk().with_alpha(self.alpha())
   }
 
+  /// Returns this color as a CSS Color Level 4 string.
+  ///
+  /// Types with a native CSS representation (e.g., `Rgb<Srgb>`, `Oklch`, `Lab`) shadow
+  /// this default with a space-specific format. All other types fall back to sRGB
+  /// `rgb(...)` output.
+  fn to_css(&self) -> String {
+    self.to_rgb::<Srgb>().to_css()
+  }
+
+  /// Returns this color as a hex string (e.g., `#ff5733`).
+  ///
+  /// Converts to sRGB first, then formats as lowercase 6-digit hex.
+  fn to_hex(&self) -> String {
+    self.to_rgb::<Srgb>().to_hex()
+  }
+
+  /// Converts to the HPLuv color space.
+  #[cfg(feature = "space-hpluv")]
+  fn to_hpluv(&self) -> Hpluv {
+    self.to_lchuv().to_hpluv().with_alpha(self.alpha())
+  }
+
   /// Converts to the HSB color space with sRGB encoding.
   #[cfg(feature = "space-hsv")]
   fn to_hsb(&self) -> Hsb<Srgb> {
@@ -997,12 +1019,6 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
   #[cfg(feature = "space-hsluv")]
   fn to_hsluv(&self) -> Hsluv {
     self.to_lchuv().to_hsluv().with_alpha(self.alpha())
-  }
-
-  /// Converts to the HPLuv color space.
-  #[cfg(feature = "space-hpluv")]
-  fn to_hpluv(&self) -> Hpluv {
-    self.to_lchuv().to_hpluv().with_alpha(self.alpha())
   }
 
   /// Converts to the HSV color space with sRGB encoding.

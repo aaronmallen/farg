@@ -248,6 +248,33 @@ impl Lab {
     self.l = l.into();
   }
 
+  /// Returns this color as a CSS Color Level 4 `lab(...)` string.
+  ///
+  /// L is 0-100, a and b are signed values. Alpha is appended only when less
+  /// than 1.0.
+  ///
+  /// ```
+  /// use farg::space::{ColorSpace, Lab};
+  ///
+  /// let color = Lab::new(62.0, 56.0, 46.0);
+  /// assert_eq!(color.to_css(), "lab(62 56 46)");
+  /// ```
+  pub fn to_css(&self) -> String {
+    fn f(v: f64) -> String {
+      format!("{:.6}", v)
+        .trim_end_matches('0')
+        .trim_end_matches('.')
+        .to_string()
+    }
+
+    let a = self.alpha.0;
+    if a < 1.0 {
+      format!("lab({} {} {} / {})", f(self.l()), f(self.a()), f(self.b()), f(a))
+    } else {
+      format!("lab({} {} {})", f(self.l()), f(self.a()), f(self.b()))
+    }
+  }
+
   /// Converts to the CIE LCh color space (cylindrical form).
   #[cfg(feature = "space-lch")]
   pub fn to_lch(&self) -> Lch {
@@ -485,17 +512,17 @@ where
   }
 }
 
-#[cfg(feature = "space-hsluv")]
-impl From<Hsluv> for Lab {
-  fn from(hsluv: Hsluv) -> Self {
-    hsluv.to_lab()
-  }
-}
-
 #[cfg(feature = "space-hpluv")]
 impl From<Hpluv> for Lab {
   fn from(hpluv: Hpluv) -> Self {
     hpluv.to_lab()
+  }
+}
+
+#[cfg(feature = "space-hsluv")]
+impl From<Hsluv> for Lab {
+  fn from(hsluv: Hsluv) -> Self {
+    hsluv.to_lab()
   }
 }
 
@@ -1375,6 +1402,30 @@ mod test {
       lab.scale_to_gamut::<Srgb>();
 
       assert!((lab.l() - orig.l()).abs() < 0.5);
+    }
+  }
+
+  mod to_css {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn it_outputs_opaque_lab() {
+      let color = Lab::new(62.0, 56.0, 46.0);
+      assert_eq!(color.to_css(), "lab(62 56 46)");
+    }
+
+    #[test]
+    fn it_outputs_translucent_lab() {
+      let color = Lab::new(62.0, 56.0, 46.0).with_alpha(0.5);
+      assert_eq!(color.to_css(), "lab(62 56 46 / 0.5)");
+    }
+
+    #[test]
+    fn it_outputs_negative_components() {
+      let color = Lab::new(50.0, -20.0, -30.0);
+      assert_eq!(color.to_css(), "lab(50 -20 -30)");
     }
   }
 
