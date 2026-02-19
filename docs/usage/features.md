@@ -332,3 +332,14 @@ Non-RGB color spaces available behind individual `space-*` flags.
 |--------------|-------|-------------------------------------------------|--------------|
 | `space-cmy`  | CMY   | Cyan, Magenta, Yellow (complement of RGB)       | -            |
 | `space-cmyk` | CMYK  | Cyan, Magenta, Yellow, Key/Black                | -            |
+
+## Serialization
+
+| Feature | Description                                                            |
+|---------|------------------------------------------------------------------------|
+| `serde` | `Serialize` and `Deserialize` impls for all color spaces via Serde 1.x |
+
+```toml
+[dependencies]
+farg = { version = "0.4", features = ["serde"] }
+```

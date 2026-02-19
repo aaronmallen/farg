@@ -7,6 +7,8 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+## [v0.4.4] - 2026-02-19
+
 ### Added
 
 - Add optional `serde` feature for JSON (and other format) serialization and deserialization of all color spaces —
@@ -175,7 +177,7 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 Initial release
 
-[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.3...main
+[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.4...main
 [v0.1.1]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.0..0.1.1
 [v0.2.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.1..0.2.0
 [v0.3.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.2.0..0.3.0
@@ -183,3 +185,4 @@ Initial release
 [v0.4.1]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.0..0.4.1
 [v0.4.2]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.1..0.4.2
 [v0.4.3]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.2..0.4.3
+[v0.4.4]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.3..0.4.4

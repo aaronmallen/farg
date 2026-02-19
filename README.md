@@ -221,6 +221,25 @@ assert_eq!(oklch.to_css(), "oklch(0.7 0.15 145)");
 Types with a native CSS representation (`Rgb<Srgb>`, `Rgb<DisplayP3>`, `Lab`, `Lch`, `Oklab`, `Oklch`, `Hsl<Srgb>`,
 `Hwb<Srgb>`, and others) output their space-specific format. All other color spaces fall back to sRGB `rgb(...)`.
 
+## Serde Serialization
+
+Enable the `serde` feature to serialize and deserialize all color spaces with any Serde-compatible format:
+
+```toml
+[dependencies]
+farg = { version = "0.4", features = ["serde", "space-oklab"] }
+```
+
+```rust
+use farg::space::{Rgb, Srgb};
+
+let coral = Rgb::<Srgb>::new(255, 87, 51);
+let json = serde_json::to_string(&coral).unwrap();
+let restored: Rgb<Srgb> = serde_json::from_str(&json).unwrap();
+```
+
+Alpha is omitted when opaque (1.0) and defaults to 1.0 when absent during deserialization.
+
 ## Correlated Color Temperature
 
 Four algorithms for estimating the color temperature of a light source:
@@ -277,6 +296,7 @@ available.
 | `all-observers`    | All 7 additional observers (CIE 1964 10°, CIE 2006, Stockman-Sharpe, Judd, Judd-Vos) |
 | `all-rgb-spaces`   | All 37 additional RGB color spaces                                                   |
 | `all-spaces`       | All color spaces (CIE, cylindrical, perceptual, subtractive, and all RGB)            |
+| `serde`            | Serialize and deserialize all color spaces via Serde                                 |
 
 Individual features follow the pattern `{category}-{name}`, e.g., `space-oklab`, `cat-bradford`, `illuminant-d50`,
 `rgb-display-p3`. See the [Feature Flags Reference](docs/usage/features.md) for every flag with descriptions
