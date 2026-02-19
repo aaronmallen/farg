@@ -28,6 +28,72 @@ Farg is a comprehensive Rust color library for web developers, designers, and co
 
 ---
 
+## Feature Checklist
+
+- [x] [1. Core Color System](#1-core-color-system)
+  - [x] [1.1 Viewing Context — ColorimetricContext](#11-viewing-context)
+  - [ ] [1.1 Viewing Context — AppearanceContext](#11-viewing-context)
+  - [x] [1.2 Component Behavior](#12-component-behavior)
+  - [x] [1.3 Opacity](#13-opacity)
+- [x] [2. Color Space Support](#2-color-space-support) (partial — core families complete)
+  - [x] [2.1 CIE Spaces](#21-cie-spaces) — XYZ, xyY, Lab, LCH, Luv, LCHuv
+  - [x] [2.2 RGB — Display](#22-rgb-family--display) — sRGB, Linear sRGB, scRGB, Display P3, DCI-P3, Adobe RGB,
+    Wide Gamut, ProPhoto
+  - [x] [2.3 RGB — Broadcast](#23-rgb-family--broadcast) — Rec. 601/709/2020/2100, NTSC, PAL/SECAM, SMPTE-C
+  - [x] [2.4 RGB — Cinema/Camera](#24-rgb-family--cinemacamera) — ACES, ARRI, RED, Sony, Canon, Panasonic,
+    Blackmagic, DaVinci, Filmlight
+  - [x] [2.5 RGB — Legacy](#25-rgb-family--legacy) — CIE RGB, Apple RGB, ColorMatch, Best, Beta, Bruce, ECI,
+    EktaSpace, Don RGB 4
+  - [x] [2.6 Cylindrical Spaces](#26-cylindrical-spaces) — HSL, HSV/HSB, HSI, HWB, HSLuv, HPLuv
+  - [ ] [2.6 Cylindrical Spaces — HCL](#26-cylindrical-spaces)
+  - [x] [2.7 Oklab Family](#27-oklab-family) — Oklab, Oklch, Okhsl, Okhsv, Okhwb
+  - [ ] [2.8 Color Appearance Models](#28-color-appearance-models) — CAM02, CAM16, HCT, ZCAM
+  - [ ] [2.9 HDR Spaces](#29-hdr-spaces) — JzAzBz, JzCzhz, ICtCp
+  - [ ] [2.10 Industrial Spaces](#210-industrial-spaces) — Hunter Lab, DIN99, OSA-UCS, IPT
+  - [ ] [2.11 Video (Luma-Chroma)](#211-video-luma-chroma) — YCbCr, YPbPr, YCoCg, YUV, YIQ, YDbDr
+  - [x] [2.12 Other](#212-other) — CMYK, LMS
+- [x] [3. Conversion System](#3-conversion-system)
+  - [x] [3.1 Hub-Based Architecture](#31-hub-based-architecture) — XYZ, Linear RGB, LMS hubs
+  - [x] [3.2 Conversion Methods](#32-conversion-methods) — `.to_*()`, `From`/`Into`, `.adapt_to()`
+- [x] [4. Universal Properties](#4-universal-properties) — hue, chroma, luminance, chromaticity
+- [x] [5. Component Operations](#5-component-operations) — set/with/increment/decrement/scale
+- [x] [6. Chromatic Adaptation](#6-chromatic-adaptation) — Bradford, Von Kries, CAT02, CAT16, Sharp, Fairchild,
+  CMCCAT2000, HPE, CMC CAT97, XYZ Scaling
+- [x] [7. Color Difference (ΔE)](#7-color-difference-δe) (partial)
+  - [x] CIE76, CIE94, CIEDE2000, CMC(l:c)
+  - [ ] CAM16-UCS distance
+- [x] [8. Contrast Algorithms](#8-contrast-algorithms) — WCAG, APCA, Michelson, Weber
+- [x] [9. Gamut Mapping](#9-gamut-mapping) — Clip, Chroma reduction, LMS Perceptual, Linear scale
+- [ ] [10. ICC Profile Support](#10-icc-profile-support)
+- [x] [11. String I/O](#11-string-io) (partial)
+  - [x] Formatting — `to_hex()`, `to_css()`
+  - [x] Parsing — hex codes
+  - [ ] Parsing — CSS color strings (HSL, HWB, Color Level 4)
+- [x] [12. Serialization (Serde)](#12-serialization-serde)
+- [ ] [13. Named Colors](#13-named-colors) — CSS named, X11, custom palettes
+- [ ] [14. Color Blindness Simulation](#14-color-blindness-simulation) — Dichromacy, Anomalous trichromacy
+- [x] [15. Color Harmonies](#15-color-harmonies) — Complementary, Analogous, Triadic, Split-complementary,
+  Tetradic, Monochromatic
+- [ ] [16. Blend Modes](#16-blend-modes) — SVG/CSS blend modes
+- [x] [17. Mixing and Interpolation](#17-mixing-and-interpolation) (partial)
+  - [x] Linear, Cylindrical, Rectangular interpolation and gradients
+  - [ ] CatmullRom, BSpline, Premultiplied alpha interpolation
+- [x] [18. Spectral Data](#18-spectral-data) — SPD, CMF, SpectralTable, TristimulusResponse
+- [x] [19. Additional Features](#19-additional-features) (partial)
+  - [x] CCT — Ohno, Robertson, Hernandez-Andres, McCamy
+  - [x] Chromaticity — xy, uv, u'v', rg
+  - [x] Transfer Functions — sRGB, Gamma, PQ, HLG, ProPhoto, BT.601, BT.709
+  - [x] Custom RGB Spaces — via `RgbSpec` trait
+  - [x] Gamut Normalization
+  - [ ] Dominant Wavelength
+  - [ ] Munsell notation
+- [x] [20. Reference Data](#20-reference-data) — Illuminants, Observers
+- [x] [Feature Gating](#feature-gating)
+- [ ] [Engine Configuration](#engine-configuration)
+- [ ] [Ecosystem](#ecosystem) — farg-ansi, farg-image, farg-studio
+
+---
+
 ## Feature Categories
 
 ### 1. Core Color System
