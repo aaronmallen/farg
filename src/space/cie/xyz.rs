@@ -589,6 +589,29 @@ impl ColorSpace<3> for Xyz {
   }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Xyz {
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    #[derive(serde::Deserialize)]
+    struct XyzData {
+      x: Component,
+      y: Component,
+      z: Component,
+      #[serde(default = "crate::component::default_alpha")]
+      alpha: Component,
+    }
+
+    let data = XyzData::deserialize(deserializer)?;
+    Ok(Self {
+      x: data.x,
+      y: data.y,
+      z: data.z,
+      alpha: data.alpha,
+      context: ColorimetricContext::default(),
+    })
+  }
+}
+
 impl Display for Xyz {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     let precision = f.precision().unwrap_or(4);
@@ -808,6 +831,23 @@ where
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
     self.alpha == other.alpha && self.x == other.x && self.y == other.y && self.z == other.z
+  }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Xyz {
+  fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    use serde::ser::SerializeStruct;
+
+    let field_count = if self.alpha.0 < 1.0 { 4 } else { 3 };
+    let mut state = serializer.serialize_struct("Xyz", field_count)?;
+    state.serialize_field("x", &self.x)?;
+    state.serialize_field("y", &self.y)?;
+    state.serialize_field("z", &self.z)?;
+    if self.alpha.0 < 1.0 {
+      state.serialize_field("alpha", &self.alpha)?;
+    }
+    state.end()
   }
 }
 

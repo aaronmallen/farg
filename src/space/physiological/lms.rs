@@ -459,6 +459,29 @@ impl ColorSpace<3> for Lms {
   }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Lms {
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    #[derive(serde::Deserialize)]
+    struct LmsData {
+      l: Component,
+      m: Component,
+      s: Component,
+      #[serde(default = "crate::component::default_alpha")]
+      alpha: Component,
+    }
+
+    let data = LmsData::deserialize(deserializer)?;
+    Ok(Self {
+      l: data.l,
+      m: data.m,
+      s: data.s,
+      alpha: data.alpha,
+      context: ColorimetricContext::default(),
+    })
+  }
+}
+
 impl Display for Lms {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     let precision = f.precision().unwrap_or(4);
@@ -678,6 +701,23 @@ where
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
     self.alpha == other.alpha && self.l == other.l && self.m == other.m && self.s == other.s
+  }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Lms {
+  fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    use serde::ser::SerializeStruct;
+
+    let field_count = if self.alpha.0 < 1.0 { 4 } else { 3 };
+    let mut state = serializer.serialize_struct("Lms", field_count)?;
+    state.serialize_field("l", &self.l)?;
+    state.serialize_field("m", &self.m)?;
+    state.serialize_field("s", &self.s)?;
+    if self.alpha.0 < 1.0 {
+      state.serialize_field("alpha", &self.alpha)?;
+    }
+    state.end()
   }
 }
 

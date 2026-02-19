@@ -633,6 +633,35 @@ where
   }
 }
 
+#[cfg(feature = "serde")]
+impl<'de, S> serde::Deserialize<'de> for Cmyk<S>
+where
+  S: RgbSpec,
+{
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    #[derive(serde::Deserialize)]
+    struct CmykData {
+      c: Component,
+      m: Component,
+      y: Component,
+      k: Component,
+      #[serde(default = "crate::component::default_alpha")]
+      alpha: Component,
+    }
+
+    let data = CmykData::deserialize(deserializer)?;
+    Ok(Self {
+      c: data.c,
+      m: data.m,
+      y: data.y,
+      k: data.k,
+      alpha: data.alpha,
+      context: S::CONTEXT,
+      _spec: PhantomData,
+    })
+  }
+}
+
 impl<S> Display for Cmyk<S>
 where
   S: RgbSpec,
@@ -907,6 +936,27 @@ where
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
     self.alpha == other.alpha && self.c == other.c && self.m == other.m && self.y == other.y && self.k == other.k
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<S> serde::Serialize for Cmyk<S>
+where
+  S: RgbSpec,
+{
+  fn serialize<Ser: serde::Serializer>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error> {
+    use serde::ser::SerializeStruct;
+
+    let field_count = if self.alpha.0 < 1.0 { 5 } else { 4 };
+    let mut state = serializer.serialize_struct("Cmyk", field_count)?;
+    state.serialize_field("c", &self.c)?;
+    state.serialize_field("m", &self.m)?;
+    state.serialize_field("y", &self.y)?;
+    state.serialize_field("k", &self.k)?;
+    if self.alpha.0 < 1.0 {
+      state.serialize_field("alpha", &self.alpha)?;
+    }
+    state.end()
   }
 }
 

@@ -1148,6 +1148,33 @@ where
   }
 }
 
+#[cfg(feature = "serde")]
+impl<'de, S> serde::Deserialize<'de> for Rgb<S>
+where
+  S: RgbSpec,
+{
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    #[derive(serde::Deserialize)]
+    struct RgbData {
+      r: Component,
+      g: Component,
+      b: Component,
+      #[serde(default = "crate::component::default_alpha")]
+      alpha: Component,
+    }
+
+    let data = RgbData::deserialize(deserializer)?;
+    Ok(Self {
+      r: data.r,
+      g: data.g,
+      b: data.b,
+      alpha: data.alpha,
+      context: S::CONTEXT,
+      _spec: PhantomData,
+    })
+  }
+}
+
 impl<S> Display for Rgb<S>
 where
   S: RgbSpec,
@@ -1426,6 +1453,26 @@ where
       && self.red() == other.red()
       && self.green() == other.green()
       && self.blue() == other.blue()
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<S> serde::Serialize for Rgb<S>
+where
+  S: RgbSpec,
+{
+  fn serialize<Ser: serde::Serializer>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error> {
+    use serde::ser::SerializeStruct;
+
+    let field_count = if self.alpha.0 < 1.0 { 4 } else { 3 };
+    let mut state = serializer.serialize_struct("Rgb", field_count)?;
+    state.serialize_field("r", &self.r)?;
+    state.serialize_field("g", &self.g)?;
+    state.serialize_field("b", &self.b)?;
+    if self.alpha.0 < 1.0 {
+      state.serialize_field("alpha", &self.alpha)?;
+    }
+    state.end()
   }
 }
 

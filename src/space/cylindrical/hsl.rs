@@ -550,6 +550,33 @@ where
   }
 }
 
+#[cfg(feature = "serde")]
+impl<'de, S> serde::Deserialize<'de> for Hsl<S>
+where
+  S: RgbSpec,
+{
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    #[derive(serde::Deserialize)]
+    struct HslData {
+      h: Component,
+      s: Component,
+      l: Component,
+      #[serde(default = "crate::component::default_alpha")]
+      alpha: Component,
+    }
+
+    let data = HslData::deserialize(deserializer)?;
+    Ok(Self {
+      h: data.h,
+      s: data.s,
+      l: data.l,
+      alpha: data.alpha,
+      context: S::CONTEXT,
+      _spec: PhantomData,
+    })
+  }
+}
+
 impl<S> Display for Hsl<S>
 where
   S: RgbSpec,
@@ -822,6 +849,26 @@ where
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
     self.alpha == other.alpha && self.h == other.h && self.s == other.s && self.l == other.l
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<S> serde::Serialize for Hsl<S>
+where
+  S: RgbSpec,
+{
+  fn serialize<Ser: serde::Serializer>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error> {
+    use serde::ser::SerializeStruct;
+
+    let field_count = if self.alpha.0 < 1.0 { 4 } else { 3 };
+    let mut state = serializer.serialize_struct("Hsl", field_count)?;
+    state.serialize_field("h", &self.h)?;
+    state.serialize_field("s", &self.s)?;
+    state.serialize_field("l", &self.l)?;
+    if self.alpha.0 < 1.0 {
+      state.serialize_field("alpha", &self.alpha)?;
+    }
+    state.end()
   }
 }
 

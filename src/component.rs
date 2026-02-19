@@ -79,6 +79,13 @@ where
   }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Component {
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    f64::deserialize(deserializer).map(Self)
+  }
+}
+
 impl Display for Component {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     write!(f, "{:.precision$}", self.0, precision = f.precision().unwrap_or(4))
@@ -215,6 +222,13 @@ where
   }
 }
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Component {
+  fn serialize<Ser: serde::Serializer>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error> {
+    self.0.serialize(serializer)
+  }
+}
+
 impl<T> Sub<T> for Component
 where
   T: Into<Self>,
@@ -233,6 +247,11 @@ where
   fn sub_assign(&mut self, rhs: T) {
     self.0 -= rhs.into().0;
   }
+}
+/// Returns the default alpha value (1.0) for serde deserialization.
+#[cfg(feature = "serde")]
+pub(crate) fn default_alpha() -> Component {
+  Component(1.0)
 }
 
 #[cfg(test)]

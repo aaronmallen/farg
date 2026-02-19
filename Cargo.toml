@@ -156,6 +156,7 @@ full = [
   "all-illuminants",
   "all-observers",
   "all-spaces",
+  "serde",
 ]
 illuminant-a = []
 illuminant-b = []
@@ -309,6 +310,7 @@ rgb-smpte-c = []
 rgb-sony-s-gamut-3 = []
 rgb-sony-s-gamut-3-cine = []
 rgb-wide-gamut-rgb = ["illuminant-d50"]
+serde = ["dep:serde"]
 space-cmy = []
 space-cmyk = []
 space-hsb = ["space-hsv"]
@@ -330,5 +332,9 @@ space-oklab = []
 space-oklab-family = ["space-okhsl", "space-okhsv", "space-okhwb", "space-oklab", "space-oklch"]
 space-oklch = ["space-oklab"]
 
+[dependencies]
+serde = { version = "1", optional = true, features = ["derive"] }
+
 [dev-dependencies]
 pretty_assertions = "1.4"
+serde_json = "1"

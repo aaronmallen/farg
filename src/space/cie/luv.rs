@@ -366,6 +366,29 @@ impl ColorSpace<3> for Luv {
   }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Luv {
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    #[derive(serde::Deserialize)]
+    struct LuvData {
+      l: Component,
+      u: Component,
+      v: Component,
+      #[serde(default = "crate::component::default_alpha")]
+      alpha: Component,
+    }
+
+    let data = LuvData::deserialize(deserializer)?;
+    Ok(Self {
+      l: data.l,
+      u: data.u,
+      v: data.v,
+      alpha: data.alpha,
+      context: Self::DEFAULT_CONTEXT,
+    })
+  }
+}
+
 impl Display for Luv {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     let precision = f.precision().unwrap_or(4);
@@ -584,6 +607,23 @@ where
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
     self.alpha == other.alpha && self.l == other.l && self.u == other.u && self.v == other.v
+  }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Luv {
+  fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    use serde::ser::SerializeStruct;
+
+    let field_count = if self.alpha.0 < 1.0 { 4 } else { 3 };
+    let mut state = serializer.serialize_struct("Luv", field_count)?;
+    state.serialize_field("l", &self.l)?;
+    state.serialize_field("u", &self.u)?;
+    state.serialize_field("v", &self.v)?;
+    if self.alpha.0 < 1.0 {
+      state.serialize_field("alpha", &self.alpha)?;
+    }
+    state.end()
   }
 }
 

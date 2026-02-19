@@ -336,6 +336,30 @@ impl ColorSpace<3> for Xyy {
   }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Xyy {
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    #[derive(serde::Deserialize)]
+    struct XyyData {
+      x: Component,
+      y: Component,
+      #[serde(rename = "Y")]
+      big_y: Component,
+      #[serde(default = "crate::component::default_alpha")]
+      alpha: Component,
+    }
+
+    let data = XyyData::deserialize(deserializer)?;
+    Ok(Self {
+      x_chrom: data.x,
+      y_chrom: data.y,
+      big_y: data.big_y,
+      alpha: data.alpha,
+      context: Self::DEFAULT_CONTEXT,
+    })
+  }
+}
+
 impl Display for Xyy {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     let precision = f.precision().unwrap_or(4);
@@ -557,6 +581,23 @@ where
       && self.x_chrom == other.x_chrom
       && self.y_chrom == other.y_chrom
       && self.big_y == other.big_y
+  }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Xyy {
+  fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    use serde::ser::SerializeStruct;
+
+    let field_count = if self.alpha.0 < 1.0 { 4 } else { 3 };
+    let mut state = serializer.serialize_struct("Xyy", field_count)?;
+    state.serialize_field("x", &self.x_chrom)?;
+    state.serialize_field("y", &self.y_chrom)?;
+    state.serialize_field("Y", &self.big_y)?;
+    if self.alpha.0 < 1.0 {
+      state.serialize_field("alpha", &self.alpha)?;
+    }
+    state.end()
   }
 }
 

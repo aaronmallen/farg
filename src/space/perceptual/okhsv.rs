@@ -512,6 +512,29 @@ impl ColorSpace<3> for Okhsv {
   }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Okhsv {
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    #[derive(serde::Deserialize)]
+    struct OkhsvData {
+      h: Component,
+      s: Component,
+      v: Component,
+      #[serde(default = "crate::component::default_alpha")]
+      alpha: Component,
+    }
+
+    let data = OkhsvData::deserialize(deserializer)?;
+    Ok(Self {
+      h: data.h,
+      s: data.s,
+      v: data.v,
+      alpha: data.alpha,
+      context: Self::DEFAULT_CONTEXT,
+    })
+  }
+}
+
 impl Display for Okhsv {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     let precision = f.precision().unwrap_or(2);
@@ -731,6 +754,23 @@ where
   fn eq(&self, other: &T) -> bool {
     let other = (*other).into();
     self.alpha == other.alpha && self.h == other.h && self.s == other.s && self.v == other.v
+  }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Okhsv {
+  fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    use serde::ser::SerializeStruct;
+
+    let field_count = if self.alpha.0 < 1.0 { 4 } else { 3 };
+    let mut state = serializer.serialize_struct("Okhsv", field_count)?;
+    state.serialize_field("h", &self.h)?;
+    state.serialize_field("s", &self.s)?;
+    state.serialize_field("v", &self.v)?;
+    if self.alpha.0 < 1.0 {
+      state.serialize_field("alpha", &self.alpha)?;
+    }
+    state.end()
   }
 }
 

@@ -7,6 +7,13 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+### Added
+
+- Add optional `serde` feature for JSON (and other format) serialization and deserialization of all color spaces —
+  `Serialize` and `Deserialize` are implemented on `Component`, `Xyz`, `Lms`, `Rgb`, `Hsl`, `Hsv`, `Hwb`, `Hsi`,
+  `Cmy`, `Cmyk`, `Lab`, `Lch`, `Lchuv`, `Luv`, `Xyy`, `Oklab`, `Oklch`, `Okhsl`, `Okhsv`, `Okhwb`, `Hsluv`, and
+  `Hpluv` — alpha is omitted from serialization when opaque (1.0) and defaults to 1.0 on deserialization when absent
+
 ## [v0.4.3] - 2026-02-16
 
 ### Added
