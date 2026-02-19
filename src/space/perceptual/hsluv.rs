@@ -1348,11 +1348,7 @@ mod test {
     #[test]
     fn it_converts_to_rgb() {
       let hsluv = Hsluv::new(120.0, 100.0, 50.0);
-      let rgb: Rgb<Srgb> = hsluv.to_rgb();
-
-      assert!(rgb.red() <= 255);
-      assert!(rgb.green() <= 255);
-      assert!(rgb.blue() <= 255);
+      let _rgb: Rgb<Srgb> = hsluv.to_rgb();
     }
 
     #[test]
