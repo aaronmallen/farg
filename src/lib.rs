@@ -114,6 +114,7 @@
 
 mod chromatic_adaptation_transform;
 pub mod chromaticity;
+pub mod color_vision_deficiency;
 mod component;
 mod context;
 pub mod contrast;

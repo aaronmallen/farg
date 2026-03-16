@@ -913,6 +913,84 @@ pub trait ColorSpace<const N: usize>: Copy + Clone + From<Xyz> {
     self.set_alpha(opacity.into() / 100.0)
   }
 
+  /// Simulates deuteranomaly (reduced M-cone sensitivity) at the given severity.
+  ///
+  /// `severity` ranges from 0.0 (normal vision) to 1.0 (complete dichromacy).
+  /// Uses the Machado 2009 algorithm.
+  #[cfg(feature = "cvd-machado")]
+  fn simulate_deuteranomaly(&self, severity: f64) -> Self {
+    Self::from(crate::color_vision_deficiency::machado::deuteranomaly(
+      self.to_xyz(),
+      severity,
+    ))
+  }
+
+  /// Simulates deuteranopia (complete M-cone loss).
+  ///
+  /// Uses the highest-accuracy available algorithm: Brettel > Viénot.
+  #[cfg(feature = "cvd-brettel")]
+  fn simulate_deuteranopia(&self) -> Self {
+    Self::from(crate::color_vision_deficiency::brettel::deuteranopia(self.to_xyz()))
+  }
+
+  /// Simulates deuteranopia (complete M-cone loss).
+  #[cfg(all(feature = "cvd-vienot", not(feature = "cvd-brettel")))]
+  fn simulate_deuteranopia(&self) -> Self {
+    Self::from(crate::color_vision_deficiency::vienot::deuteranopia(self.to_xyz()))
+  }
+
+  /// Simulates protanomaly (reduced L-cone sensitivity) at the given severity.
+  ///
+  /// `severity` ranges from 0.0 (normal vision) to 1.0 (complete dichromacy).
+  /// Uses the Machado 2009 algorithm.
+  #[cfg(feature = "cvd-machado")]
+  fn simulate_protanomaly(&self, severity: f64) -> Self {
+    Self::from(crate::color_vision_deficiency::machado::protanomaly(
+      self.to_xyz(),
+      severity,
+    ))
+  }
+
+  /// Simulates protanopia (complete L-cone loss).
+  ///
+  /// Uses the highest-accuracy available algorithm: Brettel > Viénot.
+  #[cfg(feature = "cvd-brettel")]
+  fn simulate_protanopia(&self) -> Self {
+    Self::from(crate::color_vision_deficiency::brettel::protanopia(self.to_xyz()))
+  }
+
+  /// Simulates protanopia (complete L-cone loss).
+  #[cfg(all(feature = "cvd-vienot", not(feature = "cvd-brettel")))]
+  fn simulate_protanopia(&self) -> Self {
+    Self::from(crate::color_vision_deficiency::vienot::protanopia(self.to_xyz()))
+  }
+
+  /// Simulates tritanomaly (reduced S-cone sensitivity) at the given severity.
+  ///
+  /// `severity` ranges from 0.0 (normal vision) to 1.0 (complete dichromacy).
+  /// Uses the Machado 2009 algorithm.
+  #[cfg(feature = "cvd-machado")]
+  fn simulate_tritanomaly(&self, severity: f64) -> Self {
+    Self::from(crate::color_vision_deficiency::machado::tritanomaly(
+      self.to_xyz(),
+      severity,
+    ))
+  }
+
+  /// Simulates tritanopia (complete S-cone loss).
+  ///
+  /// Uses the highest-accuracy available algorithm: Brettel > Viénot.
+  #[cfg(feature = "cvd-brettel")]
+  fn simulate_tritanopia(&self) -> Self {
+    Self::from(crate::color_vision_deficiency::brettel::tritanopia(self.to_xyz()))
+  }
+
+  /// Simulates tritanopia (complete S-cone loss).
+  #[cfg(all(feature = "cvd-vienot", not(feature = "cvd-brettel")))]
+  fn simulate_tritanopia(&self) -> Self {
+    Self::from(crate::color_vision_deficiency::vienot::tritanopia(self.to_xyz()))
+  }
+
   /// Returns the two split-complementary colors (+150° and +210° hue rotation).
   ///
   /// Split-complementary uses the two colors adjacent to the complement, offering

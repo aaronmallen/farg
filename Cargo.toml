@@ -15,6 +15,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 all-cct = ["cct-hernandez-andres", "cct-mccamy", "cct-ohno", "cct-robertson"]
+all-cvd = ["cvd-brettel", "cvd-machado", "cvd-vienot"]
 all-cats = [
   "cat-bradford",
   "cat-cat02",
@@ -118,6 +119,9 @@ all-spaces = [
   "space-xyy",
 ]
 cct-hernandez-andres = []
+cvd-brettel = []
+cvd-machado = []
+cvd-vienot = []
 cct-mccamy = []
 cct-ohno = ["chromaticity-uv"]
 cct-robertson = ["chromaticity-uv"]
@@ -140,7 +144,14 @@ contrast-michelson = []
 contrast-rms = []
 contrast-wcag = []
 contrast-weber = []
-default = ["cat-bradford", "contrast-apca", "contrast-wcag", "distance-ciede2000"]
+default = [
+  "cat-bradford",
+  "contrast-apca",
+  "contrast-wcag",
+  "cvd-brettel",
+  "cvd-machado",
+  "distance-ciede2000",
+]
 distance-cie76 = ["space-lab"]
 distance-cie94 = ["space-lab"]
 distance-ciecmc = ["space-lch"]
@@ -152,6 +163,7 @@ full = [
   "all-cct",
   "all-chromaticity",
   "all-contrast",
+  "all-cvd",
   "all-distance",
   "all-illuminants",
   "all-observers",

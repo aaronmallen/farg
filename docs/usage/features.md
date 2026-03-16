@@ -24,8 +24,10 @@ Enabled by `default`:
 | Feature              | Provides                                |
 |----------------------|-----------------------------------------|
 | `cat-bradford`       | Bradford chromatic adaptation transform |
-| `contrast-wcag`      | WCAG 2.x contrast ratio                 |
 | `contrast-apca`      | APCA lightness contrast                 |
+| `contrast-wcag`      | WCAG 2.x contrast ratio                 |
+| `cvd-brettel`        | Brettel 1997 dichromacy simulation      |
+| `cvd-machado`        | Machado 2009 anomalous trichromacy      |
 | `distance-ciede2000` | CIEDE2000 color difference              |
 
 ```toml
@@ -44,6 +46,7 @@ Group features that enable entire categories at once.
 | `all-cct`          | All 4 correlated color temperature algorithms                             |
 | `all-chromaticity` | All 3 chromaticity coordinate systems                                     |
 | `all-contrast`     | All 6 contrast algorithms                                                 |
+| `all-cvd`          | All 3 color vision deficiency simulation algorithms                       |
 | `all-distance`     | All 6 color distance algorithms                                           |
 | `all-illuminants`  | All illuminant sub-groups (standard, daylight, fluorescent, FL3, HP, LED) |
 | `all-observers`    | All 7 additional observers                                                |
@@ -106,6 +109,16 @@ Six contrast algorithms available behind individual `contrast-*` flags.
 | `contrast-rms`       | RMS       | Root mean square luminance contrast                  |
 | `contrast-wcag`      | WCAG      | WCAG 2.x contrast ratio (1:1 to 21:1)                |
 | `contrast-weber`     | Weber     | Weber contrast for target-on-background visibility   |
+
+## Color Vision Deficiency Simulation
+
+Three CVD simulation algorithms available behind individual `cvd-*` flags.
+
+| Feature       | Algorithm | Description                                              |
+|---------------|-----------|----------------------------------------------------------|
+| `cvd-brettel` | Brettel   | Half-plane dichromacy projection in LMS (most accurate)  |
+| `cvd-machado` | Machado   | Severity-parameterized anomalous trichromacy in sRGB     |
+| `cvd-vienot`  | Viénot    | Single-matrix dichromacy projection in sRGB (faster)     |
 
 ## Color Distance Algorithms
 

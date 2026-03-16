@@ -7,6 +7,18 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ## [Unreleased]
 
+### Added
+
+- Add `color_vision_deficiency` module with three CVD simulation algorithms: Brettel 1997 (half-plane
+  dichromacy projection in LMS), Viénot 1999 (single-matrix dichromacy projection in linear sRGB), and
+  Machado 2009 (severity-parameterized anomalous trichromacy in linear sRGB) — each feature-gated behind
+  `cvd-brettel`, `cvd-vienot`, and `cvd-machado` flags and bundled under `all-cvd`
+- Add `simulate_protanopia()`, `simulate_deuteranopia()`, and `simulate_tritanopia()` dichromacy
+  convenience methods to the `ColorSpace` trait with a priority chain (Brettel > Viénot)
+- Add `simulate_protanomaly()`, `simulate_deuteranomaly()`, and `simulate_tritanomaly()` anomalous
+  trichromacy convenience methods to the `ColorSpace` trait (Machado, severity-parameterized 0.0–1.0)
+- Add `cvd-brettel` and `cvd-machado` to default features
+
 ## [v0.4.4] - 2026-02-19
 
 ### Added

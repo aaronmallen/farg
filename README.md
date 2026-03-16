@@ -240,6 +240,28 @@ let restored: Rgb<Srgb> = serde_json::from_str(&json).unwrap();
 
 Alpha is omitted when opaque (1.0) and defaults to 1.0 when absent during deserialization.
 
+## Color Vision Deficiency Simulation
+
+Three algorithms for simulating how colors appear to individuals with color blindness:
+
+```rust
+use farg::color_vision_deficiency::{brettel, machado};
+use farg::space::{Rgb, Srgb};
+
+let coral = Rgb::<Srgb>::new(255, 87, 51);
+
+// Dichromacy — complete cone loss (Brettel 1997)
+let protanopia = brettel::protanopia(coral);
+let deuteranopia = brettel::deuteranopia(coral);
+
+// Anomalous trichromacy — reduced sensitivity (Machado 2009)
+let mild_deutan = machado::deuteranomaly(coral, 0.3);
+let severe_deutan = machado::deuteranomaly(coral, 0.9);
+```
+
+Brettel (most accurate dichromacy) and Machado (severity-parameterized anomalous trichromacy) are enabled by
+default. Viénot is available as a faster dichromacy alternative behind `cvd-vienot`.
+
 ## Correlated Color Temperature
 
 Four algorithms for estimating the color temperature of a light source:
@@ -281,8 +303,8 @@ use farg::{IlluminantBuilder, IlluminantType, ObserverBuilder};
 ## Feature Flags
 
 Farg uses granular feature flags so you only compile what you need. The `default` feature enables Bradford CAT,
-WCAG contrast, APCA contrast, and CIEDE2000 color distance. D65, CIE 1931 2°, sRGB, XYZ, and LMS are always
-available.
+WCAG contrast, APCA contrast, CIEDE2000 color distance, and Brettel + Machado CVD simulation. D65, CIE 1931 2°,
+sRGB, XYZ, and LMS are always available.
 
 | Feature            | Contents                                                                             |
 |--------------------|--------------------------------------------------------------------------------------|
@@ -291,6 +313,7 @@ available.
 | `all-cct`          | All 4 correlated color temperature algorithms                                        |
 | `all-chromaticity` | All chromaticity coordinate systems (Rg, Uv, u'v')                                   |
 | `all-contrast`     | All 6 contrast algorithms                                                            |
+| `all-cvd`          | All 3 color vision deficiency simulation algorithms                                  |
 | `all-distance`     | All 6 color distance algorithms                                                      |
 | `all-illuminants`  | All standard illuminants (44 total across daylight, fluorescent, LED, and more)      |
 | `all-observers`    | All 7 additional observers (CIE 1964 10°, CIE 2006, Stockman-Sharpe, Judd, Judd-Vos) |
@@ -324,6 +347,7 @@ farg = { version = "0.4", features = ["space-oklab", "space-lab", "all-illuminan
   - [Color Conversions](docs/usage/conversions.md) -- Converting between color spaces
   - [Color Distance](docs/usage/distance.md) -- Measuring distance between colors
   - [Color Harmonies](docs/usage/harmonies.md) -- Generating harmonious color palettes
+  - [Color Vision Deficiency](docs/usage/cvd.md) -- Simulating color blindness
   - [Color Mixing](docs/usage/mixing.md) -- Interpolating colors and generating gradients
   - [Contrast](docs/usage/contrast.md) -- Measuring contrast between colors
   - [Correlated Color Temperature](docs/usage/cct.md) -- Estimating CCT
