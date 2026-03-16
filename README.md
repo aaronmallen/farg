@@ -4,7 +4,6 @@
 ![Crates.io Version][crates-badge]
 ![GitHub Sponsors][sponsor-badge]
 
-
 A Rust library for colorimetry, color space conversions, and color manipulation.
 
 Farg provides context-aware color conversions with f64 precision, spectral data processing, and chromatic adaptation.
