@@ -7,6 +7,8 @@ and this project adheres to [Break Versioning][break-versioning].
 
 ## [Unreleased]
 
+## [v0.4.5] - 2026-03-16
+
 ### Added
 
 - Add `color_vision_deficiency` module with three CVD simulation algorithms: Brettel 1997 (half-plane
@@ -191,7 +193,7 @@ Initial release
 
 [break-versioning]: https://www.taoensso.com/break-versioning
 [keep-a-changelog]: https://keepachangelog.com/en/1.1.0/
-[unreleased]: https://github.com/aaronmallen/farg/compare/0.4.4...main
+[unreleased]: https://github.com/aaronmallen/farg/compare/0.4.5...main
 [v0.1.1]: https://github.com/aaronmallen/farg/compare/0.1.0...0.1.1
 [v0.2.0]: https://github.com/aaronmallen/farg/compare/0.1.1...0.2.0
 [v0.3.0]: https://github.com/aaronmallen/farg/compare/0.2.0...0.3.0
@@ -200,3 +202,4 @@ Initial release
 [v0.4.2]: https://github.com/aaronmallen/farg/compare/0.4.1...0.4.2
 [v0.4.3]: https://github.com/aaronmallen/farg/compare/0.4.2...0.4.3
 [v0.4.4]: https://github.com/aaronmallen/farg/compare/0.4.3...0.4.4
+[v0.4.5]: https://github.com/aaronmallen/farg/compare/0.4.4...0.4.5

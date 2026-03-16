@@ -4,6 +4,3 @@ runs:
   steps:
     - uses: jdx/mise-action@v3
     - uses: Swatinem/rust-cache@v2
-    - name: Setup
-      shell: sh
-      run: mise run setup

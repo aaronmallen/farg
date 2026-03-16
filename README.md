@@ -1,5 +1,10 @@
 # Farg
 
+![Build][build-badge]
+![Crates.io Version][crates-badge]
+![GitHub Sponsors][sponsor-badge]
+
+
 A Rust library for colorimetry, color space conversions, and color manipulation.
 
 Farg provides context-aware color conversions with f64 precision, spectral data processing, and chromatic adaptation.
@@ -361,6 +366,9 @@ farg = { version = "0.4", features = ["space-oklab", "space-lab", "all-illuminan
 
 Licensed under the MIT License. See [LICENSE][license] for details.
 
+[build-badge]:
+  https://img.shields.io/github/actions/workflow/status/aaronmallen/farg/build.yml?branch=main&style=for-the-badge
+[crates-badge]: https://img.shields.io/crates/v/farg?style=for-the-badge
 [cats]: https://github.com/aaronmallen/farg/blob/main/docs/usage/cats.md
 [cct]: https://github.com/aaronmallen/farg/blob/main/docs/usage/cct.md
 [contributing]: https://github.com/aaronmallen/farg/blob/main/docs/dev/README.md
@@ -377,3 +385,4 @@ Licensed under the MIT License. See [LICENSE][license] for details.
 [plan]: https://github.com/aaronmallen/farg/blob/main/docs/PLAN.md
 [api-docs]: https://docs.rs/farg
 [usage]: https://github.com/aaronmallen/farg/blob/main/docs/usage/README.md
+[sponsor-badge]: https://img.shields.io/github/sponsors/aaronmallen?style=for-the-badge
