@@ -1,8 +1,8 @@
 # Farg
 
-![Build][build-badge]
-![Crates.io Version][crates-badge]
-![GitHub Sponsors][sponsor-badge]
+[![Build][build-badge]][build-link]
+[![Crates.io Version][crates-badge]][crates-link]
+[![GitHub Sponsors][sponsor-badge]][sponsor-link]
 
 A Rust library for colorimetry, color space conversions, and color manipulation.
 
@@ -367,7 +367,9 @@ Licensed under the MIT License. See [LICENSE][license] for details.
 
 [build-badge]:
   https://img.shields.io/github/actions/workflow/status/aaronmallen/farg/build.yml?branch=main&style=for-the-badge
+[build-link]: https://github.com/aaronmallen/farg/actions/workflows/build.yml
 [crates-badge]: https://img.shields.io/crates/v/farg?style=for-the-badge
+[crates-link]: https://crates.io/crates/farg
 [cats]: https://github.com/aaronmallen/farg/blob/main/docs/usage/cats.md
 [cct]: https://github.com/aaronmallen/farg/blob/main/docs/usage/cct.md
 [contributing]: https://github.com/aaronmallen/farg/blob/main/docs/dev/README.md
@@ -385,3 +387,4 @@ Licensed under the MIT License. See [LICENSE][license] for details.
 [api-docs]: https://docs.rs/farg
 [usage]: https://github.com/aaronmallen/farg/blob/main/docs/usage/README.md
 [sponsor-badge]: https://img.shields.io/github/sponsors/aaronmallen?style=for-the-badge
+[sponsor-link]: https://github.com/sponsors/aaronmallen
