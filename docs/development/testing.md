@@ -13,7 +13,7 @@ mise run test                  # Run all tests with coverage
 mise run test -- --filter xyz  # Run tests matching "xyz"
 
 # Without mise:
-./bin/test
+./tasks/test
 ```
 
 ## What to Test

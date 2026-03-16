@@ -13,7 +13,7 @@ variables:
   MISE_YES: "true"
   MISE_TRUSTED_CONFIG_PATHS: "$CI_PROJECT_DIR"
   MISE_DATA_DIR: "$CI_PROJECT_DIR/.mise-data"
-  MISE_INSTALL_PATH: "$CI_PROJECT_DIR/.mise/bin/mise"
+  MISE_INSTALL_PATH: "$CI_PROJECT_DIR/.mise/tasks/mise"
   MISE_JOBS: "1"
   CARGO_HOME: "$CI_PROJECT_DIR/.cargo"
   CARGO_BUILD_JOBS: "2"
@@ -32,7 +32,7 @@ variables:
     policy: pull-push
   before_script:
     - curl https://mise.run | sh
-    - export PATH="$CI_PROJECT_DIR/.mise/bin:$CI_PROJECT_DIR/.cargo/bin:$PATH"
+    - export PATH="$CI_PROJECT_DIR/.mise/tasks:$CI_PROJECT_DIR/.cargo/tasks:$PATH"
     - mise install
 
 check:

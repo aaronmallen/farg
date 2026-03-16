@@ -4,4 +4,4 @@
 
 set -e
 
-bin/lint/markdown --fix
+tasks/lint/markdown --fix

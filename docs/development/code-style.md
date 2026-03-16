@@ -15,8 +15,8 @@ mise run lint         # Lint all files
 mise run lint:rust    # Lint Rust files only
 
 # Without mise:
-./bin/format/rust
-./bin/lint/rust
+./tasks/format/rust
+./tasks/lint/rust
 ```
 
 ## Formatting Rules

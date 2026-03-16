@@ -5,8 +5,6 @@
 
 set -e
 
-cp .config/tomlfmt.toml tomlfmt.toml
-cargo sort -w --check
-rm tomlfmt.toml
+cargo sort --workspace --check --config .config/tomlfmt.toml
 cargo +nightly fmt --all --check -- --config-path .config/rustfmt.toml
 cargo clippy

@@ -7,6 +7,5 @@ exclude = [
   "Cargo.toml",
   "coverage/**",
   "target/**",
-  "tomlfmt.toml",
 ]
 include = ["**/*.toml"]

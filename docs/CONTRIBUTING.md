@@ -24,10 +24,10 @@ mise run lint
 Without mise, run scripts directly from `bin/`:
 
 ```bash
-./bin/check
-./bin/test
-./bin/format/rust
-./bin/lint/rust
+./tasks/check
+./tasks/test
+./tasks/format/rust
+./tasks/lint/rust
 ```
 
 ## Development Workflow

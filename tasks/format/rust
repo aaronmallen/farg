@@ -5,8 +5,6 @@
 
 set -e
 
-cp .config/tomlfmt.toml tomlfmt.toml
-cargo sort -w
-rm tomlfmt.toml
+cargo sort --workspace --config .config/tomlfmt.toml
 cargo +nightly fmt --all -- --config-path .config/rustfmt.toml
 cargo clippy --fix --allow-dirty --allow-staged
