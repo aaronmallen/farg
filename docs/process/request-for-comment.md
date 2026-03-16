@@ -2,7 +2,7 @@
 
 ## Creating an RFC
 
-[Create an issue](https://git.aaronmallen.dev/farg/farg/-/issues/new?type=ISSUE&initialCreationContext=list-route)
+[Create an issue][create-issue]
 using the template below.
 
 ## When to Use an RFC
@@ -64,3 +64,5 @@ Things that could build on this RFC but are out of scope for now.
 
 - Related RFCs, ADRs, issues, or external resources
 ```
+
+[create-issue]: https://github.com/aaronmallen/farg/issues/new

@@ -11,7 +11,7 @@ superseded-by:
 
 ## Status
 
-![Active](https://img.shields.io/badge/Active-green?style=for-the-badge)
+![Active][active-badge]
 
 ## Summary
 
@@ -179,5 +179,8 @@ src/spectral/
 
 ## References
 
-- [CIE 015:2018](https://cie.co.at/publications/colorimetry-4th-edition) - Colorimetry standard
+- [CIE 015:2018][cie-015] - Colorimetry standard
 - ADR-0003: Transform Module Architecture - Integration functions follow transform patterns
+
+[active-badge]: https://img.shields.io/badge/Active-green?style=for-the-badge
+[cie-015]: https://cie.co.at/publications/colorimetry-4th-edition

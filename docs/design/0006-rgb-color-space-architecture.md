@@ -11,7 +11,7 @@ superseded-by:
 
 ## Status
 
-![Active](https://img.shields.io/badge/Active-green?style=for-the-badge)
+![Active][active-badge]
 
 ## Summary
 
@@ -354,11 +354,18 @@ This would be a separate type from `Rgb<S>` to maintain the performance and cons
 
 ## References
 
-- [IEC 61966-2-1:1999](https://webstore.iec.ch/publication/6169) - sRGB specification
-- [ITU-R BT.709-6](https://www.itu.int/rec/R-REC-BT.709) - HDTV color space
-- [ITU-R BT.2020-2](https://www.itu.int/rec/R-REC-BT.2020) - UHDTV color space
-- [SMPTE ST 2084:2014](https://ieeexplore.ieee.org/document/7291452) - PQ transfer function
-- [ITU-R BT.2100-2](https://www.itu.int/rec/R-REC-BT.2100) - HLG and PQ for HDR
+- [IEC 61966-2-1:1999][iec-61966] - sRGB specification
+- [ITU-R BT.709-6][bt709] - HDTV color space
+- [ITU-R BT.2020-2][bt2020] - UHDTV color space
+- [SMPTE ST 2084:2014][st2084] - PQ transfer function
+- [ITU-R BT.2100-2][bt2100] - HLG and PQ for HDR
 - ADR-0002: Feature-Gated Components
 - ADR-0004: Spectral Data Architecture
 - ADR-0005: Standard Observer System
+
+[active-badge]: https://img.shields.io/badge/Active-green?style=for-the-badge
+[bt709]: https://www.itu.int/rec/R-REC-BT.709
+[bt2020]: https://www.itu.int/rec/R-REC-BT.2020
+[bt2100]: https://www.itu.int/rec/R-REC-BT.2100
+[iec-61966]: https://webstore.iec.ch/publication/6169
+[st2084]: https://ieeexplore.ieee.org/document/7291452

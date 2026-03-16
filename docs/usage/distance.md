@@ -24,7 +24,7 @@ let is_same = delta_e < ciede2000::JND; // JND = 1.0
 
 ### CIEDE2000 (default)
 
-The [CIEDE2000](https://en.wikipedia.org/wiki/Color_difference#CIEDE2000) formula is the most
+The [CIEDE2000][ciede2000-wiki] formula is the most
 perceptually uniform CIE color difference metric. It includes corrections for lightness, chroma,
 and hue, plus an interactive term for the blue region and a rotation term for chroma/hue
 interaction. The result is always >= 0.0 and is **order-independent**.
@@ -59,7 +59,7 @@ let delta_e = ciede2000::calculate_parametric(a, b, 2.0, 1.0, 1.0);
 
 ### CIE76
 
-The [CIE76](https://en.wikipedia.org/wiki/Color_difference#CIE76) formula computes the Euclidean
+The [CIE76][cie76-wiki] formula computes the Euclidean
 distance in CIELAB space: `sqrt((ΔL*)² + (Δa*)² + (Δb*)²)`. It is the simplest perceptual color
 difference metric and is **order-independent**.
 
@@ -77,7 +77,7 @@ let delta_e = cie76::calculate(a, b);
 
 ### CIE94
 
-The [CIE94](https://en.wikipedia.org/wiki/Color_difference#CIE94) formula extends CIE76 with
+The [CIE94][cie94-wiki] formula extends CIE76 with
 weighting functions for lightness, chroma, and hue. Unlike CIE76, **argument order matters** — the
 first argument is the reference color and the second is the sample.
 
@@ -111,7 +111,7 @@ use farg::distance::cie94::{
 
 ### CMC l:c
 
-The [CMC l:c](https://en.wikipedia.org/wiki/Color_difference#CMC_l:c_(1984)) formula was developed
+The [CMC l:c][cmc-wiki] formula was developed
 by the Colour Measurement Committee of the Society of Dyers and Colourists. It uses CIE LCh
 components and is **not order-independent** — the first argument is the reference color.
 
@@ -264,3 +264,8 @@ farg = { version = "0.4", features = ["distance-cie76", "distance-ciecmc"] }
 [dependencies]
 farg = { version = "0.4", features = ["all-distance"] }
 ```
+
+[cie76-wiki]: https://en.wikipedia.org/wiki/Color_difference#CIE76
+[cie94-wiki]: https://en.wikipedia.org/wiki/Color_difference#CIE94
+[ciede2000-wiki]: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
+[cmc-wiki]: https://en.wikipedia.org/wiki/Color_difference#CMC_l:c_(1984)

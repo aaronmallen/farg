@@ -22,7 +22,10 @@ Use these processes to propose and document significant changes:
 
 ## Process Guides
 
-| Document                                                           | Purpose                                       |
-|--------------------------------------------------------------------|-----------------------------------------------|
-| [Architecture Decision Records](architecture-decision-record.md)   | ADR process for documenting design decisions  |
-| [Requests for Comments](request-for-comment.md)                    | RFC process for proposing significant changes |
+| Document                               | Purpose                                       |
+|----------------------------------------|-----------------------------------------------|
+| [Architecture Decision Records][adr]   | ADR process for documenting design decisions  |
+| [Requests for Comments][rfc]           | RFC process for proposing significant changes |
+
+[adr]: https://github.com/aaronmallen/farg/blob/main/docs/process/architecture-decision-record.md
+[rfc]: https://github.com/aaronmallen/farg/blob/main/docs/process/request-for-comment.md

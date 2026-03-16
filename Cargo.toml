@@ -6,7 +6,7 @@ edition = "2024"
 keywords = ["color", "colorimetry", "color-science"]
 license = "MIT"
 name = "farg"
-repository = "https://git.aaronmallen.dev/farg/farg"
+repository = "https://github.com/aaronmallen/farg"
 version = "0.4.4"
 
 [package.metadata.docs.rs]

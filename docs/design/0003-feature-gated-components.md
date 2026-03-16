@@ -11,7 +11,7 @@ superseded-by:
 
 ## Status
 
-![Active](https://img.shields.io/badge/Active-green?style=for-the-badge)
+![Active][active-badge]
 
 ## Summary
 
@@ -162,5 +162,9 @@ src/chromatic_adaptation_transform/
 
 ## References
 
-- [Cargo Features](https://doc.rust-lang.org/cargo/reference/features.html)
-- [Feature Flags Best Practices](https://docs.rs/about/features)
+- [Cargo Features][cargo-features]
+- [Feature Flags Best Practices][feature-flags-best-practices]
+
+[active-badge]: https://img.shields.io/badge/Active-green?style=for-the-badge
+[cargo-features]: https://doc.rust-lang.org/cargo/reference/features.html
+[feature-flags-best-practices]: https://docs.rs/about/features

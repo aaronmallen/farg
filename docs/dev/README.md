@@ -21,7 +21,7 @@ mise run format
 mise run lint
 ```
 
-Without mise, run scripts directly from `bin/`:
+Without mise, run scripts directly from `tasks/`:
 
 ```bash
 ./tasks/check
@@ -33,7 +33,7 @@ Without mise, run scripts directly from `bin/`:
 ## Development Workflow
 
 1. Create a branch for your changes
-2. Make your changes following the [code style guide](development/code-style.md)
+2. Make your changes following the [code style guide][code-style]
 3. Run `mise run check` to verify everything passes
 4. Submit a pull request
 
@@ -47,8 +47,23 @@ Without mise, run scripts directly from `bin/`:
 | Lint           | `mise run lint`       | Lint all files                 |
 | Audit          | `mise run audit`      | Check for vulnerabilities      |
 
+Filter tests: `mise run test -- --filter xyz`
+
+## Guides
+
+| Guide                      | Topics                                 |
+|----------------------------|----------------------------------------|
+| [Development Tasks][tasks] | Available commands and toolchain       |
+| [Code Style][code-style]   | Formatting, linting, code organization |
+| [Testing][testing]         | Test structure and conventions         |
+
 ## Documentation
 
-- [Development Guide](development/README.md) - Tasks, tooling, and conventions
-- [Design Documents](design/README.md) - Architecture decisions and design rationale
-- [Process Guide](process/README.md) - ADR and RFC workflows for proposing changes
+- [Design Documents][design] - Architecture decisions and design rationale
+- [Process Guide][process] - ADR and RFC workflows for proposing changes
+
+[code-style]: https://github.com/aaronmallen/farg/blob/main/docs/dev/code-style.md
+[design]: https://github.com/aaronmallen/farg/blob/main/docs/design/README.md
+[process]: https://github.com/aaronmallen/farg/blob/main/docs/process/README.md
+[tasks]: https://github.com/aaronmallen/farg/blob/main/docs/dev/tasks.md
+[testing]: https://github.com/aaronmallen/farg/blob/main/docs/dev/testing.md

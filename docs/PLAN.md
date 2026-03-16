@@ -71,7 +71,7 @@ Farg is a comprehensive Rust color library for web developers, designers, and co
   - [ ] Parsing — CSS color strings (HSL, HWB, Color Level 4)
 - [x] [12. Serialization (Serde)](#12-serialization-serde)
 - [ ] [13. Named Colors](#13-named-colors) — CSS named, X11, custom palettes
-- [ ] [14. Color Blindness Simulation](#14-color-blindness-simulation) — Dichromacy, Anomalous trichromacy
+- [x] [14. Color Blindness Simulation](#14-color-blindness-simulation) — Dichromacy, Anomalous trichromacy
 - [x] [15. Color Harmonies](#15-color-harmonies) — Complementary, Analogous, Triadic, Split-complementary,
   Tetradic, Monochromatic
 - [ ] [16. Blend Modes](#16-blend-modes) — SVG/CSS blend modes

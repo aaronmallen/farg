@@ -1,22 +1,16 @@
 # Code Style
 
-This document describes the formatting and organization conventions used in Farg. Most formatting is
-handled automatically by tools—you generally just need to run `mise run format` before committing.
+This document describes the formatting and organization conventions used in Fig. Most formatting is handled
+automatically by tools—you generally just need to run `mise run format` before committing.
 
-The code organization rules (module ordering, impl block ordering) are the main things to keep in mind
-when writing new code.
+The code organization rules (module ordering, impl block ordering) are the main things to keep in mind when writing new
+code.
 
 ## Running Formatters and Linters
 
 ```bash
 mise run format       # Format all files
-mise run format:rust  # Format Rust files only
 mise run lint         # Lint all files
-mise run lint:rust    # Lint Rust files only
-
-# Without mise:
-./tasks/format/rust
-./tasks/lint/rust
 ```
 
 ## Formatting Rules
@@ -49,14 +43,15 @@ Order items within a module by:
 2. **Type groups**: Each type definition (struct, enum, type alias) immediately followed by its `impl` blocks
 3. **Free functions**: Any standalone helper functions after all type groups
 
-Type groups are ordered **alphabetically** by type name. Each group consists of the type definition followed
-by all of its `impl` blocks (inherent impl first, then trait impls).
+Type groups are ordered **alphabetically** by type name, with **public types before private types** (each
+visibility group sorted alphabetically). Each group consists of the type definition followed by all of its
+`impl` blocks (inherent impl first, then trait impls).
 
 ```rust
 // 1. Constants
 const MAX_VALUE: f64 = 1.0;
 
-// 2. Type groups (alphabetical)
+// 2. Type groups (public first, then private — each group alphabetical)
 pub struct Alpha { }
 
 impl Alpha {
@@ -71,8 +66,36 @@ impl Beta {
     pub fn new() -> Self { }
 }
 
+struct InternalHelper { }
+
+impl InternalHelper { }
+
 // 3. Free functions
 fn helper() -> f64 { }
+```
+
+### Enum Variants
+
+Enum variants should be ordered **alphabetically**:
+
+```rust
+pub enum Color {
+    Blue,
+    Green,
+    Red,
+}
+```
+
+### Struct Fields
+
+Struct fields should be ordered **alphabetically**:
+
+```rust
+pub struct Config {
+    pub enabled: bool,
+    pub name: String,
+    pub timeout: Duration,
+}
 ```
 
 ### Impl Block Ordering
@@ -101,5 +124,7 @@ impl MyStruct {
 }
 ```
 
-In test modules, fall back to purely alphabetical ordering when the associated/method/public/private structure
-doesn't apply. See [testing](testing.md) for test-specific conventions.
+In test modules, fall back to purely alphabetical ordering when the associated/method/public/private structure doesn't
+apply. See [testing][testing] for test-specific conventions.
+
+[testing]: https://github.com/aaronmallen/farg/blob/main/docs/dev/testing.md

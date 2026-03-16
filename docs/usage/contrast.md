@@ -26,7 +26,7 @@ assert!(lc.meets_body_text_threshold()); // Lc >= 60
 
 ### WCAG 2.x (default)
 
-The [WCAG 2.2 contrast ratio](https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio) is the most widely
+The [WCAG 2.2 contrast ratio][wcag-contrast-ratio] is the most widely
 used accessibility metric. The ratio ranges from 1:1 (no contrast) to 21:1 (black on white) and is
 **order-independent** — swapping the two colors produces the same result.
 
@@ -61,7 +61,7 @@ use farg::contrast::wcag::{AA_NORMAL_TEXT, AA_LARGE_TEXT, AAA_NORMAL_TEXT, AAA_L
 
 ### APCA (default)
 
-The [APCA (Accessible Perceptual Contrast Algorithm)](https://github.com/Myndex/SAPC-APCA) is a
+The [APCA (Accessible Perceptual Contrast Algorithm)][apca] is a
 next-generation contrast metric designed to replace WCAG 2.x ratios. It returns **Lc (Lightness
 Contrast)** values that are polarity-aware:
 
@@ -105,7 +105,7 @@ lc.meets_very_large_text_threshold(); // very large text / non-text
 
 ### AERT
 
-The [W3C AERT brightness difference](https://www.w3.org/TR/AERT/#color-contrast) measures the
+The [W3C AERT brightness difference][aert] measures the
 absolute difference in BT.601 perceived brightness between two colors. Values range from 0
 (identical) to 255 (black vs white). The recommended minimum for accessible text is 125.
 
@@ -124,7 +124,7 @@ assert!(diff >= aert::RECOMMENDED_MINIMUM); // >= 125
 
 ### Michelson
 
-[Michelson contrast](https://en.wikipedia.org/wiki/Contrast_(vision)#Michelson_contrast) (also
+[Michelson contrast][michelson-wiki] (also
 called visibility or modulation contrast) is defined as `(L_max - L_min) / (L_max + L_min)`. Values
 range from 0.0 to 1.0. Originally developed for sinusoidal gratings, it is order-independent.
 
@@ -161,7 +161,7 @@ let contrast = rms::calculate(a, b);
 
 ### Weber
 
-[Weber contrast](https://en.wikipedia.org/wiki/Contrast_(vision)#Weber_contrast) measures the
+[Weber contrast][weber-wiki] measures the
 visibility of a target against a uniform background: `(L_target - L_background) / L_background`.
 The result is **signed** — positive when the target is brighter, negative when darker. Returns
 `f64::INFINITY` for a non-black target on a black background.
@@ -220,3 +220,9 @@ farg = { version = "0.4", features = ["contrast-michelson", "contrast-weber"] }
 [dependencies]
 farg = { version = "0.4", features = ["all-contrast"] }
 ```
+
+[aert]: https://www.w3.org/TR/AERT/#color-contrast
+[apca]: https://github.com/Myndex/SAPC-APCA
+[michelson-wiki]: https://en.wikipedia.org/wiki/Contrast_(vision)#Michelson_contrast
+[wcag-contrast-ratio]: https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio
+[weber-wiki]: https://en.wikipedia.org/wiki/Contrast_(vision)#Weber_contrast

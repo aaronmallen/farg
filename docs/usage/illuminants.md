@@ -92,8 +92,10 @@ use farg::Illuminant;
 let led = Illuminant::LED_B3; // Blue phosphor LED (4103 K)
 ```
 
-See the [Feature Flags](features.md) reference for the complete list of all 45 illuminants and their
+See the [Feature Flags][features] reference for the complete list of all 45 illuminants and their
 feature flags.
+
+[features]: https://github.com/aaronmallen/farg/blob/main/docs/usage/features.md
 
 ## Using Illuminants with ColorimetricContext
 

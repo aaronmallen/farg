@@ -11,7 +11,7 @@ superseded-by:
 
 ## Status
 
-![Active](https://img.shields.io/badge/Active-green?style=for-the-badge)
+![Active][active-badge]
 
 ## Summary
 
@@ -54,18 +54,18 @@ scope without premature categorization.
 
 Color space modules are organized into logical categories reflecting color science domains and use cases:
 
-| Category        | Description                                             | Example Spaces                              |
-|-----------------|---------------------------------------------------------|---------------------------------------------|
-| `cie`           | CIE-defined tristimulus spaces                          | XYZ, xyY, Lab, Luv, LCHab, LCHuv            |
-| `physiological` | Human visual system cone response models                | LMS                                         |
-| `rgb`           | RGB color spaces (display, broadcast, cinema, legacy)   | sRGB, Display P3, Adobe RGB, Rec. 2020, etc.|
-| `cylindrical`   | Cylindrical/polar RGB derivatives                       | HSL, HSV/HSB, HWB, HSI, HSLuv, HPLuv        |
-| `subtractive`   | Subtractive/print color models                          | CMY, CMYK                                   |
-| `perceptual`    | Perceptually uniform spaces (future)                    | Oklab, Oklch, Okhsl, Okhsv, JzAzBz, etc.    |
-| `appearance`    | Color appearance models (future)                        | CIECAM02, CAM16, CAM16-UCS, HCT, ZCAM       |
-| `hdr`           | HDR/scene-referred spaces (future)                      | ICtCp (PQ/HLG variants)                     |
-| `industrial`    | Industry-specific spaces (future)                       | Hunter Lab, DIN99, DIN99o, OSA-UCS, IPT     |
-| `video`         | Video/broadcast luma-chroma spaces (future)             | YCbCr, YPbPr, YCoCg, YUV, YIQ, YDbDr        |
+| Category        | Description                                           | Example Spaces                               |
+|-----------------|-------------------------------------------------------|----------------------------------------------|
+| `cie`           | CIE-defined tristimulus spaces                        | XYZ, xyY, Lab, Luv, LCHab, LCHuv             |
+| `physiological` | Human visual system cone response models              | LMS                                          |
+| `rgb`           | RGB color spaces (display, broadcast, cinema, legacy) | sRGB, Display P3, Adobe RGB, Rec. 2020, etc. |
+| `cylindrical`   | Cylindrical/polar RGB derivatives                     | HSL, HSV/HSB, HWB, HSI, HSLuv, HPLuv         |
+| `subtractive`   | Subtractive/print color models                        | CMY, CMYK                                    |
+| `perceptual`    | Perceptually uniform spaces (future)                  | Oklab, Oklch, Okhsl, Okhsv, JzAzBz, etc.     |
+| `appearance`    | Color appearance models (future)                      | CIECAM02, CAM16, CAM16-UCS, HCT, ZCAM        |
+| `hdr`           | HDR/scene-referred spaces (future)                    | ICtCp (PQ/HLG variants)                      |
+| `industrial`    | Industry-specific spaces (future)                     | Hunter Lab, DIN99, DIN99o, OSA-UCS, IPT      |
+| `video`         | Video/broadcast luma-chroma spaces (future)           | YCbCr, YPbPr, YCoCg, YUV, YIQ, YDbDr         |
 
 ### Rationale for Categories
 
@@ -357,3 +357,5 @@ This would aid discoverability without duplicating implementation.
 - ADR-0003: Feature-Gated Components (establishes `space-*` feature flag pattern)
 - ADR-0006: RGB Color Space Architecture (establishes existing RGB module structure)
 - `docs/PLAN.md` - Lists all 70+ planned color spaces
+
+[active-badge]: https://img.shields.io/badge/Active-green?style=for-the-badge

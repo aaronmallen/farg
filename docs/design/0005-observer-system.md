@@ -11,7 +11,7 @@ superseded-by:
 
 ## Status
 
-![Active](https://img.shields.io/badge/Active-green?style=for-the-badge)
+![Active][active-badge]
 
 ## Summary
 
@@ -210,11 +210,14 @@ determined. Key considerations include:
 
 ## References
 
-- [CIE 015:2018 - Colorimetry](https://cie.co.at/publications/colorimetry-4th-edition)
+- [CIE 015:2018 - Colorimetry][cie-015]
 - [CIE 170-1:2006 - Fundamental Chromaticity Diagram][cie-170-1]
-- [Stockman & Sharpe (2000) - Cone Fundamentals](https://www.cvrl.org/)
+- [Stockman & Sharpe (2000) - Cone Fundamentals][cvrl]
 - Fairchild, M.D. (2013). *Color Appearance Models*, 3rd ed. Wiley.
 - ADR-0002: Feature-Gated Components
 - ADR-0004: Spectral Data Architecture
 
+[active-badge]: https://img.shields.io/badge/Active-green?style=for-the-badge
+[cie-015]: https://cie.co.at/publications/colorimetry-4th-edition
 [cie-170-1]: https://cie.co.at/publications/fundamental-chromaticity-diagram-physiological-axes-part-1
+[cvrl]: https://www.cvrl.org/

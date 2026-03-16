@@ -4,7 +4,7 @@
 
 1. Create a new file in `docs/design/` with the next available ID (e.g., `0001-my-decision.md`)
 2. Fill in all sections using the template below
-3. Add an entry to the [ADR index](../design/README.md)
+3. Add an entry to the [ADR index][adr-index]
 4. Submit as part of your pull request
 
 ## When to Write an ADR
@@ -30,9 +30,9 @@ Each ADR describes:
 
 |                                                        Status                                                        | Meaning                                                |
 |:--------------------------------------------------------------------------------------------------------------------:|--------------------------------------------------------|
-|                       ![Active](https://img.shields.io/badge/Active-green?style=for-the-badge)                       | Currently enforced                                     |
-| ![Superseded](https://img.shields.io/badge/XXXX--Title-black?style=for-the-badge&label=Superseded&labelColor=orange) | Replaced by another ADR (update `superseded-by` field) |
-|                    ![Deprecated](https://img.shields.io/badge/Deprecated-red?style=for-the-badge)                    | No longer followed, kept for historical reference      |
+|                                               ![Active][active-badge]                                                | Currently enforced                                     |
+|                                           ![Superseded][superseded-badge]                                            | Replaced by another ADR (update `superseded-by` field) |
+|                                           ![Deprecated][deprecated-badge]                                            | No longer followed, kept for historical reference      |
 
 ## Template
 
@@ -91,3 +91,8 @@ Things explicitly out of scope, for future ADRs.
 
 - Related ADRs, discussions, external resources
 ```
+
+[active-badge]: https://img.shields.io/badge/Active-green?style=for-the-badge
+[adr-index]: https://github.com/aaronmallen/farg/blob/main/docs/design/README.md
+[deprecated-badge]: https://img.shields.io/badge/Deprecated-red?style=for-the-badge
+[superseded-badge]: https://img.shields.io/badge/XXXX--Title-black?style=for-the-badge&label=Superseded&labelColor=orange

@@ -11,7 +11,7 @@ superseded-by:
 
 ## Status
 
-![Active](https://img.shields.io/badge/Active-green?style=for-the-badge)
+![Active][active-badge]
 
 ## Summary
 
@@ -204,4 +204,7 @@ not const-stable, which would prevent const construction of colors with hue comp
 
 ## References
 
-- [IEEE 754 Double Precision](https://en.wikipedia.org/wiki/Double-precision_floating-point_format)
+- [IEEE 754 Double Precision][ieee-754]
+
+[active-badge]: https://img.shields.io/badge/Active-green?style=for-the-badge
+[ieee-754]: https://en.wikipedia.org/wiki/Double-precision_floating-point_format

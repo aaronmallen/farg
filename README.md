@@ -322,8 +322,8 @@ sRGB, XYZ, and LMS are always available.
 | `serde`            | Serialize and deserialize all color spaces via Serde                                 |
 
 Individual features follow the pattern `{category}-{name}`, e.g., `space-oklab`, `cat-bradford`, `illuminant-d50`,
-`rgb-display-p3`. See the [Feature Flags Reference](docs/usage/features.md) for every flag with descriptions
-and dependencies.
+`rgb-display-p3`. See the [Feature Flags Reference][features] for every flag with descriptions and
+dependencies.
 
 Enable everything:
 
@@ -341,22 +341,39 @@ farg = { version = "0.4", features = ["space-oklab", "space-lab", "all-illuminan
 
 ## Documentation
 
-- [API Documentation](https://docs.rs/farg)
-- [Usage Guide](docs/usage/README.md)
-  - [Chromatic Adaptation](docs/usage/cats.md) -- CATs for adapting colors between illuminants
-  - [Color Conversions](docs/usage/conversions.md) -- Converting between color spaces
-  - [Color Distance](docs/usage/distance.md) -- Measuring distance between colors
-  - [Color Harmonies](docs/usage/harmonies.md) -- Generating harmonious color palettes
-  - [Color Vision Deficiency](docs/usage/cvd.md) -- Simulating color blindness
-  - [Color Mixing](docs/usage/mixing.md) -- Interpolating colors and generating gradients
-  - [Contrast](docs/usage/contrast.md) -- Measuring contrast between colors
-  - [Correlated Color Temperature](docs/usage/cct.md) -- Estimating CCT
-  - [Illuminants](docs/usage/illuminants.md) -- Standard, custom, and contextual illuminants
-  - [Observers](docs/usage/observers.md) -- Standard, custom, and modified observers
-  - [Feature Flags](docs/usage/features.md) -- All feature flags, dependencies, and defaults
-- [Project Plan](docs/PLAN.md)
-- [Contributing Guide](docs/CONTRIBUTING.md)
+- [API Documentation][api-docs]
+- [Usage Guide][usage]
+  - [Chromatic Adaptation][cats] -- CATs for adapting colors between illuminants
+  - [Color Conversions][conversions] -- Converting between color spaces
+  - [Color Distance][distance] -- Measuring distance between colors
+  - [Color Harmonies][harmonies] -- Generating harmonious color palettes
+  - [Color Vision Deficiency][cvd] -- Simulating color blindness
+  - [Color Mixing][mixing] -- Interpolating colors and generating gradients
+  - [Contrast][contrast] -- Measuring contrast between colors
+  - [Correlated Color Temperature][cct] -- Estimating CCT
+  - [Illuminants][illuminants] -- Standard, custom, and contextual illuminants
+  - [Observers][observers] -- Standard, custom, and modified observers
+  - [Feature Flags][features] -- All feature flags, dependencies, and defaults
+- [Project Plan][plan]
+- [Contributing Guide][contributing]
 
 ## License
 
-Licensed under the MIT License. See [LICENSE](LICENSE) for details.
+Licensed under the MIT License. See [LICENSE][license] for details.
+
+[cats]: https://github.com/aaronmallen/farg/blob/main/docs/usage/cats.md
+[cct]: https://github.com/aaronmallen/farg/blob/main/docs/usage/cct.md
+[contributing]: https://github.com/aaronmallen/farg/blob/main/docs/dev/README.md
+[contrast]: https://github.com/aaronmallen/farg/blob/main/docs/usage/contrast.md
+[conversions]: https://github.com/aaronmallen/farg/blob/main/docs/usage/conversions.md
+[cvd]: https://github.com/aaronmallen/farg/blob/main/docs/usage/cvd.md
+[distance]: https://github.com/aaronmallen/farg/blob/main/docs/usage/distance.md
+[features]: https://github.com/aaronmallen/farg/blob/main/docs/usage/features.md
+[harmonies]: https://github.com/aaronmallen/farg/blob/main/docs/usage/harmonies.md
+[illuminants]: https://github.com/aaronmallen/farg/blob/main/docs/usage/illuminants.md
+[license]: https://github.com/aaronmallen/farg/blob/main/LICENSE
+[mixing]: https://github.com/aaronmallen/farg/blob/main/docs/usage/mixing.md
+[observers]: https://github.com/aaronmallen/farg/blob/main/docs/usage/observers.md
+[plan]: https://github.com/aaronmallen/farg/blob/main/docs/PLAN.md
+[api-docs]: https://docs.rs/farg
+[usage]: https://github.com/aaronmallen/farg/blob/main/docs/usage/README.md

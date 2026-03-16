@@ -1,6 +1,6 @@
 # Development Tasks
 
-This project uses [mise](https://mise.jdx.dev/) to manage development tools and run common tasks. Mise
+This project uses [mise][mise] to manage development tools and run common tasks. Mise
 ensures everyone uses the same tool versions and provides convenient commands for formatting, linting,
 testing, and more.
 
@@ -145,3 +145,5 @@ Tools managed by mise (see `.config/mise.toml`):
 - **cargo-nextest** - Test runner
 - **cargo-outdated** - Dependency freshness checking
 - **cargo-sort** - Cargo.toml sorting
+
+[mise]: https://mise.jdx.dev/

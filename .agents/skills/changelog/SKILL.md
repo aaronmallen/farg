@@ -21,7 +21,7 @@ Recent changes to document:
 
 ## Task
 
-Update `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
+Update `CHANGELOG.md` following [Keep a Changelog][keep-a-changelog] format.
 
 ### Format Rules
 
@@ -46,6 +46,8 @@ Update `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en
 - Focus on user-facing changes, not implementation details
 - Combine related commits into single entries when appropriate
 - Order entries by importance within each section
+
+[keep-a-changelog]: https://keepachangelog.com/en/1.1.0/
 
 ### Example Entry
 

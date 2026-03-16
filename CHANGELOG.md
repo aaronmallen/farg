@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Break Versioning](https://www.taoensso.com/break-versioning).
+The format is based on [Keep a Changelog][keep-a-changelog],
+and this project adheres to [Break Versioning][break-versioning].
 
 ## [Unreleased]
 
@@ -189,12 +189,14 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 Initial release
 
-[unreleased]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.4...main
-[v0.1.1]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.0..0.1.1
-[v0.2.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.1.1..0.2.0
-[v0.3.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.2.0..0.3.0
-[v0.4.0]: https://git.aaronmallen.dev/farg/farg/-/compare/0.3.0..0.4.0
-[v0.4.1]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.0..0.4.1
-[v0.4.2]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.1..0.4.2
-[v0.4.3]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.2..0.4.3
-[v0.4.4]: https://git.aaronmallen.dev/farg/farg/-/compare/0.4.3..0.4.4
+[break-versioning]: https://www.taoensso.com/break-versioning
+[keep-a-changelog]: https://keepachangelog.com/en/1.1.0/
+[unreleased]: https://github.com/aaronmallen/farg/compare/0.4.4...main
+[v0.1.1]: https://github.com/aaronmallen/farg/compare/0.1.0...0.1.1
+[v0.2.0]: https://github.com/aaronmallen/farg/compare/0.1.1...0.2.0
+[v0.3.0]: https://github.com/aaronmallen/farg/compare/0.2.0...0.3.0
+[v0.4.0]: https://github.com/aaronmallen/farg/compare/0.3.0...0.4.0
+[v0.4.1]: https://github.com/aaronmallen/farg/compare/0.4.0...0.4.1
+[v0.4.2]: https://github.com/aaronmallen/farg/compare/0.4.1...0.4.2
+[v0.4.3]: https://github.com/aaronmallen/farg/compare/0.4.2...0.4.3
+[v0.4.4]: https://github.com/aaronmallen/farg/compare/0.4.3...0.4.4

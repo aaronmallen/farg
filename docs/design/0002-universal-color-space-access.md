@@ -11,7 +11,7 @@ superseded-by:
 
 ## Status
 
-![Active](https://img.shields.io/badge/Active-green?style=for-the-badge)
+![Active][active-badge]
 
 ## Summary
 
@@ -386,5 +386,9 @@ Rejected because:
 ## References
 
 - ADR-0001: Component Precision (establishes `Component` type used in accessors)
-- [CIE XYZ Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space) (universal interchange format)
-- [Oklab and Oklch](https://bottosson.github.io/posts/oklab/) (perceptual color spaces)
+- [CIE XYZ Color Space][cie-xyz-wiki] (universal interchange format)
+- [Oklab and Oklch][oklab] (perceptual color spaces)
+
+[active-badge]: https://img.shields.io/badge/Active-green?style=for-the-badge
+[cie-xyz-wiki]: https://en.wikipedia.org/wiki/CIE_1931_color_space
+[oklab]: https://bottosson.github.io/posts/oklab/

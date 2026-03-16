@@ -63,8 +63,10 @@ mod test {
 
 **Naming:** Test functions use the pattern `it_<does_something>`. Module names match the method being tested.
 
-**Ordering:** Test modules follow [code style](code-style.md) ordering - associated functions first (alphabetically),
-then methods (alphabetically).
+**Ordering:** Test modules follow [code style][code-style] ordering - associated functions first
+(alphabetically), then methods (alphabetically).
+
+[code-style]: https://github.com/aaronmallen/farg/blob/main/docs/dev/code-style.md
 
 **Test body structure:** Separate setup from assertions with a blank line. For tests with multiple assertion groups,
 separate each group with a blank line:
